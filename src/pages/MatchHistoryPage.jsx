@@ -571,13 +571,13 @@ function MatchHistoryPage() {
                                                 <img src={playerRoleIcon} alt={match.teamPosition} className="absolute -bottom-1 -left-1 w-4 h-4 p-0.5 bg-gray-950 rounded-full border border-gray-500 shadow-sm" /> // w-4 h-4
                                             }
                                         </div>
-                                        <div className="text-gray-500 text-sm font-light self-center px-0.5">vs</div> {/* text-sm */}
+                                        <div className="text-gray-400 text-sm font-light self-center px-0.5">vs</div> {/* text-sm */}
                                         <div className="relative">
                                             {match.opponentChampionName ? (
                                                 <img 
                                                     src={getChampionImage(match.opponentChampionName)} 
                                                     alt={getChampionDisplayName(match.opponentChampionName)} 
-                                                    className="w-12 h-12 rounded-md border border-gray-700 opacity-70 group-hover:opacity-100 transition-opacity shadow-md" // w-12 h-12
+                                                    className="w-12 h-12 rounded-md border-2 border-gray-700 opacity-90 shadow-md" // w-12 h-12
                                                     onError={(e) => { (e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.opponentChampionName ? match.opponentChampionName.substring(0,1) : '?'}`); }}
                                                 />
                                             ) : (
@@ -602,11 +602,11 @@ function MatchHistoryPage() {
                                                 </div>
                                             </div>
                                             <div className="flex flex-col space-y-0.5"> {/* space-y-0.5 */}
-                                                <div className="w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center border border-gray-600/50 p-px"> {/* w-6 h-6 */}
-                                                    {primaryRuneImg ? <img src={primaryRuneImg} alt="Primary Rune" className="w-4 h-4 rounded-full" style={{ imageRendering: 'pixelated' }} /> : <div className="w-4 h-4 rounded-full bg-gray-700"></div>} {/* w-4 h-4 */}
+                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px"> {/* w-6 h-6 */}
+                                                    {primaryRuneImg ? <img src={primaryRuneImg} alt="Primary Rune" className="w-5 h-5 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>} {/* w-4 h-4 */}
                                                 </div>
-                                                <div className="w-6 h-6 bg-gray-800 rounded-full flex items-center justify-center border border-gray-600/50 p-px"> {/* w-6 h-6 */}
-                                                    {subStyleImg ? <img src={subStyleImg} alt="Sub Rune Style" className="w-4 h-4 rounded-full" style={{ imageRendering: 'pixelated' }} /> : <div className="w-4 h-4 rounded-full bg-gray-700"></div>} {/* w-4 h-4 */}
+                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px"> {/* w-6 h-6 */}
+                                                    {subStyleImg ? <img src={subStyleImg} alt="Sub Rune Style" className="w-4 h-4 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>} {/* w-4 h-4 */}
                                                 </div>
                                             </div>
                                         </div>
@@ -645,13 +645,13 @@ function MatchHistoryPage() {
                                     <div className="flex items-center ml-auto pl-0.5"> {/* pl-0.5 */}
                                         <button 
                                             onClick={() => handleOpenNotes(match)}
-                                            className={`p-1 rounded-md transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center mr-2.5 w-auto h-auto
+                                            className={`p-1.5 rounded-md transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center mr-2.5 w-auto h-auto
                                                         ${hasNotesOrGoals 
                                                             ? 'bg-sky-600 hover:bg-sky-500 text-white' 
                                                             : 'bg-orange-600 hover:bg-orange-500 text-white'}`} // p-1, mr-2.5, h-auto
                                             title={hasNotesOrGoals ? "Zobacz/Edytuj Notatki" : "Dodaj Notatki"}
                                         >
-                                            {hasNotesOrGoals ? <MessageSquare size={14} /> : <Edit size={14} />}
+                                            {hasNotesOrGoals ? <MessageSquare size={14} /> : <Edit size={18} />}
                                         </button>
                                     </div>
                                 </div> 
