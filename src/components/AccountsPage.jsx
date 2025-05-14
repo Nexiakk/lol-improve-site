@@ -212,7 +212,7 @@ function AccountsPage() {
   return (
     // Updated main container with new background and style object
     <div 
-      className="w-full min-h-screen bg-gray-900 text-gray-200 flex flex-col items-center p-4 sm:p-6 md:p-8 font-sans"
+      className="w-full min-h-screen bg-gray-900 text-gray-200 flex flex-col items-center p-4 sm:p-6 md:p-8"
       style={backgroundStyle}
     >
       {/* Reduced max-width for the main content wrapper */}

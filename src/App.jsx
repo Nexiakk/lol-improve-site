@@ -45,7 +45,7 @@ function App() {
 
   return (
     // Main container uses flex-col for top navbar layout
-    <div className="flex flex-col min-h-screen font-sans bg-gray-900" style={backgroundStyle}>
+    <div className="flex flex-col min-h-screen bg-gray-900" style={backgroundStyle}>
       {/* TopNavbar is rendered here */}
       <TopNavbar currentView={currentView} setCurrentView={setCurrentView} />
       

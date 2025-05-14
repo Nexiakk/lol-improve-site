@@ -399,11 +399,11 @@ function MatchHistoryPage() {
     if (!p || typeof p.kills === 'undefined') return <span className="text-gray-300">N/A</span>;
     return (
         <>
-            <span className="text-gray-100 font-plus-jakarta-sans">{p.kills}</span> {/* Zakładana klasa dla czcionki */}
-            <span className="text-gray-500 font-plus-jakarta-sans"> / </span>
-            <span className="text-red-400 font-plus-jakarta-sans">{p.deaths}</span>
-            <span className="text-gray-500 font-plus-jakarta-sans"> / </span>
-            <span className="text-gray-100 font-plus-jakarta-sans">{p.assists}</span>
+            <span className="text-gray-100">{p.kills}</span> {/* Zakładana klasa dla czcionki */}
+            <span className="text-gray-500"> / </span>
+            <span className="text-red-400">{p.deaths}</span>
+            <span className="text-gray-500"> / </span>
+            <span className="text-gray-100">{p.assists}</span>
         </>
     );
   };
@@ -507,7 +507,7 @@ function MatchHistoryPage() {
               <div className="space-y-3 max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pb-8"> 
                 {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
                   <div key={dateKey}>
-                    <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-1.5 border-b border-gray-700/80 font-plus-jakarta-sans"> {/* Zmniejszono rozmiar czcionki nagłówka daty */}
+                    <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-1.5 border-b border-gray-700/80"> {/* Zmniejszono rozmiar czcionki nagłówka daty */}
                         {dateKey}
                     </h2>
                     <div className="space-y-3"> 
@@ -548,13 +548,13 @@ function MatchHistoryPage() {
                                 <div className="flex flex-1 items-stretch p-3"> {/* Zmniejszono padding do p-3 */}
                                     {/* Section 1: Left Info - ZAKTUALIZOWANO szerokość i marginesy */}
                                     <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5"> {/* w-40, mr-2 */}
-                                        <p className={`text-md font-plus-jakarta-sans font-semibold text-gray-50`}>{gameModeDisplay}</p> {/* text-md, text-gray-50 (najjaśniejszy) */}
+                                        <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p> {/* text-md, text-gray-50 (najjaśniejszy) */}
                                         <div className="flex justify-start items-baseline w-full text-xs"> {/* text-xs */}
                                             <span className="text-gray-200 mr-2.5">{gameDurationFormatted}</span> {/* text-gray-200, mr-2.5 */}
                                             <span className="text-gray-400">{timeAgo(match.gameCreation.seconds)}</span> {/* text-gray-400 */}
                                         </div>
                                         <div className="text-xs text-gray-400 truncate w-full pt-0.5" title={`${match.trackedAccountName} (${match.trackedAccountPlatform?.toUpperCase()})`}>  {/* text-gray-400 */}
-                                            <span className="truncate font-plus-jakarta-sans">{match.trackedAccountName}</span>
+                                            <span className="truncate">{match.trackedAccountName}</span>
                                         </div>
                                     </div>
 
@@ -636,22 +636,22 @@ function MatchHistoryPage() {
 
                                     {/* Section 4: KDA & CS Stats - ZAKTUALIZOWANO min-w */}
                                     <div className="flex flex-col justify-center flex-grow min-w-[100px] space-y-0.5"> {/* min-w-[100px], space-y-0.5 */}
-                                        <p className="font-semibold text-sm font-plus-jakarta-sans">{kdaStringSpans}</p> {/* text-sm */}
-                                        <p className={`text-xs ${kdaColorClass} font-plus-jakarta-sans`}>{kdaRatio} KDA</p>
-                                        <p className="text-gray-300 text-xs mt-0.5 font-plus-jakarta-sans">{csString}</p>
+                                        <p className="font-semibold text-sm">{kdaStringSpans}</p> {/* text-sm */}
+                                        <p className={`text-xs ${kdaColorClass}`}>{kdaRatio} KDA</p>
+                                        <p className="text-gray-300 text-xs mt-0.5">{csString}</p>
                                     </div>
                                     
                                     {/* Section 5: Przycisk Notatek - ZAKTUALIZOWANO padding, margines i rozmiar ikony */}
-                                    <div className="flex items-center ml-auto pl-1"> {/* pl-1 */}
+                                    <div className="flex items-center ml-auto pl-0.5"> {/* pl-0.5 */}
                                         <button 
                                             onClick={() => handleOpenNotes(match)}
-                                            className={`py-1 px-2 rounded-md transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center mr-2 w-auto
+                                            className={`p-1 rounded-md transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center mr-2.5 w-auto h-auto
                                                         ${hasNotesOrGoals 
                                                             ? 'bg-sky-600 hover:bg-sky-500 text-white' 
-                                                            : 'bg-orange-600 hover:bg-orange-500 text-white'}`} // py-1 px-2, mr-2, w-auto
+                                                            : 'bg-orange-600 hover:bg-orange-500 text-white'}`} // p-1, mr-2.5, h-auto
                                             title={hasNotesOrGoals ? "Zobacz/Edytuj Notatki" : "Dodaj Notatki"}
                                         >
-                                            {hasNotesOrGoals ? <MessageSquare size={14} /> : <Edit size={14} />} {/* size-14 */}
+                                            {hasNotesOrGoals ? <MessageSquare size={14} /> : <Edit size={14} />}
                                         </button>
                                     </div>
                                 </div> 
