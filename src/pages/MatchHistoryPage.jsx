@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, doc, getDoc, setDoc, Timestamp, query, orderBy, limit, updateDoc } from 'firebase/firestore';
-import { Loader2, AlertTriangle, ListChecks, MessageSquare, RefreshCw, ImageOff, Globe, Edit, ChevronDown } from 'lucide-react'; 
+import { Loader2, AlertTriangle, ListChecks, MessageSquare, RefreshCw, ImageOff, Globe, Edit, ChevronDown, Star, TrendingUp, TrendingDown, ShieldCheck, Swords, Skull, Coins, Gamepad2 } from 'lucide-react'; 
 import MatchNotesPanel from '../components/MatchNotesPanel'; 
 import PaginationControls from '../components/PaginationControls';
 
@@ -14,23 +14,26 @@ import bottomIcon from '../assets/bottom_icon.svg';
 import supportIcon from '../assets/support_icon.svg';
 
 const RIOT_API_KEY = import.meta.env.VITE_RIOT_API_KEY;
-const RANKED_SOLO_QUEUE_ID = 420;
+const RANKED_SOLO_QUEUE_ID = 420; // Used to identify Ranked Solo/Duo games
 const MATCH_COUNT_PER_FETCH = 20; 
 const MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE = 10; 
 const API_CALL_DELAY_MS = 1250;
 const MATCHES_PER_PAGE = 15; 
 
+// Helper function to determine the continental route for Riot API calls based on platformId
 const getContinentalRoute = (platformId) => {
-  if (!platformId) return 'europe';
+  if (!platformId) return 'europe'; // Default to Europe
   const lowerPlatformId = platformId.toLowerCase();
   if (['eun1', 'euw1', 'tr1', 'ru'].includes(lowerPlatformId)) return 'europe';
   if (['na1', 'br1', 'la1', 'la2', 'oc1'].includes(lowerPlatformId)) return 'americas';
   if (['kr', 'jp1'].includes(lowerPlatformId)) return 'asia';
-  return 'europe';
+  return 'europe'; // Fallback
 };
 
+// Utility function to introduce a delay, useful for rate limiting API calls
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Formats a Unix timestamp (in seconds) into a human-readable "time ago" string
 function timeAgo(timestampSeconds) {
   if (!timestampSeconds) return '';
   const date = new Date(timestampSeconds * 1000);
@@ -46,6 +49,7 @@ function timeAgo(timestampSeconds) {
   return `${days}d ago`;
 }
 
+// Formats game duration from seconds to a "Xm Ys" string
 function formatGameDuration(durationSeconds) {
     if (typeof durationSeconds !== 'number') return 'N/A';
     const minutes = Math.floor(durationSeconds / 60);
@@ -53,35 +57,61 @@ function formatGameDuration(durationSeconds) {
     return `${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`;
 }
 
+// Helper function to format game mode display string
+const formatGameMode = (gameMode, queueId) => {
+    if (!gameMode) return 'Unknown Mode';
+    if (gameMode === 'CLASSIC' && queueId === RANKED_SOLO_QUEUE_ID) return 'Ranked Solo';
+    if (gameMode === 'CLASSIC' && queueId === 440) return 'Ranked Flex'; // Example for Flex
+    if (gameMode === 'ARAM') return 'ARAM';
+    if (gameMode === 'URF') return 'URF';
+    // Add more specific game modes as needed
+    // Fallback to a generic capitalized format
+    return gameMode.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+};
+
+
+// Mapping of team positions (roles) to their respective icon images
 const ROLE_ICON_MAP = {
     TOP: topIcon, JUNGLE: jungleIcon, MIDDLE: middleIcon,
     BOTTOM: bottomIcon, UTILITY: supportIcon 
 };
 
 function MatchHistoryPage() {
+  // State for tracked accounts
   const [trackedAccounts, setTrackedAccounts] = useState([]);
+  // State for all matches fetched from the database
   const [allMatchesFromDb, setAllMatchesFromDb] = useState([]); 
+  // State for matches grouped by date for display
   const [groupedMatches, setGroupedMatches] = useState({}); 
+  // State for the match currently selected for viewing/editing notes
   const [selectedMatchForNotes, setSelectedMatchForNotes] = useState(null); 
   
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1); 
   const [totalPages, setTotalPages] = useState(0);   
 
+  // Loading states
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false); 
   const [isUpdatingAllMatches, setIsUpdatingAllMatches] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  // State for displaying progress during match updates
   const [updateProgress, setUpdateProgress] = useState('');
   
+  // Error handling state
   const [error, setError] = useState('');
+  // DDragon (League's static data CDN) states
   const [ddragonVersion, setDdragonVersion] = useState('');
   const [summonerSpellsMap, setSummonerSpellsMap] = useState({});
   const [runesMap, setRunesMap] = useState({});
   const [championData, setChampionData] = useState(null); 
 
+  // Ref for the container of the match list, used for scrolling
   const matchListContainerRef = useRef(null); 
+  // Ref to store the previous page number, to detect actual page changes
   const prevPageRef = useRef(currentPage); 
 
+  // Effect to fetch DDragon static data (versions, spells, runes, champions) on component mount
   useEffect(() => {
     if (!RIOT_API_KEY) setError("Configuration Error: Riot API Key is missing.");
     fetch('https://ddragon.leagueoflegends.com/api/versions.json')
@@ -90,6 +120,7 @@ function MatchHistoryPage() {
         if (versions && versions.length > 0) {
           const latestVersion = versions[0];
           setDdragonVersion(latestVersion);
+          // Fetch summoner spells, runes, and champion data in parallel
           const staticDataFetches = [
             fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/summoner.json`).then(res => res.json()),
             fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/runesReforged.json`).then(res => res.json()),
@@ -118,8 +149,10 @@ function MatchHistoryPage() {
       }).catch(err => console.error("Failed to fetch DDragon versions:", err));
   }, []);
 
+  // Memoized reference to the Firestore collection for tracked accounts
   const accountsCollectionRef = useMemo(() => db ? collection(db, "trackedAccounts") : null, []);
 
+  // Callback to fetch tracked accounts from Firestore
   const fetchTrackedAccounts = useCallback(async () => {
     if (!accountsCollectionRef) { setError("Firestore not available."); setIsLoadingAccounts(false); return; }
     setIsLoadingAccounts(true);
@@ -130,8 +163,10 @@ function MatchHistoryPage() {
     } finally { setIsLoadingAccounts(false); }
   }, [accountsCollectionRef]);
 
+  // Effect to fetch tracked accounts when the component mounts or the collection ref changes
   useEffect(() => { fetchTrackedAccounts(); }, [fetchTrackedAccounts]);
 
+  // Callback to fetch all matches for all tracked accounts from the database
   const fetchAllMatchesFromDb = useCallback(async () => {
     if (trackedAccounts.length === 0 || !db) { 
       setAllMatchesFromDb([]); 
@@ -145,25 +180,28 @@ function MatchHistoryPage() {
     try {
       for (const account of trackedAccounts) {
         const matchesSubCollectionRef = collection(db, "trackedAccounts", account.id, "matches");
+        // Query for matches, ordered by game creation time (descending), limited to 100 per account for performance
         const q = query(matchesSubCollectionRef, orderBy("gameCreation", "desc"), limit(100)); 
         const querySnapshot = await getDocs(q);
         const accountMatches = querySnapshot.docs.map(docData => ({ 
             id: docData.id, ...docData.data(),
-            trackedAccountDocId: account.id, 
+            trackedAccountDocId: account.id, // Store parent document ID for easier updates
             trackedAccountName: `${account.name}#${account.tag}`, 
             trackedAccountPlatform: account.platformId 
         }));
         combinedMatches = [...combinedMatches, ...accountMatches];
       }
+      // Sort all combined matches by game creation time
       combinedMatches.sort((a, b) => (b.gameCreation?.seconds || 0) - (a.gameCreation?.seconds || 0));
       setAllMatchesFromDb(combinedMatches);
       setTotalPages(Math.ceil(combinedMatches.length / MATCHES_PER_PAGE));
-      setCurrentPage(1); 
-      prevPageRef.current = 1; 
+      setCurrentPage(1); // Reset to first page after fetching all matches
+      prevPageRef.current = 1; // Reset prevPageRef as well
     } catch (err) { console.error(`Error fetching stored matches:`, err); setError(`Failed to load stored matches.`);
     } finally { setIsLoadingMatches(false); }
   }, [trackedAccounts]); 
 
+  // Effect to fetch all matches when tracked accounts change
   useEffect(() => {
     if (trackedAccounts.length > 0) {
         fetchAllMatchesFromDb(); 
@@ -174,16 +212,18 @@ function MatchHistoryPage() {
     }
   }, [trackedAccounts, fetchAllMatchesFromDb]);
 
-  // Effect to update groupedMatches when currentPage or allMatchesFromDb changes
+  // Effect to update groupedMatches for display when currentPage or allMatchesFromDb changes
   useEffect(() => {
     if (allMatchesFromDb.length === 0) {
       setGroupedMatches({});
       return;
     }
+    // Calculate start and end index for the current page
     const startIndex = (currentPage - 1) * MATCHES_PER_PAGE;
     const endIndex = startIndex + MATCHES_PER_PAGE;
     const matchesForCurrentPage = allMatchesFromDb.slice(startIndex, endIndex);
 
+    // Group matches by date (Today, Yesterday, or specific date)
     const groups = matchesForCurrentPage.reduce((acc, match) => {
       if (!match.gameCreation || !match.gameCreation.seconds) return acc;
       const dateObj = new Date(match.gameCreation.seconds * 1000);
@@ -196,23 +236,26 @@ function MatchHistoryPage() {
     setGroupedMatches(groups);
   }, [currentPage, allMatchesFromDb]);
 
-  // Dedicated Effect for scrolling to top when currentPage changes
+  // Effect for scrolling to top when currentPage changes or notes panel visibility changes
   useEffect(() => {
-    if (prevPageRef.current !== currentPage) { 
+    const pageActuallyChanged = prevPageRef.current !== currentPage;
+    // Always update prevPageRef to the current page for the next comparison.
+    prevPageRef.current = currentPage; 
+
+    if (pageActuallyChanged) {
       if (matchListContainerRef.current) {
-        // Using setTimeout to defer the scroll, allowing DOM to update
         setTimeout(() => {
-          if (matchListContainerRef.current) { // Double-check ref inside timeout
-            matchListContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          if (matchListContainerRef.current) { 
+            if (matchListContainerRef.current.scrollHeight > matchListContainerRef.current.clientHeight) {
+              matchListContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }
           }
-        }, 0);
+        }, 0); 
       }
     }
-    // Update prevPageRef *after* the check and potential scroll logic
-    prevPageRef.current = currentPage; 
-  }, [currentPage, groupedMatches]); // Also depend on groupedMatches to ensure content is ready
+  }, [currentPage, groupedMatches, selectedMatchForNotes]);
 
-
+  // Handler to update all matches from the Riot API
   const handleUpdateAllMatches = async () => {
     if (!RIOT_API_KEY) { setError("Riot API Key is missing."); return; }
     if (trackedAccounts.length === 0) { setError("No accounts are being tracked."); return; }
@@ -220,32 +263,54 @@ function MatchHistoryPage() {
     setIsUpdatingAllMatches(true); setError('');
     setUpdateProgress(`Starting update for ${trackedAccounts.length} accounts...`);
     let totalNewMatchesActuallyStored = 0;
+    // Fetch matches from the last two weeks
     const twoWeeksAgoEpochSeconds = Math.floor((Date.now() - 14 * 24 * 60 * 60 * 1000) / 1000);
 
     for (let i = 0; i < trackedAccounts.length; i++) {
       const account = trackedAccounts[i];
-      if (!account.puuid || !account.platformId) { /* ... skip ... */ continue; }
+      if (!account.puuid || !account.platformId) { 
+        setUpdateProgress(`Skipping ${account.name}#${account.tag} (missing PUUID/Platform). (${i + 1}/${trackedAccounts.length})`);
+        continue; 
+      }
       setUpdateProgress(`Updating ${account.name}#${account.tag} (${i + 1}/${trackedAccounts.length})...`);
       try {
         const continentalRoute = getContinentalRoute(account.platformId);
+        // Fetch recent match IDs
         const matchlistUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${twoWeeksAgoEpochSeconds}&queue=${RANKED_SOLO_QUEUE_ID}&count=${MATCH_COUNT_PER_FETCH}&api_key=${RIOT_API_KEY}`;
-        await delay(API_CALL_DELAY_MS);
+        await delay(API_CALL_DELAY_MS); // Respect API rate limits
         const response = await fetch(matchlistUrl);
-        if (!response.ok) { /* ... error handling ... */ continue; }
+        if (!response.ok) { 
+            const errData = await response.json().catch(() => ({ message: "Unknown Riot API error (match IDs fetch)" }));
+            console.error(`Riot API error for ${account.name} (match IDs): ${response.status}`, errData);
+            setError(`Error for ${account.name} (IDs): ${errData.status?.message || response.statusText}`);
+            continue; 
+        }
         const matchIdsFromApi = await response.json();
-        if (matchIdsFromApi.length === 0) { /* ... no new matches ... */ continue; }
+        if (matchIdsFromApi.length === 0) { 
+            setUpdateProgress(`No new API matches for ${account.name}#${account.tag}. (${i + 1}/${trackedAccounts.length})`);
+            continue; 
+        }
+        
+        setUpdateProgress(`Found ${matchIdsFromApi.length} recent IDs for ${account.name}. Checking & fetching details...`);
         
         let newMatchesProcessedForThisAccount = 0;
         for (const matchId of matchIdsFromApi) {
+          // Limit the number of new match details fetched per account in one update run
           if (newMatchesProcessedForThisAccount >= MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE) break;
+          
           const matchDocRef = doc(db, "trackedAccounts", account.id, "matches", matchId);
           const docSnap = await getDoc(matchDocRef);
+          // Skip if match already exists in DB
           if (docSnap.exists()) continue;
           
-          await delay(API_CALL_DELAY_MS);
+          setUpdateProgress(`Fetching details for new match ${matchId} for ${account.name}...`);
+          await delay(API_CALL_DELAY_MS); // Respect API rate limits
           const matchDetailUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${RIOT_API_KEY}`;
           const detailResponse = await fetch(matchDetailUrl);
-          if (!detailResponse.ok) continue;
+          if (!detailResponse.ok) { 
+            console.warn(`Failed to fetch details for new match ${matchId} (Account: ${account.name}). Status: ${detailResponse.status}`);
+            continue; 
+          }
           const matchDetail = await detailResponse.json();
           const playerParticipant = matchDetail.info.participants.find(p => p.puuid === account.puuid);
 
@@ -254,13 +319,21 @@ function MatchHistoryPage() {
             const primaryStyle = perks.styles?.find(s => s.description === 'primaryStyle');
             const subStyle = perks.styles?.find(s => s.description === 'subStyle');
             let opponentChampionName = null;
-            const opponentParticipant = matchDetail.info.participants.find(p => p.teamId !== playerParticipant.teamId && p.teamPosition === playerParticipant.teamPosition && playerParticipant.teamPosition !== '' && p.teamPosition !== undefined);
+            // Try to find opponent in the same lane
+            const opponentParticipant = matchDetail.info.participants.find(p => 
+                p.teamId !== playerParticipant.teamId && 
+                p.teamPosition === playerParticipant.teamPosition &&
+                playerParticipant.teamPosition !== '' && p.teamPosition !== undefined
+            );
             if (opponentParticipant) opponentChampionName = opponentParticipant.championName; 
 
+            // Prepare data to store in Firestore
             const matchDataToStore = {
               matchId: matchDetail.metadata.matchId,
               gameCreation: Timestamp.fromMillis(matchDetail.info.gameCreation),
-              gameDuration: matchDetail.info.gameDuration, gameMode: matchDetail.info.gameMode,
+              gameDuration: matchDetail.info.gameDuration, 
+              gameMode: matchDetail.info.gameMode,
+              queueId: matchDetail.info.queueId, // Storing queueId for game mode formatting
               platformId: account.platformId, puuid: account.puuid, 
               win: playerParticipant.win, championName: playerParticipant.championName, 
               championId: playerParticipant.championId, championLevel: playerParticipant.champLevel,
@@ -274,14 +347,17 @@ function MatchHistoryPage() {
               summoner1Id: playerParticipant.summoner1Id, summoner2Id: playerParticipant.summoner2Id,
               primaryPerkId: primaryStyle?.selections?.[0]?.perk, subStyleId: subStyle?.style,
               opponentChampionName: opponentChampionName,
-              notes: "", goals: "", 
-              rating: null,
+              notes: "", goals: "", // Initialize notes and goals
+              rating: null, // Initialize rating
             };
             await setDoc(matchDocRef, matchDataToStore);
             totalNewMatchesActuallyStored++; newMatchesProcessedForThisAccount++;
           }
         }
-      } catch (err) { /* ... error handling ... */ }
+      } catch (err) { 
+        console.error(`Error processing account ${account.name}#${account.tag}:`, err);
+        setError(`Error updating ${account.name}. Check console.`);
+      }
     }
     setUpdateProgress(`Update finished. Stored ${totalNewMatchesActuallyStored} new matches.`);
     setIsUpdatingAllMatches(false);
@@ -289,57 +365,82 @@ function MatchHistoryPage() {
     fetchAllMatchesFromDb(); 
   };
 
+  // Handlers for the notes panel
   const handleOpenNotes = (match) => { setSelectedMatchForNotes(match); };
   const handleCloseNotes = () => { setSelectedMatchForNotes(null); };
 
+  // Handler to save notes and goals for a match
   const handleSaveNotes = async (matchDocumentId, newNotes, newGoals) => {
-    if (!selectedMatchForNotes || !db || !selectedMatchForNotes.trackedAccountDocId) { /* ... */ return; }
+    if (!selectedMatchForNotes || !db || !selectedMatchForNotes.trackedAccountDocId) { 
+      setError("Error: Cannot save notes. Match or account data missing.");
+      return; 
+    }
     setIsSavingNotes(true);
     const matchDocRef = doc(db, "trackedAccounts", selectedMatchForNotes.trackedAccountDocId, "matches", matchDocumentId);
     try {
       await updateDoc(matchDocRef, { notes: newNotes, goals: newGoals });
+      // Update local state to reflect changes immediately
       setAllMatchesFromDb(prevMatches => prevMatches.map(m => 
         m.id === matchDocumentId ? { ...m, notes: newNotes, goals: newGoals } : m
       )); 
       setSelectedMatchForNotes(prev => prev && prev.id === matchDocumentId ? {...prev, notes: newNotes, goals: newGoals} : prev);
-    } catch (err) { /* ... */ } 
+    } catch (err) { 
+      console.error("Error saving notes:", err);
+      setError("Failed to save notes. Please try again.");
+    } 
     finally { setIsSavingNotes(false); }
   };
 
+  // Handler for pagination page changes
   const handlePageChange = (page) => {
-    // The useEffect hook that watches `currentPage` and `groupedMatches` will handle the scroll.
+    // The useEffect hook that watches `currentPage`, `groupedMatches`, 
+    // and `selectedMatchForNotes` will handle the scroll.
     setCurrentPage(page);
   };
 
+  // Helper functions for displaying match data
   const getKDAString = (p) => !p || typeof p.kills === 'undefined' ? 'N/A' : `${p.kills} / ${p.deaths} / ${p.assists}`;
   const getKDARatio = (p) => {
     if (!p || typeof p.kills === 'undefined' || typeof p.deaths === 'undefined' || typeof p.assists === 'undefined') return '';
-    if (p.deaths === 0) return 'Perfect KDA'; 
+    if (p.deaths === 0) return 'Perfect KDA'; // Avoid division by zero
     return ((p.kills + p.assists) / p.deaths).toFixed(2) + ':1 KDA'; 
   };
   const getCSString = (p) => {
     if (!p || typeof p.totalMinionsKilled === 'undefined' || typeof p.neutralMinionsKilled === 'undefined' || !p.gameDuration || p.gameDuration === 0) return 'CS N/A';
     const totalCS = p.totalMinionsKilled + p.neutralMinionsKilled;
     const csPerMin = (totalCS / (p.gameDuration / 60)).toFixed(1);
-    return `CS ${totalCS} (${csPerMin})`;
+    return `CS ${totalCS} (${csPerMin}/m)`; // Added /m for clarity
   };
   
+  // DDragon data helpers
   const getChampionInfo = (championKeyApi) => {
     if (!championData || !championKeyApi) return { displayName: championKeyApi, imageName: championKeyApi + ".png" };
+    // Handle specific case like Fiddlesticks which has different key in API vs DDragon
     let dKey = championKeyApi === "Fiddlesticks" ? "FiddleSticks" : championKeyApi; 
     const champ = championData[dKey] || Object.values(championData).find(c => c.id.toLowerCase() === championKeyApi.toLowerCase());
     return champ ? { displayName: champ.name, imageName: champ.image.full } : { displayName: championKeyApi, imageName: championKeyApi + ".png" };
   };
-  const getChampionImage = (key) => !key || !ddragonVersion || !championData ? `https://via.placeholder.com/48x48/2D2D2D/666?text=${key ? key.substring(0,1) : '?'}` : `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${getChampionInfo(key).imageName}`;
+  const getChampionImage = (key) => !key || !ddragonVersion || !championData ? `https://placehold.co/48x48/2D2D2D/666?text=${key ? key.substring(0,1) : '?'}` : `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${getChampionInfo(key).imageName}`;
   const getChampionDisplayName = (key) => !key || !championData ? (key || 'N/A') : getChampionInfo(key).displayName;
   const getItemImage = (id) => !id || !ddragonVersion || id === 0 ? null : `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/item/${id}.png`;
   const getSummonerSpellImage = (id) => !id || !ddragonVersion || !summonerSpellsMap[id] ? null : `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/spell/${summonerSpellsMap[id].image.full}`;
   const getRuneImage = (id) => !id || !ddragonVersion || !runesMap[id] ? null : `https://ddragon.leagueoflegends.com/cdn/img/${runesMap[id].icon}`;
 
-  if (!RIOT_API_KEY && !error.includes("Configuration Error")) { /* ... API Key error display ... */ }
+  // Conditional rendering for API key error
+  if (!RIOT_API_KEY && !error.includes("Configuration Error")) { 
+      return (
+          <div className="p-4 sm:p-6 md:p-8 text-gray-100 flex flex-col items-center justify-center h-full">
+              <AlertTriangle size={48} className="text-red-500 mb-4" />
+              <h2 className="text-2xl font-semibold text-red-400 mb-2">Configuration Error</h2>
+              <p className="text-gray-300 text-center max-w-md">
+                  The Riot API Key is missing. Please ensure it is correctly set up in your environment variables (VITE_RIOT_API_KEY).
+              </p>
+          </div>
+      );
+  }
   
   return (
-    <div className={`flex flex-1 ${selectedMatchForNotes ? 'overflow-hidden h-[calc(100vh-4rem)]' : 'h-full'}`}> {/* Ensure parent has defined height for h-full on child to work */}
+    <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]">
         <div 
             ref={matchListContainerRef} 
             className={`p-4 sm:p-6 md:p-8 text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto h-full 
@@ -387,19 +488,22 @@ function MatchHistoryPage() {
             )}
 
             {!isLoadingMatches && Object.keys(groupedMatches).length > 0 && (
-                <div className="space-y-6 max-w-4xl mx-auto"> 
+              // Main container for match cards
+              <div className="space-y-3 max-w-5xl mx-auto"> 
                 {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
-                    <div key={dateKey}>
-                    <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-2 border-b-2 border-gray-700/70">
+                  <div key={dateKey}>
+                    <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-1.5 border-b border-gray-700/80"> 
                         {dateKey}
                     </h2>
                     <div className="space-y-3"> 
                         {matchesOnDate.map(match => {
                         const participantData = match; 
-                        const gameResult = typeof match.win === 'boolean' ? (match.win ? 'Victory' : 'Defeat') : 'N/A';
+                        const isWin = typeof match.win === 'boolean' ? match.win : null;
                         const kdaString = getKDAString(participantData);
                         const kdaRatio = getKDARatio(participantData);
                         const csString = getCSString(participantData);
+                        const gameModeDisplay = formatGameMode(match.gameMode, match.queueId); // Get formatted game mode
+
 
                         const items = [match.item0, match.item1, match.item2, match.item3, match.item4, match.item5].map(id => getItemImage(id));
                         const trinket = getItemImage(match.item6);
@@ -411,80 +515,141 @@ function MatchHistoryPage() {
                         const playerRoleIcon = match.teamPosition ? ROLE_ICON_MAP[match.teamPosition.toUpperCase()] : null;
                         const hasNotesOrGoals = (match.notes && match.notes.trim() !== '') || (match.goals && match.goals.trim() !== '');
 
+                        // Dynamic classes for win/loss styling
+                        const resultBorderColor = isWin === null ? 'border-gray-600' : (isWin ? 'border-green-500' : 'border-red-500');
+                        // Preserving original background color logic
+                        const resultBgClasses  = isWin === null ? 'bg-gray-700/30' : (isWin ? 'bg-gradient-to-r from-green-800/20 via-gray-850/70 to-gray-850/70' : 'bg-gradient-to-r from-red-800/20 via-gray-850/70 to-gray-850/70');
+                        
                         return (
-                            <div key={match.id} className={`relative p-3 rounded-lg shadow-md border flex items-center space-x-2 ${typeof match.win === 'boolean' ? (match.win ? 'border-green-600/30 bg-gradient-to-r from-green-900/20 via-gray-800/90 to-gray-800/90' : 'border-red-600/30 bg-gradient-to-r from-red-900/20 via-gray-800/90 to-gray-800/90') : 'border-gray-700 bg-gray-800/80'} transition-colors hover:border-gray-500`}>
-                                <div className={`flex-shrink-0 w-2 rounded-l-md h-full self-stretch ${typeof match.win === 'boolean' ? (match.win ? 'bg-green-500' : 'bg-red-500') : 'bg-gray-600'}`}></div>
-                                <div className="flex-shrink-0 w-[70px] text-left px-1.5 py-1 flex flex-col justify-center items-start"> 
-                                    <p className={`font-bold text-sm ${typeof match.win === 'boolean' ? (match.win ? 'text-green-400' : 'text-red-400') : 'text-gray-300'}`}>{gameResult}</p>
+                            // Adjusted individual match card - using py-2 px-2.5 for slightly less vertical padding
+                            <div 
+                                key={match.id} 
+                                className={`relative flex items-center py-2 px-2.5 rounded-md shadow-md border ${resultBorderColor} ${resultBgClasses} transition-all duration-150 hover:shadow-lg hover:border-opacity-100 group`}
+                            >
+                                {/* Game Info, Mode & Account Name */}
+                                <div className="flex flex-col justify-center items-start w-36 flex-shrink-0 mr-2 space-y-px"> {/* Reduced space-y */}
                                     <p className="text-xs text-gray-400">{formatGameDuration(match.gameDuration)}</p>
-                                    <p className="text-[10px] text-gray-500 mt-0.5" title={new Date(match.gameCreation.seconds * 1000).toLocaleString()}>{timeAgo(match.gameCreation.seconds)}</p>
+                                    {/* Game Mode Display */}
+                                    <div className="flex items-center text-[10px] text-gray-500" title={gameModeDisplay}>
+                                        <Gamepad2 size={11} className="mr-1 text-gray-600 flex-shrink-0"/>
+                                        <span className="truncate">{gameModeDisplay}</span>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500" title={new Date(match.gameCreation.seconds * 1000).toLocaleString()}>
+                                        {timeAgo(match.gameCreation.seconds)}
+                                    </p>
+                                    <div className="text-[10px] text-gray-500 truncate flex items-center pt-0.5" title={`${match.trackedAccountName} (${match.trackedAccountPlatform?.toUpperCase()})`}>
+                                        <Globe size={10} className="mr-1 text-gray-600 flex-shrink-0"/> 
+                                        <span className="truncate">{match.trackedAccountName}</span>
+                                    </div>
+                                </div>
+
+                                {/* Champion & Matchup Info */}
+                                <div className="flex items-center justify-center space-x-1.5 flex-shrink-0">
+                                    <div className="relative">
+                                        <img 
+                                            src={getChampionImage(match.championName)} 
+                                            alt={getChampionDisplayName(match.championName)} 
+                                            className="w-10 h-10 rounded border border-gray-600/50 shadow-sm" // Reduced size
+                                            onError={(e) => { (e.target.src = `https://placehold.co/40x40/222/ccc?text=${match.championName ? match.championName.substring(0,1) : '?'}`); }}
+                                        />
+                                        {playerRoleIcon && 
+                                            <img src={playerRoleIcon} alt={match.teamPosition} className="absolute -bottom-1 -left-1 w-4 h-4 p-px bg-gray-950 rounded-full border border-gray-500/70 shadow-xs" />
+                                        }
+                                    </div>
+                                    <div className="text-gray-600 text-sm font-light self-center px-0.5">vs</div> {/* Reduced size */}
+                                    <div className="relative">
+                                        {match.opponentChampionName ? (
+                                            <img 
+                                                src={getChampionImage(match.opponentChampionName)} 
+                                                alt={getChampionDisplayName(match.opponentChampionName)} 
+                                                className="w-10 h-10 rounded border border-gray-700/50 opacity-60 group-hover:opacity-90 transition-opacity" // Reduced size
+                                                onError={(e) => { (e.target.src = `https://placehold.co/40x40/222/ccc?text=${match.opponentChampionName ? match.opponentChampionName.substring(0,1) : '?'}`); }}
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 bg-gray-700/30 rounded flex items-center justify-center border border-gray-600/50"> {/* Reduced size */}
+                                                <ImageOff size={16} className="text-gray-500" /> {/* Reduced size */}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 
-                                <div className="flex-shrink-0 flex items-center justify-center space-x-2 mx-1"> 
-                                    <div className="relative w-12 h-12"> 
-                                        <img src={getChampionImage(match.championName)} alt={getChampionDisplayName(match.championName)} className="w-12 h-12 rounded-md border border-gray-600" onError={(e) => { (e.target).style.display='none'; }} />
-                                        {playerRoleIcon && <img src={playerRoleIcon} alt={match.teamPosition} className="absolute -bottom-1.5 -left-1.5 w-6 h-6 p-0.5 bg-gray-950 rounded-full border-2 border-gray-700" />}
-                                    </div>
-                                    
-                                    <div className="h-10 w-px bg-gray-600 self-center"></div> 
+                                {/* Vertical Separator */}
+                                <div className="w-px bg-gray-700/50 self-stretch mx-2"></div>
 
-                                    <div className="relative w-12 h-12"> 
-                                    {match.opponentChampionName ? (
-                                        <>
-                                        <img src={getChampionImage(match.opponentChampionName)} alt={getChampionDisplayName(match.opponentChampionName)} className="w-12 h-12 rounded-md border border-gray-600" onError={(e) => { (e.target).style.display='none'; }} />
-                                        <span className="absolute -bottom-1.5 left-1/2 transform -translate-x-1/2 bg-gray-700 text-gray-200 text-[10px] px-1.5 py-0.5 rounded-sm font-bold border border-gray-500">VS</span>
-                                        </>
-                                    ) : <div className="w-12 h-12 bg-gray-700/30 rounded-md flex items-center justify-center border-2 border-gray-600"><span className="text-gray-500 text-xs">N/A</span></div>} 
+                                {/* Loadout: Spells & Runes (Horizontally Grouped, Vertically Stacked Internally) */}
+                                <div className="flex items-center space-x-1 flex-shrink-0 mr-1.5"> {/* Reduced spacing */}
+                                    {/* Summoner Spells (Vertically Stacked) */}
+                                    <div className="flex flex-col space-y-0.5">
+                                        {summoner1Img ? <img src={summoner1Img} alt="Summoner 1" className="w-5 h-5 rounded shadow-sm" /> : <div className="w-5 h-5 rounded bg-gray-700/50 shadow-sm"></div>}
+                                        {summoner2Img ? <img src={summoner2Img} alt="Summoner 2" className="w-5 h-5 rounded shadow-sm" /> : <div className="w-5 h-5 rounded bg-gray-700/50 shadow-sm"></div>}
                                     </div>
-                                </div>
-
-                                <div className="flex-shrink-0 flex items-center space-x-2 p-2 bg-black/40 rounded-lg border border-gray-700"> 
-                                    <div className="flex flex-col space-y-1">{summoner1Img ? <img src={summoner1Img} alt="S1" className="w-7 h-7 rounded" /> : <div className="w-7 h-7 rounded bg-gray-700"></div>}{summoner2Img ? <img src={summoner2Img} alt="S2" className="w-7 h-7 rounded" /> : <div className="w-7 h-7 rounded bg-gray-700"></div>}</div>
-                                    <div className="flex flex-col space-y-1">{primaryRuneImg ? <img src={primaryRuneImg} alt="R1" className="w-7 h-7 rounded-full bg-black/30 p-1" /> : <div className="w-7 h-7 rounded-full bg-gray-700"></div>}{subStyleImg ? <img src={subStyleImg} alt="R2" className="w-7 h-7 rounded-full bg-black/30 p-1" /> : <div className="w-7 h-7 rounded-full bg-gray-700"></div>}</div>
-                                    <div className="w-px h-12 bg-gray-600 self-center"></div> 
-                                    <div className="flex flex-col space-y-0.5"> 
-                                        <div className="flex space-x-0.5">
-                                            {items.slice(0,3).map((itemSrc, idx) => itemSrc ? <img key={`i-${idx}`} src={itemSrc} alt={`I${idx}`} className="w-7 h-7 rounded bg-black/30"/> : <div key={`i-${idx}`} className="w-7 h-7 rounded bg-gray-700"></div>)}
-                                        </div>
-                                        <div className="flex space-x-0.5">
-                                            {items.slice(3,6).map((itemSrc, idx) => itemSrc ? <img key={`i-${idx}`} src={itemSrc} alt={`I${idx+3}`} className="w-7 h-7 rounded bg-black/30"/> : <div key={`i-${idx}`} className="w-7 h-7 rounded bg-gray-700"></div>)}
-                                        </div>
+                                    {/* Runes (Vertically Stacked) */}
+                                    <div className="flex flex-col space-y-0.5">
+                                        {primaryRuneImg ? <img src={primaryRuneImg} alt="Primary Rune" className="w-5 h-5 rounded-full bg-black/20 p-px shadow-sm" /> : <div className="w-5 h-5 rounded-full bg-gray-700/50 shadow-sm"></div>}
+                                        {subStyleImg ? <img src={subStyleImg} alt="Sub Rune Style" className="w-5 h-5 rounded-full bg-black/20 p-px shadow-sm" /> : <div className="w-5 h-5 rounded-full bg-gray-700/50 shadow-sm"></div>}
                                     </div>
-                                    {trinket ? <img src={trinket} alt="T" className="w-7 h-7 rounded self-end bg-black/30 ml-0.5"/> : <div className="w-7 h-7 rounded self-end bg-gray-700 ml-0.5"></div>}
-                                </div>
-
-                                <div className="flex-grow min-w-[100px] text-sm px-3 text-left">
-                                    <p className="font-bold text-lg text-gray-100">{kdaString}</p>
-                                    <p className="text-xs text-orange-400">{kdaRatio}</p>
-                                    <p className="text-gray-300 mt-1 text-base">{csString}</p>
                                 </div>
                                 
-                                <div className="absolute top-1/2 right-3 transform -translate-y-1/2 flex items-center space-x-2">
+                                {/* Items */}
+                                <div className="flex flex-col justify-center space-y-0.5 flex-shrink-0">
+                                    <div className="flex space-x-0.5">
+                                        {items.slice(0,3).map((itemSrc, idx) => itemSrc ? 
+                                            <img key={`item-${idx}`} src={itemSrc} alt={`Item ${idx+1}`} className="w-5 h-5 rounded bg-black/20 shadow-sm"/> : // Reduced item size
+                                            <div key={`item-${idx}`} className="w-5 h-5 rounded bg-gray-700/50 shadow-sm"></div>
+                                        )}
+                                    </div>
+                                    <div className="flex space-x-0.5">
+                                        {items.slice(3,6).map((itemSrc, idx) => itemSrc ? 
+                                            <img key={`item-${idx+3}`} src={itemSrc} alt={`Item ${idx+4}`} className="w-5 h-5 rounded bg-black/20 shadow-sm"/> : // Reduced item size
+                                            <div key={`item-${idx+3}`} className="w-5 h-5 rounded bg-gray-700/50 shadow-sm"></div>
+                                        )}
+                                        {trinket ? 
+                                            <img src={trinket} alt="Trinket" className="w-5 h-5 rounded bg-black/20 shadow-sm"/> : // Reduced item size
+                                            <div className="w-5 h-5 rounded bg-gray-700/50 shadow-sm"></div>
+                                        }
+                                    </div>
+                                </div>
+                                
+                                {/* Vertical Separator */}
+                                <div className="w-px bg-gray-700/50 self-stretch mx-2"></div>
+
+                                {/* KDA & CS Stats */}
+                                <div className="flex flex-col justify-center flex-grow min-w-[100px] space-y-0 pr-10"> {/* Adjusted pr & min-width */}
+                                    <p className="font-medium text-xs text-gray-100 leading-tight">{kdaString}</p> {/* Reduced font size */}
+                                    <p className={`text-[10px] ${isWin ? 'text-green-400/80' : 'text-red-400/80'}`}>{kdaRatio}</p> {/* Reduced font size */}
+                                    <div className="flex items-center text-gray-300 text-[10px] mt-0.5"> {/* Reduced font size */}
+                                        <TrendingUp size={10} className="mr-0.5 text-teal-400/70 flex-shrink-0"/>  {/* Reduced icon size & margin */}
+                                        {csString}
+                                    </div>
+                                </div>
+                                
+                                {/* Action Buttons (Notes, Expand) - Positioned Absolutely */}
+                                <div className="absolute top-1/2 right-2 transform -translate-y-1/2 flex flex-col space-y-1">
                                     <button 
                                         onClick={() => handleOpenNotes(match)}
-                                        className={`p-2.5 rounded-full transition-colors shadow-lg
+                                        className={`p-1.5 rounded-md transition-all duration-150 shadow-sm hover:shadow-md
                                                     ${hasNotesOrGoals 
-                                                        ? 'bg-sky-500 hover:bg-sky-400 text-white' 
-                                                        : 'bg-orange-500 hover:bg-orange-400 text-white'}`}
+                                                        ? 'bg-sky-600 hover:bg-sky-500 text-white' 
+                                                        : 'bg-orange-600 hover:bg-orange-500 text-white'}`} // Reduced padding
                                         title={hasNotesOrGoals ? "View/Edit Notes" : "Add Notes"}
                                     >
-                                        {hasNotesOrGoals ? <MessageSquare size={20} /> : <Edit size={20} />}
+                                        {hasNotesOrGoals ? <MessageSquare size={14} /> : <Edit size={14} />} {/* Reduced icon size */}
                                     </button>
                                     <button 
-                                        className="p-2.5 text-gray-400 hover:text-orange-300 transition-colors rounded-full bg-gray-700/50 hover:bg-gray-600/50 shadow-lg"
-                                        title="Expand Details"
-                                        onClick={() => console.log("Expand details for match:", match.id)} 
+                                        className="p-1.5 text-gray-300 hover:text-orange-300 transition-colors rounded-md bg-gray-700/80 hover:bg-gray-600/80 shadow-sm hover:shadow-md" // Reduced padding
+                                        title="Expand Details (Coming Soon)"
+                                        onClick={() => console.log("Expand details for match:", match.id)} // Placeholder
                                     >
-                                        <ChevronDown size={20}/>
+                                        <ChevronDown size={14}/> {/* Reduced icon size */}
                                     </button>
                                 </div>
                             </div>
                         );
                         })}
                     </div>
-                    </div>
+                  </div>
                 ))}
-                </div>
+              </div>
             )}
             {!isLoadingMatches && totalPages > 1 && (
                 <PaginationControls 
