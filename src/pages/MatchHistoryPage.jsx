@@ -161,14 +161,14 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
     const maxDamageRedTeam = Math.max(0, ...redTeam.map(p => p.totalDamageDealtToChampions || 0));
 
     const getKDASpans = (kills, deaths, assists) => (
-        <>
-            <span className="text-gray-100">{kills}</span>
-            <span className="text-gray-500"> / </span>
-            <span className="text-red-400">{deaths}</span>
-            <span className="text-gray-500"> / </span>
-            <span className="text-gray-100">{assists}</span>
-        </>
-    );
+      <>
+          <span className="text-gray-100 font-semibold">{kills}</span>
+          <span className="text-gray-400"> / </span> {/* Zmieniono na jaśniejszy szary */}
+          <span className="text-red-400 font-semibold">{deaths}</span>
+          <span className="text-gray-400"> / </span> {/* Zmieniono na jaśniejszy szary */}
+          <span className="text-gray-100 font-semibold">{assists}</span>
+      </>
+  );
     
     const renderPlayerRow = (player, teamTotalKills, isTopDamageInTeam, isTrackedPlayer) => {
         const items = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5];
@@ -208,7 +208,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                         <span className="font-semibold text-gray-100 truncate" title={player.riotIdGameName || player.summonerName}>
                             {player.riotIdGameName || player.summonerName || 'Player'}
                         </span>
-                        <span className="text-gray-400 text-[10px]">Rank Placeholder</span>
+                        <span className="text-gray-300 text-[10px]">Rank Placeholder</span>
                     </div>
                 </div>
 
@@ -244,21 +244,25 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                 {/* 3. Stats Block */}
                 <div className="flex flex-1 justify-around items-start gap-x-1 sm:gap-x-2 text-center min-w-0">
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
-                        <span className="font-semibold text-gray-100">{getKDASpans(player.kills, player.deaths, player.assists)}</span>
-                        <span className={`text-[10px] ${kdaColor}`}>{kdaRatio} KDA</span>
+                        {/* Poniższy span otacza teraz wynik getKDASpans; font-semibold jest już wewnątrz getKDASpans dla liczb */}
+                        <span className="text-gray-100">{getKDASpans(player.kills, player.deaths, player.assists)}</span>
+                      <div>
+                        <span className={`text-xs ${kdaColor}`}>{kdaRatio}</span>
+                        <span className="text-[10px] text-gray-300 ml-0.5 sm:ml-1">KDA</span> {/* Zmieniono na jaśniejszy szary */}
+                    </div>
                     </div>
                     <div className="flex flex-col items-center min-w-[30px] sm:min-w-[35px]">
                         <span className="text-gray-200">{kp}</span>
-                        <span className="text-[10px] text-gray-500">KP</span>
+                        <span className="text-[10px] text-gray-300">KP</span>
                     </div>
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-200">{cs}</span>
-                        <span className="text-[10px] text-gray-500">{csPerMin} CS/m</span>
+                        <span className="text-[10px] text-gray-300">{csPerMin} CS/m</span>
                     </div>
                     <div className="flex flex-col items-center flex-grow min-w-[70px] sm:min-w-[90px] max-w-[120px]">
                         <div className="flex justify-between w-full items-baseline">
                             <span className={`${damageTextColorClass} text-[10px]`}>{damageDealt}</span>
-                            <span className="text-gray-400 text-[9px]">{damagePerMin} DPM</span>
+                            <span className="text-gray-300 text-[9px]">{damagePerMin} DPM</span>
                         </div>
                         <div className="h-1.5 bg-gray-500 rounded-full w-full overflow-hidden my-0.5">
                             <div className={`h-full ${damageBarColorClass}`} style={{ width: `${damagePercentage}%` }}></div>
@@ -266,7 +270,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                     </div>
                     <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
                         <span className="text-gray-200">{player.visionWardsBoughtInGame || 0}</span>
-                        <span className="text-[10px] text-gray-500">{player.wardsPlaced || 0}/{player.wardsKilled || 0}</span>
+                        <span className="text-[10px] text-gray-300">{player.wardsPlaced || 0}/{player.wardsKilled || 0}</span>
                     </div>
                 </div>
             </div>
@@ -404,11 +408,11 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
     };
 
     // Dynamiczne tło dla całego kontenera ExpandedMatchDetails
-    const expandedBgClass = isTrackedPlayerWin === null 
-        ? 'bg-gray-900/70' // Ciemniejsze szare, jeśli wynik nie jest znany
-        : isTrackedPlayerWin 
-            ? 'bg-blue-900/50' // Ciemniejsze niebieskie dla wygranej
-            : 'bg-red-900/50';  // Ciemniejsze czerwone dla przegranej
+    const expandedBgClass = isTrackedPlayerWin === null
+    ? 'bg-gray-950/40' // Bardzo ciemny szary, bardziej solidny niż kolorowe
+    : isTrackedPlayerWin
+        ? 'bg-blue-950/30' // Bardzo ciemna baza z delikatnym, mrocznym odcieniem niebieskim
+        : 'bg-red-950/30';  // Bardzo ciemna baza z delikatnym, mrocznym odcieniem czerwonym
 
 
     return (
@@ -755,11 +759,11 @@ function MatchHistoryPage() {
     if (!p || typeof p.kills === 'undefined') return <span className="text-gray-300">N/A</span>;
     return (
         <>
-            <span className="text-gray-200">{p.kills}</span>
+            <span className="text-gray-200 font-semibold">{p.kills}</span> {/* Dodano font-semibold */}
             <span className="text-gray-400"> / </span>
-            <span className="text-red-400">{p.deaths}</span>
+            <span className="text-red-400 font-semibold">{p.deaths}</span> {/* Dodano font-semibold */}
             <span className="text-gray-400"> / </span>
-            <span className="text-gray-200">{p.assists}</span>
+            <span className="text-gray-200 font-semibold">{p.assists}</span> {/* Dodano font-semibold */}
         </>
     );
   };
@@ -883,17 +887,16 @@ function MatchHistoryPage() {
                         const playerRoleIcon = match.teamPosition ? ROLE_ICON_MAP[match.teamPosition.toUpperCase()] : null;
                         const hasNotesOrGoals = (match.notes && match.notes.trim() !== '') || (match.goals && match.goals.trim() !== '');
 
-                        // Zmiana tła dla zwiniętego wiersza
-                        const resultBgOverlayClass = isWin === null 
-                            ? 'bg-gray-700/20' // Domyślne dla nieznanego wyniku
-                            : (isWin ? 'bg-blue-700/30' : 'bg-red-700/30'); // Ciemniejsze odcienie
+                        const resultBgOverlayClass = isWin === null
+                        ? 'bg-gray-800/25' // Bardzo subtelny ciemnoszary
+                        : (isWin ? 'bg-blue-900/20' : 'bg-red-900/20'); // Ciemna baza z bardzo delikatnym odcieniem niebieskim/czerwonym
 
                         const expandButtonBgClass = isWin === null ? 'bg-gray-700/60 hover:bg-gray-600/80' : (isWin ? 'bg-[#263964] hover:bg-[#304A80]' : 'bg-[#42212C] hover:bg-[#582C3A]');
                         const isExpanded = expandedMatchId === match.id;
 
                         return (
-                            <div key={match.id} className={`rounded-lg shadow-lg overflow-hidden group ${isExpanded ? '' : resultBgOverlayClass}`}>
-                                <div className={`flex items-stretch ${isExpanded ? 'rounded-t-lg' : 'rounded-lg'} ${isExpanded ? '' : resultBgOverlayClass}`}>
+                              <div key={match.id} className={`rounded-lg shadow-lg overflow-hidden group ${resultBgOverlayClass}`}>
+                                <div className={`flex items-stretch ${isExpanded ? 'rounded-t-lg' : 'rounded-lg'} ${resultBgOverlayClass}`}>
                                     <div className="flex flex-1 items-stretch p-3 ml-1">
                                         <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5">
                                             <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p>
@@ -976,8 +979,11 @@ function MatchHistoryPage() {
                                         </div>
                                         <div className="w-px bg-gray-700/60 self-stretch mx-3"></div>
                                         <div className="flex flex-col justify-center flex-grow min-w-[100px] space-y-0.5">
-                                            <p className="font-semibold text-sm">{kdaStringSpans}</p>
-                                            <p className={`text-xs ${kdaColorClass}`}>{kdaRatio} KDA</p>
+                                            <p className="text-sm">{kdaStringSpans}</p> {/* Usunięto font-semibold, bo jest w getKDAStringSpans dla liczb */}
+                                            <p> {/* Kontener dla KDA ratio i etykiety */}
+                                                <span className={`text-xs ${kdaColorClass}`}>{kdaRatio}</span> {/* Liczba KDA Ratio */}
+                                                <span className="text-[10px] text-gray-400 ml-1">KDA</span>   {/* Etykieta "KDA", mniejsza */}
+                                            </p>
                                             <p className="text-gray-300 text-xs mt-0.5">{csString}</p>
                                         </div>
                                         <div className="flex items-center ml-auto pl-0.5">
