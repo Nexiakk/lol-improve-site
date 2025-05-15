@@ -89,12 +89,12 @@ const getKDAColorClass = (kills, deaths, assists) => {
     }
     const kda = deaths === 0 ? (kills > 0 || assists > 0 ? (kills + assists) * 2 : 0) : (kills + assists) / deaths; 
 
-    if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-yellow-400'; 
-    if (kda >= 5) return 'text-green-400'; 
-    if (kda >= 3) return 'text-teal-400';   
-    if (kda >= 1.5) return 'text-sky-400';    
-    if (kda >= 0.75) return 'text-gray-300'; 
-    return 'text-red-400';                  
+    if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-[#FFAA00]'; // Perfect KDA - Gold/Orange
+    if (kda >= 5) return 'text-[#00CC66]';   // High KDA - Green
+    if (kda >= 3) return 'text-[#3399FF]';   // Good KDA - Blue
+    if (kda >= 1.5) return 'text-sky-400';   // Average KDA - Light Blue
+    if (kda >= 0.75) return 'text-[#AAAAAA]'; // Okay KDA - Light Grey
+    return 'text-red-400';                   // Low KDA - Red (similar to #FF6666)
 };
 
 
@@ -399,11 +399,11 @@ function MatchHistoryPage() {
     if (!p || typeof p.kills === 'undefined') return <span className="text-gray-300">N/A</span>;
     return (
         <>
-            <span className="text-gray-100">{p.kills}</span> {/* Zakładana klasa dla czcionki */}
-            <span className="text-gray-500"> / </span>
-            <span className="text-red-400">{p.deaths}</span>
-            <span className="text-gray-500"> / </span>
-            <span className="text-gray-100">{p.assists}</span>
+            <span className="text-gray-200">{p.kills}</span> {/* Zmieniono z gray-100 */}
+            <span className="text-gray-400"> / </span> {/* Zmieniono z gray-500 */}
+            <span className="text-red-400">{p.deaths}</span> {/* Użyto red-400 dla spójności z getKDAColorClass */}
+            <span className="text-gray-400"> / </span> {/* Zmieniono z gray-500 */}
+            <span className="text-gray-200">{p.assists}</span> {/* Zmieniono z gray-100 */}
         </>
     );
   };
@@ -421,7 +421,7 @@ function MatchHistoryPage() {
     if (!p || typeof p.totalMinionsKilled === 'undefined' || typeof p.neutralMinionsKilled === 'undefined' || !p.gameDuration || p.gameDuration === 0) return 'CS N/A';
     const totalCS = p.totalMinionsKilled + p.neutralMinionsKilled;
     const csPerMin = (totalCS / (p.gameDuration / 60)).toFixed(1);
-    return `${totalCS} (${csPerMin}/m)`;
+    return `CS ${totalCS} (${csPerMin})`;
   };
   
   // Funkcje pomocnicze DDragon
@@ -458,12 +458,10 @@ function MatchHistoryPage() {
         {/* Kontener listy meczów */}
         <div 
             ref={matchListContainerRef} 
-            // ZAKTUALIZOWANO: Usunięto padding z głównego kontenera listy, aby przycisk rozwijania mógł sięgać krawędzi
             className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto h-full 
                         ${selectedMatchForNotes ? 'w-full md:w-3/5 lg:w-2/3 xl:w-3/4' : 'w-full'}`}
         >
-            {/* Nagłówek strony - ZAKTUALIZOWANO: Usunięto tytuł i opis, przycisk wyśrodkowany/prawo */}
-            <header className="mb-6 mt-4 px-4 sm:px-6 md:px-8 flex justify-end items-center"> {/* Dodano px dla spójności z resztą */}
+            <header className="mb-6 mt-4 px-4 sm:px-6 md:px-8 flex justify-end items-center">
                 <button
                 onClick={handleUpdateAllMatches}
                 disabled={isUpdatingAllMatches || isLoadingAccounts || trackedAccounts.length === 0 || !ddragonVersion || !championData}
@@ -474,7 +472,6 @@ function MatchHistoryPage() {
                 </button>
             </header>
             
-            {/* ZAKTUALIZOWANO: Kontenery wiadomości z max-w */}
             {isUpdatingAllMatches && updateProgress && (
                 <div className="mb-4 p-3 bg-sky-900/50 text-sky-300 border border-sky-700/50 rounded-md text-sm text-center max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
                 <p>{updateProgress}</p>
@@ -503,16 +500,14 @@ function MatchHistoryPage() {
 
             {/* Lista meczów */}
             {!isLoadingMatches && Object.keys(groupedMatches).length > 0 && (
-              // ZAKTUALIZOWANO: max-w-4xl dla kontenera kart, dodano px
               <div className="space-y-3 max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pb-8"> 
                 {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
                   <div key={dateKey}>
-                    <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-1.5 border-b border-gray-700/80"> {/* Zmniejszono rozmiar czcionki nagłówka daty */}
+                    <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-1.5 border-b border-gray-700/80">
                         {dateKey}
                     </h2>
                     <div className="space-y-3"> 
                         {matchesOnDate.map(match => {
-                        // Dane uczestnika i meczu
                         const participantData = match; 
                         const isWin = typeof match.win === 'boolean' ? match.win : null;
                         const kdaStringSpans = getKDAStringSpans(participantData);
@@ -522,7 +517,6 @@ function MatchHistoryPage() {
                         const gameModeDisplay = formatGameMode(match.gameMode, match.queueId);
                         const gameDurationFormatted = formatGameDurationMMSS(match.gameDuration);
 
-                        // Obrazki przedmiotów, czarów, run
                         const itemsRow1 = [match.item0, match.item1, match.item2].map(id => getItemImage(id));
                         const itemsRow2 = [match.item3, match.item4, match.item5].map(id => getItemImage(id));
                         const trinketImg = getItemImage(match.item6);
@@ -536,119 +530,119 @@ function MatchHistoryPage() {
                         const hasNotesOrGoals = (match.notes && match.notes.trim() !== '') || (match.goals && match.goals.trim() !== '');
 
                         // Style tła i obramowania w zależności od wyniku
-                        const resultBorderColor = isWin === null ? 'border-gray-700' : (isWin ? 'border-green-600/80' : 'border-red-600/80');
-                        const resultBgClasses  = isWin === null ? 'bg-gray-800/70' : (isWin ? 'bg-gradient-to-r from-green-900/40 via-gray-850/90 to-gray-850/90' : 'bg-gradient-to-r from-red-900/40 via-gray-850/90 to-gray-850/90');
+                        const resultBgOverlayClass = isWin === null ? '' : (isWin ? 'bg-blue-600/20' : 'bg-[#f7665e]/20');
+                        const expandButtonBgClass = isWin === null ? 'bg-gray-700/60 hover:bg-gray-600/80' : (isWin ? 'bg-[#263964] hover:bg-[#304A80]' : 'bg-[#42212C] hover:bg-[#582C3A]');
                         
                         return (
                             <div 
                                 key={match.id} 
-                                className={`flex items-stretch p-0 rounded-lg shadow-lg border ${resultBorderColor} ${resultBgClasses} transition-all duration-150 hover:shadow-xl hover:border-opacity-100 group overflow-hidden`}
+                                className={`flex items-stretch rounded-lg shadow-lg ${resultBgOverlayClass} overflow-hidden relative group`}
                             >
-                                {/* Kontener na lewą i środkową część (bez przycisku rozwijania) */}
-                                <div className="flex flex-1 items-stretch p-3"> {/* Zmniejszono padding do p-3 */}
-                                    {/* Section 1: Left Info - ZAKTUALIZOWANO szerokość i marginesy */}
-                                    <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5"> {/* w-40, mr-2 */}
-                                        <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p> {/* text-md, text-gray-50 (najjaśniejszy) */}
-                                        <div className="flex justify-start items-baseline w-full text-xs"> {/* text-xs */}
-                                            <span className="text-gray-200 mr-2.5">{gameDurationFormatted}</span> {/* text-gray-200, mr-2.5 */}
-                                            <span className="text-gray-400">{timeAgo(match.gameCreation.seconds)}</span> {/* text-gray-400 */}
+                                {/* Główna zawartość meczu (z marginesem lewym) */}
+                                <div className="flex flex-1 items-stretch p-3 ml-1"> {/* Dodano ml-1 */}
+                                    {/* Section 1: Left Info */}
+                                    <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5">
+                                        <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p>
+                                        <div className="flex justify-start items-baseline w-full text-xs">
+                                            <span className="text-gray-200 mr-2.5">{gameDurationFormatted}</span>
+                                            <span className="text-gray-400">{timeAgo(match.gameCreation.seconds)}</span>
                                         </div>
-                                        <div className="text-xs text-gray-400 truncate w-full pt-0.5" title={`${match.trackedAccountName} (${match.trackedAccountPlatform?.toUpperCase()})`}>  {/* text-gray-400 */}
+                                        <div className="text-xs text-gray-400 truncate w-full pt-0.5" title={`${match.trackedAccountName} (${match.trackedAccountPlatform?.toUpperCase()})`}>
                                             <span className="truncate">{match.trackedAccountName}</span>
                                         </div>
                                     </div>
 
-                                    {/* Section 2: Champion & Matchup Info - ZAKTUALIZOWANO marginesy */}
-                                    <div className="flex items-center justify-center space-x-1.5 flex-shrink-0 mx-1"> {/* space-x-1.5, mx-1 */}
+                                    {/* Section 2: Champion & Matchup Info */}
+                                    <div className="flex items-center justify-center space-x-1.5 flex-shrink-0 mx-1">
                                         <div className="relative">
                                             <img 
                                                 src={getChampionImage(match.championName)} 
                                                 alt={getChampionDisplayName(match.championName)} 
-                                                className="w-12 h-12 rounded-md border-2 border-gray-600 shadow-md" // w-12 h-12
+                                                className="w-12 h-12 rounded-md border-2 border-gray-600 shadow-md"
                                                 onError={(e) => { (e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.championName ? match.championName.substring(0,1) : '?'}`); }}
                                             />
                                             {playerRoleIcon && 
-                                                <img src={playerRoleIcon} alt={match.teamPosition} className="absolute -bottom-1 -left-1 w-4 h-4 p-0.5 bg-gray-950 rounded-full border border-gray-500 shadow-sm" /> // w-4 h-4
+                                                <img src={playerRoleIcon} alt={match.teamPosition} className="absolute -bottom-1 -left-1 w-5 h-5 p-0.5 bg-gray-950 rounded-full border border-gray-500 shadow-sm" />
                                             }
                                         </div>
-                                        <div className="text-gray-400 text-sm font-light self-center px-0.5">vs</div> {/* text-sm */}
+                                        <div className="text-gray-400 text-sm font-light self-center px-0.5">vs</div>
                                         <div className="relative">
                                             {match.opponentChampionName ? (
                                                 <img 
                                                     src={getChampionImage(match.opponentChampionName)} 
                                                     alt={getChampionDisplayName(match.opponentChampionName)} 
-                                                    className="w-12 h-12 rounded-md border-2 border-gray-700 opacity-90 shadow-md" // w-12 h-12
+                                                    className="w-12 h-12 rounded-md border-2 border-gray-700 opacity-90 shadow-md"
                                                     onError={(e) => { (e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.opponentChampionName ? match.opponentChampionName.substring(0,1) : '?'}`); }}
                                                 />
                                             ) : (
-                                                <div className="w-12 h-12 bg-gray-700/50 rounded-md flex items-center justify-center border border-gray-600 shadow-md"> {/* w-12 h-12 */}
-                                                    <ImageOff size={20} className="text-gray-500" /> {/* size-20 */}
+                                                <div className="w-12 h-12 bg-gray-700/50 rounded-md flex items-center justify-center border border-gray-600 shadow-md">
+                                                    <ImageOff size={20} className="text-gray-500" />
                                                 </div>
                                             )}
                                         </div>
                                     </div>
                                     
-                                    <div className="w-px bg-gray-700/60 self-stretch mx-3"></div> {/* mx-3 */}
+                                    <div className="w-px bg-gray-700/60 self-stretch mx-3"></div>
 
                                     {/* Section 3: Build (Spells, Runes, Items) */}
-                                    <div className="flex items-center space-x-2 bg-gray-900/70 p-2 rounded-lg shadow-inner border border-gray-700/50 flex-shrink-0"> {/* p-2, space-x-2 */}
-                                        <div className="flex space-x-1"> {/* space-x-1 */}
-                                            <div className="flex flex-col space-y-0.5"> {/* space-y-0.5 */}
-                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {/* w-6 h-6 */}
-                                                    {summoner1Img ? <img src={summoner1Img} alt="Summoner 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} {/* w-5 h-5 */}
+                                    <div className="flex items-center space-x-2 bg-gray-900/70 p-2 rounded-lg shadow-inner border border-gray-700/50 flex-shrink-0">
+                                        <div className="flex space-x-1">
+                                            <div className="flex flex-col space-y-0.5">
+                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
+                                                    {summoner1Img ? <img src={summoner1Img} alt="Summoner 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                 </div>
-                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {/* w-6 h-6 */}
-                                                    {summoner2Img ? <img src={summoner2Img} alt="Summoner 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} {/* w-5 h-5 */}
+                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
+                                                    {summoner2Img ? <img src={summoner2Img} alt="Summoner 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col space-y-0.5"> {/* space-y-0.5 */}
-                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px"> {/* w-6 h-6 */}
-                                                    {primaryRuneImg ? <img src={primaryRuneImg} alt="Primary Rune" className="w-5 h-5 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>} {/* w-4 h-4 */}
+                                            <div className="flex flex-col space-y-0.5">
+                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px">
+                                                    {primaryRuneImg ? <img src={primaryRuneImg} alt="Primary Rune" className="w-5 h-5 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>}
                                                 </div>
-                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px"> {/* w-6 h-6 */}
-                                                    {subStyleImg ? <img src={subStyleImg} alt="Sub Rune Style" className="w-4 h-4 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>} {/* w-4 h-4 */}
+                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px">
+                                                    {subStyleImg ? <img src={subStyleImg} alt="Sub Rune Style" className="w-4 h-4 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex flex-col space-y-0.5"> {/* space-y-0.5 */}
-                                            <div className="flex space-x-0.5"> {/* space-x-0.5 */}
+                                        <div className="flex flex-col space-y-0.5">
+                                            <div className="flex space-x-0.5">
                                                 {itemsRow1.map((itemSrc, idx) => (
-                                                    <div key={`item-r1-${idx}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {/* w-6 h-6 */}
-                                                        {itemSrc ? <img src={itemSrc} alt={`Item ${idx+1}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} {/* w-5 h-5 */}
+                                                    <div key={`item-r1-${idx}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
+                                                        {itemSrc ? <img src={itemSrc} alt={`Item ${idx+1}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                     </div>
                                                 ))}
-                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {/* w-6 h-6 */}
-                                                    {trinketImg ? <img src={trinketImg} alt="Trinket" className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div> } {/* w-5 h-5 */}
+                                                <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
+                                                    {trinketImg ? <img src={trinketImg} alt="Trinket" className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div> }
                                                 </div>
                                             </div>
-                                            <div className="flex space-x-0.5"> {/* space-x-0.5 */}
+                                            <div className="flex space-x-0.5">
                                                 {itemsRow2.map((itemSrc, idx) => (
-                                                    <div key={`item-r2-${idx}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {/* w-6 h-6 */}
-                                                        {itemSrc ? <img src={itemSrc} alt={`Item ${idx+4}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} {/* w-5 h-5 */}
+                                                    <div key={`item-r2-${idx}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
+                                                        {itemSrc ? <img src={itemSrc} alt={`Item ${idx+4}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                     </div>
                                                 ))}
-                                                <div className="w-6 h-6"></div> {/* Pusty slot dla wyrównania, w-6 h-6 */}
+                                                <div className="w-6 h-6"></div> {/* Pusty slot dla wyrównania */}
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="w-px bg-gray-700/60 self-stretch mx-3"></div> {/* mx-3 */}
+                                    <div className="w-px bg-gray-700/60 self-stretch mx-3"></div>
 
-                                    {/* Section 4: KDA & CS Stats - ZAKTUALIZOWANO min-w */}
-                                    <div className="flex flex-col justify-center flex-grow min-w-[100px] space-y-0.5"> {/* min-w-[100px], space-y-0.5 */}
-                                        <p className="font-semibold text-sm">{kdaStringSpans}</p> {/* text-sm */}
+                                    {/* Section 4: KDA & CS Stats */}
+                                    <div className="flex flex-col justify-center flex-grow min-w-[100px] space-y-0.5">
+                                        <p className="font-semibold text-sm">{kdaStringSpans}</p>
                                         <p className={`text-xs ${kdaColorClass}`}>{kdaRatio} KDA</p>
                                         <p className="text-gray-300 text-xs mt-0.5">{csString}</p>
                                     </div>
                                     
-                                    {/* Section 5: Przycisk Notatek - ZAKTUALIZOWANO padding, margines i rozmiar ikony */}
-                                    <div className="flex items-center ml-auto pl-0.5"> {/* pl-0.5 */}
+                                    {/* Section 5: Przycisk Notatek */}
+                                    <div className="flex items-center ml-auto pl-0.5">
                                         <button 
                                             onClick={() => handleOpenNotes(match)}
                                             className={`p-1.5 rounded-md transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center mr-2.5 w-auto h-auto
                                                         ${hasNotesOrGoals 
                                                             ? 'bg-sky-600 hover:bg-sky-500 text-white' 
-                                                            : 'bg-orange-600 hover:bg-orange-500 text-white'}`} // p-1, mr-2.5, h-auto
+                                                            : 'bg-orange-600 hover:bg-orange-500 text-white'}`}
                                             title={hasNotesOrGoals ? "Zobacz/Edytuj Notatki" : "Dodaj Notatki"}
                                         >
                                             {hasNotesOrGoals ? <MessageSquare size={14} /> : <Edit size={18} />}
@@ -656,13 +650,13 @@ function MatchHistoryPage() {
                                     </div>
                                 </div> 
 
-                                {/* Przycisk Rozwijania - jako pionowy pasek po prawej */}
+                                {/* Przycisk Rozwijania */}
                                 <div 
-                                    className="flex items-center justify-center bg-gray-700/40 hover:bg-gray-600/60 transition-colors w-8 cursor-pointer" // w-8 (mniejszy)
+                                    className={`flex items-center justify-center ${expandButtonBgClass} transition-colors w-8 cursor-pointer`}
                                     title="Rozwiń Szczegóły (Wkrótce)"
                                     onClick={() => console.log("Expand details for match:", match.id)} 
                                 >
-                                    <ChevronDown size={18} className="text-gray-400 group-hover:text-orange-300"/> {/* size-18 */}
+                                    <ChevronDown size={18} className="text-gray-400 group-hover:text-orange-300"/>
                                 </div>
                             </div>
                         );
