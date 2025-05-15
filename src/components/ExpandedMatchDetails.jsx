@@ -1,10 +1,6 @@
 // src/components/ExpandedMatchDetails.jsx
-import React, { useState, useEffect } from 'react';
-// import { ROLE_ICON_MAP, ROLE_ORDER } // Props are passed from parent
-// from './MatchHistoryPage'; // Or from '../utils/matchUtils';
-import {
-    ImageOff, // This icon is used for opponent champion fallback
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ImageOff } from 'lucide-react';
 import {
     formatGameDurationMMSS,
     getKDAColorClass,
@@ -13,9 +9,7 @@ import {
 
 
 // --- OBJECTIVE ICONS ---
-// These icons are used to display objectives taken by each team.
-// They are simple SVG components.
-
+// (Objective Icons remain the same as previously defined)
 const GrubIcon = ({ className = "" }) => (
   <svg viewBox="0 0 32 32" className={`inline-block text-purple-500 ${className}`} xmlns="http://www.w3.org/2000/svg">
     <path fillRule="evenodd" clipRule="evenodd" d="M24 7.26397C27 7.26397 27 10.264 27 11.264C27 14.264 24 15.264 24 15.264H27C26.0189 15.918 25.3587 17.1069 24.6345 18.4107C23.1444 21.0938 21.3837 24.264 16 24.264C10.6163 24.264 8.85561 21.0938 7.36548 18.4107C6.64135 17.1069 5.9811 15.918 5 15.264H8C8 15.264 5 14.264 5 11.264C5 10.264 5 7.26397 8 7.26397H9.58357C10.5151 7.26397 11.4337 7.0471 12.2669 6.63052L15.1056 5.21115C15.6686 4.92962 16.3314 4.92962 16.8944 5.21115L19.7331 6.63051C20.5663 7.0471 21.4849 7.26397 22.4164 7.26397H24ZM19.5354 12.264L15.9999 8.72845L12.4644 12.264L13.7322 13.5319L10.4646 16.7995L14.0001 20.335L15.9993 18.3359L17.9984 20.335L21.5339 16.7995L18.2669 13.5325L19.5354 12.264Z" fill="currentColor"></path>
@@ -50,18 +44,93 @@ const TowerIcon = ({ className = "" }) => (
 
 
 // Component for expanded match details
-const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpellsMap, runesMap, getChampionImage, getSummonerSpellImage, getItemImage, getRuneImage, getChampionDisplayName, isTrackedPlayerWin, roleIconMap, roleOrder }) => {
+const ExpandedMatchDetails = ({ 
+    match, 
+    ddragonVersion, 
+    championData, 
+    summonerSpellsMap, 
+    runesMap, 
+    getChampionImage, 
+    getSummonerSpellImage, 
+    getItemImage, 
+    getRuneImage, 
+    getChampionDisplayName, 
+    isTrackedPlayerWin, 
+    roleIconMap, 
+    roleOrder,
+    processTimelineDataForPlayer // New prop to process timeline for any player
+}) => {
     const [activeTab, setActiveTab] = useState('General');
-    // State to track which player's details are being viewed
-    const [selectedPlayerForDetailsPuuid, setSelectedPlayerForDetailsPuuid] = useState(match.puuid); // Default to the tracked player
+    // PUUID of the player whose details are currently being viewed in the "Details" tab
+    const [selectedPlayerForDetailsPuuid, setSelectedPlayerForDetailsPuuid] = useState(match.puuid); 
+    // State to hold the processed timeline data for the currently selected player in the "Details" tab
+    const [currentSelectedPlayerTimeline, setCurrentSelectedPlayerTimeline] = useState(null);
 
-    const { allParticipants = [], teamObjectives = [], gameDuration, puuid: trackedPlayerPuuid, timelineData: matchTimelineData } = match;
 
-    // Effect to reset selected player when the match changes
+    // Destructure necessary fields from the match object
+    const { 
+        allParticipants = [], 
+        teamObjectives = [], 
+        gameDuration, 
+        puuid: trackedPlayerPuuid, // PUUID of the player this match was originally tracked for
+        processedTimelineForTrackedPlayer, // Pre-processed timeline for the tracked player
+        rawTimelineFrames // Raw timeline frames for on-demand processing
+    } = match;
+
+    // Effect to reset selected player and timeline when the match prop changes
     useEffect(() => {
-        setSelectedPlayerForDetailsPuuid(match.puuid);
-        setActiveTab('General'); // Optionally reset tab
-    }, [match.id, match.puuid]);
+        setSelectedPlayerForDetailsPuuid(match.puuid); // Default to the tracked player
+        // Initially, set the timeline to the pre-processed one for the tracked player
+        setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null); 
+        setActiveTab('General'); 
+    }, [match.id, match.puuid, processedTimelineForTrackedPlayer]);
+
+
+    // Effect to re-process timeline data when selectedPlayerForDetailsPuuid changes
+    useEffect(() => {
+        if (activeTab !== 'Details') return; // Only process if details tab is active
+
+        if (selectedPlayerForDetailsPuuid === trackedPlayerPuuid) {
+            // If it's the tracked player, use the pre-processed data
+            setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
+        } else if (rawTimelineFrames && processTimelineDataForPlayer && selectedPlayerForDetailsPuuid) {
+            // If it's a different player, process their timeline data on the fly
+            const selectedParticipant = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
+            if (selectedParticipant) {
+                // Find the Riot's participantId (1-10) for the selected player
+                const targetParticipantId = allParticipants.findIndex(p => p.puuid === selectedPlayerForDetailsPuuid) + 1;
+                
+                // Determine opponent for laning phase comparison (if applicable for this selected player)
+                let opponentForSelected = null;
+                let opponentIdForSelectedTimeline = null;
+                if (selectedParticipant.teamPosition && selectedParticipant.teamPosition !== '') {
+                    opponentForSelected = allParticipants.find(p => 
+                        p.teamId !== selectedParticipant.teamId && 
+                        p.teamPosition === selectedParticipant.teamPosition
+                    );
+                }
+                if (opponentForSelected) {
+                    opponentIdForSelectedTimeline = allParticipants.findIndex(p => p.puuid === opponentForSelected.puuid) + 1;
+                }
+
+                if (targetParticipantId > 0) {
+                    const timeline = processTimelineDataForPlayer(
+                        rawTimelineFrames,
+                        targetParticipantId,
+                        opponentIdForSelectedTimeline, // Pass opponent for laning comparison
+                        gameDuration
+                    );
+                    setCurrentSelectedPlayerTimeline(timeline);
+                } else {
+                    setCurrentSelectedPlayerTimeline(null); // Should not happen if selectedPlayerForDetailsPuuid is valid
+                }
+            } else {
+                setCurrentSelectedPlayerTimeline(null); // Player not found in allParticipants
+            }
+        } else {
+            setCurrentSelectedPlayerTimeline(null); // Missing necessary data/functions
+        }
+    }, [selectedPlayerForDetailsPuuid, activeTab, rawTimelineFrames, processTimelineDataForPlayer, allParticipants, trackedPlayerPuuid, processedTimelineForTrackedPlayer, gameDuration]);
 
 
     const blueTeam = allParticipants.filter(p => p.teamId === 100).sort((a, b) => roleOrder.indexOf(a.teamPosition?.toUpperCase()) - roleOrder.indexOf(b.teamPosition?.toUpperCase()));
@@ -71,6 +140,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
     const redTeamData = teamObjectives.find(t => t.teamId === 200) || { objectives: {}, win: false };
 
     const maxDamageInGame = Math.max(...allParticipants.map(p => p.totalDamageDealtToChampions || 0), 0);
+    // Calculate max damage separately for each team to highlight top damage dealer within that team
     const maxDamageBlueTeam = Math.max(0, ...blueTeam.map(p => p.totalDamageDealtToChampions || 0));
     const maxDamageRedTeam = Math.max(0, ...redTeam.map(p => p.totalDamageDealtToChampions || 0));
 
@@ -79,22 +149,25 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
         const items = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5];
         const trinket = player.item6;
         const kdaColor = getKDAColorClass(player.kills, player.deaths, player.assists);
+        // Calculate KDA ratio, ensuring gameDuration is positive to avoid division by zero
         const kdaRatio = gameDuration > 0 ? (player.deaths === 0 ? (player.kills > 0 || player.assists > 0 ? 'Perfect' : '0.00') : ((player.kills + player.assists) / player.deaths).toFixed(2)) : '0.00';
         const kp = teamTotalKills > 0 ? (((player.kills + player.assists) / teamTotalKills) * 100).toFixed(0) + '%' : '0%';
         const cs = (player.totalMinionsKilled || 0) + (player.neutralMinionsKilled || 0);
         const csPerMin = gameDuration > 0 ? (cs / (gameDuration / 60)).toFixed(1) : '0.0';
         const damageDealt = player.totalDamageDealtToChampions || 0;
         const damagePerMin = gameDuration > 0 ? (damageDealt / (gameDuration / 60)).toFixed(0) : '0';
+        // Calculate damage percentage relative to the absolute max damage in the game
         const damagePercentage = maxDamageInGame > 0 ? (damageDealt / maxDamageInGame) * 100 : 0;
 
         const playerPrimaryPerk = player.perks?.styles?.find(s => s.description === 'primaryStyle')?.selections?.[0]?.perk;
         const playerSubStyle = player.perks?.styles?.find(s => s.description === 'subStyle')?.style;
         const roleIcon = roleIconMap[player.teamPosition?.toUpperCase()];
 
+        // Determine text and bar color for damage, highlighting top damage dealer in their team
         const damageTextColorClass = isTopDamageInTeam ? 'text-white font-semibold' : 'text-gray-200';
         const damageBarColorClass = isTopDamageInTeam
-            ? (player.teamId === 100 ? 'neon-bg-blue' : 'neon-bg-red')
-            : (player.teamId === 100 ? 'bg-blue-500' : 'bg-red-500');
+            ? (player.teamId === 100 ? 'neon-bg-blue' : 'neon-bg-red') // Neon for top damage in team
+            : (player.teamId === 100 ? 'bg-blue-500' : 'bg-red-500'); // Standard team color otherwise
 
         const trackedPlayerClass = isTrackedPlayerRow ? 'tracked-player-highlight' : ''; // Apply highlight class
 
@@ -119,17 +192,20 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
 
                 {/* Build Info */}
                 <div className="flex items-center space-x-1 flex-shrink-0">
+                    {/* Spells */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner1Id)} alt="S1" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner2Id)} alt="S2" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
                     </div>
+                    {/* Runes */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerPrimaryPerk)} alt="R1" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerSubStyle)} alt="R2" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                     </div>
+                    {/* Items */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="flex space-x-0.5">
-                            {[items[0], items[1], items[2], trinket].map((item, idx) => (
+                            {[items[0], items[1], items[2], trinket].map((item, idx) => ( // Trinket in first row
                                 <div key={`item-top-${idx}-${player.puuid}`} className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center">
                                     {item && item !== 0 ? <img src={getItemImage(item)} alt={`Item ${idx}`} className="w-full h-full rounded-sm" /> : <div className="w-4 h-4 bg-gray-700/50 rounded-sm"></div>}
                                 </div>
@@ -141,13 +217,14 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                                     {item && item !== 0 ? <img src={getItemImage(item)} alt={`Item ${idx + 3}`} className="w-full h-full rounded-sm" /> : <div className="w-4 h-4 bg-gray-700/50 rounded-sm"></div>}
                                 </div>
                             ))}
-                            <div className="w-5 h-5"></div> {/* Spacer for alignment */}
+                            <div className="w-5 h-5"></div> {/* Spacer for alignment with trinket row */}
                         </div>
                     </div>
                 </div>
 
                 {/* Stats Block */}
                 <div className="flex flex-1 justify-around items-start gap-x-1 sm:gap-x-2 text-center min-w-0">
+                    {/* KDA */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-100">{getKDAStringSpans(player)}</span>
                         <div>
@@ -155,14 +232,17 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                             <span className="text-[10px] text-gray-300 ml-0.5 sm:ml-1">KDA</span>
                         </div>
                     </div>
+                    {/* KP */}
                     <div className="flex flex-col items-center min-w-[30px] sm:min-w-[35px]">
                         <span className="text-gray-200">{kp}</span>
                         <span className="text-[10px] text-gray-300">KP</span>
                     </div>
+                    {/* CS */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-200">{cs}</span>
                         <span className="text-[10px] text-gray-300">{csPerMin} CS/m</span>
                     </div>
+                    {/* Damage */}
                     <div className="flex flex-col items-center flex-grow min-w-[70px] sm:min-w-[90px] max-w-[120px]">
                         <div className="flex justify-between w-full items-baseline">
                             <span className={`${damageTextColorClass} text-[10px]`}>{damageDealt.toLocaleString()}</span>
@@ -172,6 +252,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                             <div className={`h-full ${damageBarColorClass}`} style={{ width: `${damagePercentage}%` }}></div>
                         </div>
                     </div>
+                    {/* Vision */}
                     <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
                         <span className="text-gray-200">{player.visionWardsBoughtInGame || 0}</span>
                         <span className="text-[10px] text-gray-300">{player.wardsPlaced || 0}/{player.wardsKilled || 0}</span>
@@ -181,15 +262,16 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
         );
     };
     
-    // Function to render a team section
+    // Function to render a team section in the scoreboard
     const renderTeamSection = (team, teamData, teamName, teamMaxDamage) => {
         const totalKills = teamData?.objectives?.champion?.kills || 0;
         const teamSide = teamName === 'Blue Team' ? 'Blue Side' : 'Red Side';
         const teamColorForText = teamName === 'Blue Team' ? 'text-blue-400' : 'text-red-400';
-        const objectiveIconSize = "w-5 h-5";
+        const objectiveIconSize = "w-5 h-5"; // Consistent size for objective icons
 
         return (
             <div className="p-2 sm:p-3 rounded-md">
+                {/* Team Header: Win/Loss, Side, Objectives */}
                 <div className="flex items-center mb-1.5 pb-1">
                     <h3 className={`text-md sm:text-lg font-semibold ${teamColorForText}`}>
                         {teamData.win ? 'Victory' : 'Defeat'}
@@ -197,6 +279,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                             ({teamSide})
                         </span>
                     </h3>
+                    {/* Objective Icons */}
                     <div className="flex space-x-1.5 sm:space-x-2 items-center text-xs">
                         <span title="Voidgrubs" className="flex items-center"><GrubIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.horde?.kills || 0}</span>
                         <span title="Dragons" className="flex items-center"><DragonIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.dragon?.kills || 0}</span>
@@ -206,17 +289,18 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                         <span title="Towers" className="flex items-center"><TowerIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.tower?.kills || 0}</span>
                     </div>
                 </div>
+                {/* Player Rows */}
                 {team.map(player => renderPlayerRow(
                     player,
                     totalKills,
-                    player.totalDamageDealtToChampions === teamMaxDamage && teamMaxDamage > 0,
-                    player.puuid === trackedPlayerPuuid // Highlight only if it's the tracked player
+                    player.totalDamageDealtToChampions === teamMaxDamage && teamMaxDamage > 0, // Check if this player is top damage in their team
+                    player.puuid === trackedPlayerPuuid // Highlight only if it's the tracked player for this match
                 ))}
             </div>
         );
     };
 
-    // Content for the "General" tab
+    // Content for the "General" (Scoreboard) tab
     const GeneralTabContent = () => (
         <div className="space-y-3">
             {renderTeamSection(blueTeam, blueTeamData, "Blue Team", maxDamageBlueTeam)}
@@ -226,32 +310,25 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
 
     // Content for the "Details" tab
     const DetailsTabContent = () => {
-        // Find data for the selected player
-        const currentPlayerForDetails = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
+        const currentPlayerForDisplay = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
         
-        if (!currentPlayerForDetails) return <p className="text-gray-400 p-4">Data not found for selected player.</p>;
+        if (!currentPlayerForDisplay) return <p className="text-gray-400 p-4">Player data not found for selection.</p>;
 
-        // Check if timeline data is available for the currently selected player
-        // Assumption: matchTimelineData is an object where the key is the player's puuid, or it's a single object for the tracked player
-        let playerTimeline;
-        if (selectedPlayerForDetailsPuuid === trackedPlayerPuuid) {
-            playerTimeline = matchTimelineData || {}; // Use match timeline data if it's the tracked player
-        } else {
-            // For other players, timeline data might not be available or might be empty
-            playerTimeline = {}; // Default to empty, unless you have timeline data for everyone
-        }
+        // Use currentSelectedPlayerTimeline which is updated based on selection
+        const timelineToDisplay = currentSelectedPlayerTimeline; 
         
-        const snapshot15min = playerTimeline.snapshots?.find(s => s.minute === 15);
-        const hasTimelineDataForSelectedPlayer = selectedPlayerForDetailsPuuid === trackedPlayerPuuid && matchTimelineData && Object.keys(matchTimelineData).length > 0;
+        const snapshot15min = timelineToDisplay?.snapshots?.find(s => s.minute === 15);
+        const firstToLvl2Display = timelineToDisplay?.laningPhase?.firstToLvl2 || "N/A";
 
-
-        const StatItem = ({ value, label }) => (
-            <div className="flex flex-col items-center text-center">
-                <span className="text-gray-100 font-medium text-sm sm:text-base">{value}</span>
+        // Helper component for stat items
+        const StatItem = ({ value, label, title }) => (
+            <div className="flex flex-col items-center text-center" title={title}>
+                <span className="text-gray-100 font-medium text-sm sm:text-base">{value !== undefined && value !== null ? value : 'N/A'}</span>
                 <span className="text-gray-400 text-[10px] sm:text-xs leading-tight mt-0.5">{label}</span>
             </div>
         );
         
+        // Renders champion icons for selection in the Details tab
         const renderChampionIconWithRole = (player) => {
             const roleIconSrc = roleIconMap[player.teamPosition?.toUpperCase()];
             const isSelected = player.puuid === selectedPlayerForDetailsPuuid;
@@ -261,7 +338,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                     className={`relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 focus:outline-none transition-all duration-150
                                 ${isSelected ? 'ring-2 ring-orange-500 rounded-md scale-110' : 'opacity-75 hover:opacity-100'}`}
                     title={`Show stats for ${getChampionDisplayName(player.championName)}`}
-                    onClick={() => setSelectedPlayerForDetailsPuuid(player.puuid)}
+                    onClick={() => setSelectedPlayerForDetailsPuuid(player.puuid)} // Update selected PUUID
                 >
                     <img
                         src={getChampionImage(player.championName)}
@@ -281,7 +358,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
 
         return (
             <div className="p-3 sm:p-4 text-gray-200 space-y-4">
-                {/* Champion Icons Header */}
+                {/* Champion Icons Header for selecting player */}
                 <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-4 p-2 rounded-lg">
                     <div className="flex space-x-1 sm:space-x-1.5">
                         {blueTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
@@ -296,13 +373,23 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                     {/* Laning Phase (at 15 min) */}
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[100px] flex flex-col justify-center">
-                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Laning Phase (at 15 min)</h4>
-                        {hasTimelineDataForSelectedPlayer ? (
+                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Laning Phase</h4>
+                        {timelineToDisplay && timelineToDisplay.snapshots ? (
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3">
-                                <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="cs diff" />
-                                <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="gold diff" />
-                                <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="xp diff" />
-                                <StatItem value={playerTimeline.firstLevel2Time ? formatGameDurationMMSS(Math.floor(playerTimeline.firstLevel2Time / 1000)) : 'N/A'} label="first lvl 2" />
+                                <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="CS Diff @15" />
+                                <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="Gold Diff @15" />
+                                <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="XP Diff @15" />
+                                <StatItem 
+                                    value={firstToLvl2Display} 
+                                    label="First to Lvl 2" 
+                                    title={
+                                        firstToLvl2Display === "Yes" ? "You (or same time) reached level 2 first." :
+                                        firstToLvl2Display === "No" ? "Opponent reached level 2 first." :
+                                        firstToLvl2Display.includes("Player N/A") ? "Opponent reached level 2; your data N/A." :
+                                        firstToLvl2Display.includes("Opponent N/A") ? "You reached level 2; opponent data N/A." :
+                                        "Level 2 race data not available."
+                                    }
+                                />
                             </div>
                         ) : (
                             <p className="text-gray-500 text-center text-sm italic">Missing detailed laning stats for this player.</p>
@@ -313,9 +400,9 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Wards</h4>
                         <div className="grid grid-cols-3 gap-x-2 gap-y-3">
-                            <StatItem value={currentPlayerForDetails.wardsPlaced || 0} label="placed" />
-                            <StatItem value={currentPlayerForDetails.wardsKilled || 0} label="killed" />
-                            <StatItem value={currentPlayerForDetails.visionWardsBoughtInGame || 0} label="control" />
+                            <StatItem value={currentPlayerForDisplay.wardsPlaced || 0} label="Placed" />
+                            <StatItem value={currentPlayerForDisplay.wardsKilled || 0} label="Killed" />
+                            <StatItem value={currentPlayerForDisplay.visionWardsBoughtInGame || 0} label="Control" />
                         </div>
                     </div>
 
@@ -323,10 +410,10 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Global Stats</h4>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3">
-                            <StatItem value={gameDuration > 0 ? (((currentPlayerForDetails.totalMinionsKilled || 0) + (currentPlayerForDetails.neutralMinionsKilled || 0)) / (gameDuration / 60)).toFixed(1) : '0.0'} label="CS/m" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDetails.visionScore || 0) / (gameDuration / 60)).toFixed(2) : '0.00'} label="VS/m" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDetails.totalDamageDealtToChampions || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="DMG/m" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDetails.goldEarned || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="Gold/m" />
+                            <StatItem value={gameDuration > 0 ? (((currentPlayerForDisplay.totalMinionsKilled || 0) + (currentPlayerForDisplay.neutralMinionsKilled || 0)) / (gameDuration / 60)).toFixed(1) : '0.0'} label="CS/min" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.visionScore || 0) / (gameDuration / 60)).toFixed(2) : '0.00'} label="VS/min" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.totalDamageDealtToChampions || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="DMG/min" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.goldEarned || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="Gold/min" />
                         </div>
                     </div>
                 </div>
@@ -334,16 +421,16 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                 {/* Build Order */}
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[80px] flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Build Order</h4>
-                    {hasTimelineDataForSelectedPlayer && playerTimeline.buildOrder && playerTimeline.buildOrder.length > 0 ? (
+                    {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
                         <div className="flex flex-wrap gap-1.5">
-                            {playerTimeline.buildOrder.map((itemEvent, index) => (
+                            {timelineToDisplay.buildOrder.map((itemEvent, index) => (
                                 getItemImage(itemEvent.itemId) ?
                                 <img
-                                    key={`build-${index}-${itemEvent.itemId}`}
+                                    key={`build-${index}-${itemEvent.itemId}-${itemEvent.timestamp}`} // Added timestamp for better key uniqueness
                                     src={getItemImage(itemEvent.itemId)}
                                     alt={`Item ${itemEvent.itemId}`}
                                     className="w-8 h-8 sm:w-9 sm:h-9 rounded border border-gray-500"
-                                    title={`@ ${formatGameDurationMMSS(Math.floor(itemEvent.timestamp / 1000))}`}
+                                    title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
                                 />
                                 : null
                             ))}
@@ -354,10 +441,14 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                 {/* Skill Order */}
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Skill Order (QWER)</h4>
-                    {hasTimelineDataForSelectedPlayer && playerTimeline.skillOrder && playerTimeline.skillOrder.length > 0 ? (
+                    {timelineToDisplay && timelineToDisplay.skillOrder && timelineToDisplay.skillOrder.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
-                            {playerTimeline.skillOrder.map((skill, index) => (
-                                <span key={`skill-${index}`} className="bg-gray-800 px-2 py-1 rounded text-orange-300 text-xs sm:text-sm border border-gray-600" title={`Level ${skill.level} @ ${formatGameDurationMMSS(Math.floor(skill.timestamp / 1000))}`}>
+                            {timelineToDisplay.skillOrder.map((skill, index) => (
+                                <span 
+                                    key={`skill-${index}-${skill.skillSlot}-${skill.timestamp}`} // Added timestamp for better key
+                                    className="bg-gray-800 px-2 py-1 rounded text-orange-300 text-xs sm:text-sm border border-gray-600" 
+                                    title={`Lvl ${skill.levelTakenAt} (Skill Lvl ${skill.skillLevel}) @ ${formatGameDurationMMSS(skill.timestamp / 1000)}`}
+                                >
                                     {['Q', 'W', 'E', 'R'][skill.skillSlot - 1] || '?'}
                                 </span>
                             ))}
@@ -365,23 +456,27 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                     ) : <p className="text-gray-500 text-xs sm:text-sm italic">Missing skill order data for this player.</p>}
                 </div>
                 
-                {/* Runes (Placeholder) */}
+                {/* Runes (Placeholder - Full rune display can be complex) */}
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Runes</h4>
+                    {/* You can display primary and secondary tree names, and keystone here */}
+                    {/* Example: currentPlayerForDisplay.perks.styles... */}
                     <p className="text-gray-400 text-xs sm:text-sm">Detailed rune display not yet implemented.</p>
                 </div>
             </div>
         );
     };
     
+    // Determine background color for the expanded section based on win/loss of the tracked player
     const expandedBgClass = isTrackedPlayerWin === null
-    ? 'bg-gray-950/40' 
+    ? 'bg-gray-950/40' // Neutral if win status is unknown
     : isTrackedPlayerWin
-        ? 'bg-blue-950/30' 
-        : 'bg-red-950/30';
+        ? 'bg-blue-950/30' // Blue tint for win
+        : 'bg-red-950/30';  // Red tint for loss
 
     return (
         <div className={`mt-0.5 p-2 sm:p-3 ${expandedBgClass} backdrop-blur-sm rounded-b-lg border-t border-gray-700/50 shadow-inner`}>
+            {/* Tabs for switching between General Scoreboard and Detailed View */}
             <div className="flex border-b border-gray-600/80 mb-2 sm:mb-3">
                 <button
                     onClick={() => setActiveTab('General')}
@@ -398,6 +493,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
                     Details
                 </button>
             </div>
+            {/* Render content based on active tab */}
             {activeTab === 'General' && <GeneralTabContent />}
             {activeTab === 'Details' && <DetailsTabContent />}
         </div>

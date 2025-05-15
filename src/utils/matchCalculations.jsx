@@ -6,247 +6,307 @@
 
 // Constants for queue IDs (can be expanded)
 export const QUEUE_IDS = {
-    RANKED_SOLO: 420,
-    FLEX_SR: 440,
-    NORMAL_DRAFT: 400,
-    NORMAL_BLIND: 430,
-    ARAM: 450,
-    // Add other relevant queue IDs here
+  RANKED_SOLO: 420,
+  FLEX_SR: 440,
+  NORMAL_DRAFT: 400,
+  NORMAL_BLIND: 430,
+  ARAM: 450,
+  // Add other relevant queue IDs here
+};
+
+/**
+ * Determines the Riot API continental route based on platformId.
+ * @param {string} platformId - The platform ID (e.g., 'euw1', 'na1').
+ * @returns {string} The continental route (e.g., 'europe', 'americas').
+ */
+export const getContinentalRoute = (platformId) => {
+  if (!platformId) return 'europe'; // Default or error case
+  const lowerPlatformId = platformId.toLowerCase();
+  if (['eun1', 'euw1', 'tr1', 'ru'].includes(lowerPlatformId)) return 'europe';
+  if (['na1', 'br1', 'la1', 'la2', 'oc1', 'americas'].includes(lowerPlatformId)) return 'americas'; 
+  if (['kr', 'jp1', 'asia'].includes(lowerPlatformId)) return 'asia'; 
+  if (['vn2', 'th2', 'tw2', 'sg2', 'ph2', 'sea'].includes(lowerPlatformId)) return 'sea'; 
+  return 'europe'; // Fallback
+};
+
+/**
+ * Creates a promise that resolves after a specified delay.
+ * @param {number} ms - The delay in milliseconds.
+ * @returns {Promise<void>}
+ */
+export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Formats a Unix timestamp (in seconds) into a human-readable "time ago" string.
+ * @param {number} timestampSeconds - The Unix timestamp in seconds.
+ * @returns {string} The formatted time ago string (e.g., "5m ago", "2h ago").
+ */
+export const timeAgo = (timestampSeconds) => {
+  if (!timestampSeconds) return '';
+  const date = new Date(timestampSeconds * 1000);
+  const now = new Date();
+  const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
+  const minutes = Math.round(seconds / 60);
+  const hours = Math.round(minutes / 60);
+  const days = Math.round(hours / 24);
+
+  if (seconds < 60) return `${seconds}s ago`;
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+};
+
+/**
+ * Formats game duration (in seconds) to "MM:SS" string.
+ * @param {number} durationSeconds - The game duration in seconds.
+ * @returns {string} Formatted duration string or 'N/A'.
+ */
+export const formatGameDurationMMSS = (durationSeconds) => {
+  if (typeof durationSeconds !== 'number' || isNaN(durationSeconds) || durationSeconds < 0) return 'N/A';
+  const minutes = Math.floor(durationSeconds / 60);
+  const seconds = Math.floor(durationSeconds % 60); 
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
+/**
+ * Formats game mode and queue ID into a displayable string.
+ * @param {string} gameModeApi - The game mode from API (e.g., 'CLASSIC').
+ * @param {number} queueId - The queue ID.
+ * @returns {string} Displayable game mode string.
+ */
+export const formatGameMode = (gameModeApi, queueId) => {
+  switch (queueId) {
+    case QUEUE_IDS.RANKED_SOLO: return 'Ranked Solo';
+    case QUEUE_IDS.FLEX_SR: return 'Ranked Flex';
+    case QUEUE_IDS.NORMAL_DRAFT: return 'Normal Draft';
+    case QUEUE_IDS.NORMAL_BLIND: return 'Normal Blind';
+    case QUEUE_IDS.ARAM: return 'ARAM';
+    default:
+      if (gameModeApi) {
+        if (gameModeApi === 'CLASSIC') return 'Classic SR';
+        return gameModeApi.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+      }
+      return 'Unknown Mode';
+  }
+};
+
+/**
+ * Determines the Tailwind CSS text color class based on KDA.
+ * @param {number} kills - Number of kills.
+ * @param {number} deaths - Number of deaths.
+ * @param {number} assists - Number of assists.
+ * @returns {string} Tailwind CSS class string for text color.
+ */
+export const getKDAColorClass = (kills, deaths, assists) => {
+  if (typeof kills !== 'number' || typeof deaths !== 'number' || typeof assists !== 'number') {
+    return 'text-gray-400';
+  }
+  const kda = deaths === 0 ? (kills > 0 || assists > 0 ? (kills + assists) * 2 : 0) : (kills + assists) / deaths;
+
+  if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-yellow-400'; 
+  if (kda >= 5) return 'text-green-400';
+  if (kda >= 3) return 'text-blue-400';  
+  if (kda >= 1.5) return 'text-sky-400';  
+  if (kda >= 0.75) return 'text-gray-400'; 
+  return 'text-red-400';                 
+};
+
+/**
+ * Generates JSX spans for KDA display.
+ * @param {object} p - Participant data object.
+ * @returns {JSX.Element} Spans for KDA.
+ */
+export const getKDAStringSpans = (p) => {
+  if (!p || typeof p.kills === 'undefined') return <span className="text-gray-300">N/A</span>;
+  return (
+    <>
+      <span className="text-gray-100 font-semibold">{p.kills}</span>
+      <span className="text-gray-400"> / </span>
+      <span className="text-red-400 font-semibold">{p.deaths}</span>
+      <span className="text-gray-400"> / </span>
+      <span className="text-gray-100 font-semibold">{p.assists}</span>
+    </>
+  );
+};
+
+/**
+ * Calculates KDA ratio as a string.
+ * @param {object} p - Participant data object.
+ * @returns {string} KDA ratio string (e.g., "3.50", "Perfect").
+ */
+export const getKDARatio = (p) => {
+  if (!p || typeof p.kills === 'undefined' || typeof p.deaths === 'undefined' || typeof p.assists === 'undefined') return '';
+  if (p.deaths === 0) return (p.kills > 0 || p.assists > 0) ? 'Perfect' : '0.00';
+  return ((p.kills + p.assists) / p.deaths).toFixed(2);
+};
+
+/**
+ * Formats CS and CS/min string.
+ * @param {object} p - Participant data object containing CS and gameDuration.
+ * @returns {string} Formatted CS string (e.g., "CS 150 (7.5)").
+ */
+export const getCSString = (p) => {
+  if (!p || typeof p.totalMinionsKilled === 'undefined' || typeof p.neutralMinionsKilled === 'undefined' || !p.gameDuration || p.gameDuration === 0) return 'CS N/A';
+  const totalCS = p.totalMinionsKilled + p.neutralMinionsKilled;
+  const csPerMin = (totalCS / (p.gameDuration / 60)).toFixed(1);
+  return `CS ${totalCS} (${csPerMin})`;
+};
+
+/**
+ * Processes timeline data for a specific player and their opponent.
+ * Extracts laning phase stats, skill order, and build order.
+ * @param {Array<object>} timelineFrames - Array of frame data from Riot API.
+ * @param {number} targetParticipantId - The participant ID (1-10) of the player for whom to process data.
+ * @param {number|null} opponentParticipantIdForLaning - The participant ID (1-10) of the opponent for laning comparison, or null.
+ * @param {number} gameDurationSeconds - Total game duration in seconds.
+ * @returns {object} Processed timeline data including snapshots, skill/build orders, and level 2 race.
+ */
+export const processTimelineData = (timelineFrames, targetParticipantId, opponentParticipantIdForLaning, gameDurationSeconds) => {
+  const processedData = {
+    snapshots: [], 
+    skillOrder: [],
+    buildOrder: [],
+    laningPhase: { 
+      playerLvl2Timestamp: null, 
+      opponentLvl2Timestamp: null, 
+      firstToLvl2: "No", // Default to "No", will be changed to "Yes" if conditions met
+    },
   };
-  
-  /**
-   * Determines the Riot API continental route based on platformId.
-   * @param {string} platformId - The platform ID (e.g., 'euw1', 'na1').
-   * @returns {string} The continental route (e.g., 'europe', 'americas').
-   */
-  export const getContinentalRoute = (platformId) => {
-    if (!platformId) return 'europe'; // Default or error case
-    const lowerPlatformId = platformId.toLowerCase();
-    if (['eun1', 'euw1', 'tr1', 'ru'].includes(lowerPlatformId)) return 'europe';
-    if (['na1', 'br1', 'la1', 'la2', 'oc1', 'americas'].includes(lowerPlatformId)) return 'americas'; // Added 'americas' for safety
-    if (['kr', 'jp1', 'asia'].includes(lowerPlatformId)) return 'asia'; // Added 'asia' for safety
-    if (['vn2', 'th2', 'tw2', 'sg2', 'ph2', 'sea'].includes(lowerPlatformId)) return 'sea'; // Added 'sea' for safety
-    return 'europe'; // Fallback
-  };
-  
-  /**
-   * Creates a promise that resolves after a specified delay.
-   * @param {number} ms - The delay in milliseconds.
-   * @returns {Promise<void>}
-   */
-  export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-  
-  /**
-   * Formats a Unix timestamp (in seconds) into a human-readable "time ago" string.
-   * @param {number} timestampSeconds - The Unix timestamp in seconds.
-   * @returns {string} The formatted time ago string (e.g., "5m ago", "2h ago").
-   */
-  export const timeAgo = (timestampSeconds) => {
-    if (!timestampSeconds) return '';
-    const date = new Date(timestampSeconds * 1000);
-    const now = new Date();
-    const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
-    const minutes = Math.round(seconds / 60);
-    const hours = Math.round(minutes / 60);
-    const days = Math.round(hours / 24);
-  
-    if (seconds < 60) return `${seconds}s ago`;
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  };
-  
-  /**
-   * Formats game duration (in seconds) to "MM:SS" string.
-   * @param {number} durationSeconds - The game duration in seconds.
-   * @returns {string} Formatted duration string or 'N/A'.
-   */
-  export const formatGameDurationMMSS = (durationSeconds) => {
-    if (typeof durationSeconds !== 'number' || isNaN(durationSeconds)) return 'N/A';
-    const minutes = Math.floor(durationSeconds / 60);
-    const seconds = durationSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-  
-  /**
-   * Formats game mode and queue ID into a displayable string.
-   * @param {string} gameModeApi - The game mode from API (e.g., 'CLASSIC').
-   * @param {number} queueId - The queue ID.
-   * @returns {string} Displayable game mode string.
-   */
-  export const formatGameMode = (gameModeApi, queueId) => {
-    switch (queueId) {
-      case QUEUE_IDS.RANKED_SOLO: return 'Ranked Solo';
-      case QUEUE_IDS.FLEX_SR: return 'Ranked Flex';
-      case QUEUE_IDS.NORMAL_DRAFT: return 'Normal Draft';
-      case QUEUE_IDS.NORMAL_BLIND: return 'Normal Blind';
-      case QUEUE_IDS.ARAM: return 'ARAM';
-      // Add more cases as needed
-      default:
-        if (gameModeApi) {
-          if (gameModeApi === 'CLASSIC') return 'Classic SR';
-          return gameModeApi.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-        }
-        return 'Unknown Mode';
-    }
-  };
-  
-  /**
-   * Determines the Tailwind CSS text color class based on KDA.
-   * @param {number} kills - Number of kills.
-   * @param {number} deaths - Number of deaths.
-   * @param {number} assists - Number of assists.
-   * @returns {string} Tailwind CSS class string for text color.
-   */
-  export const getKDAColorClass = (kills, deaths, assists) => {
-    if (typeof kills !== 'number' || typeof deaths !== 'number' || typeof assists !== 'number') {
-      return 'text-gray-400';
-    }
-    const kda = deaths === 0 ? (kills > 0 || assists > 0 ? (kills + assists) * 2 : 0) : (kills + assists) / deaths;
-  
-    if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-yellow-400'; // Perfect KDA
-    if (kda >= 5) return 'text-green-400';
-    if (kda >= 3) return 'text-blue-400';
-    if (kda >= 1.5) return 'text-sky-400';
-    if (kda >= 0.75) return 'text-gray-400';
-    return 'text-red-400';
-  };
-  
-  /**
-   * Generates JSX spans for KDA display.
-   * @param {object} p - Participant data object.
-   * @returns {JSX.Element} Spans for KDA.
-   */
-  export const getKDAStringSpans = (p) => {
-    if (!p || typeof p.kills === 'undefined') return <span className="text-gray-300">N/A</span>;
-    return (
-      <>
-        <span className="text-gray-100 font-semibold">{p.kills}</span>
-        <span className="text-gray-400"> / </span>
-        <span className="text-red-400 font-semibold">{p.deaths}</span>
-        <span className="text-gray-400"> / </span>
-        <span className="text-gray-100 font-semibold">{p.assists}</span>
-      </>
-    );
-  };
-  /**
-   * Calculates KDA ratio as a string.
-   * @param {object} p - Participant data object.
-   * @returns {string} KDA ratio string (e.g., "3.50", "Perfect").
-   */
-  export const getKDARatio = (p) => {
-    if (!p || typeof p.kills === 'undefined' || typeof p.deaths === 'undefined' || typeof p.assists === 'undefined') return '';
-    if (p.deaths === 0) return (p.kills > 0 || p.assists > 0) ? 'Perfect' : '0.00';
-    return ((p.kills + p.assists) / p.deaths).toFixed(2);
-  };
-  
-  /**
-   * Formats CS and CS/min string.
-   * @param {object} p - Participant data object containing CS and gameDuration.
-   * @returns {string} Formatted CS string (e.g., "CS 150 (7.5)").
-   */
-  export const getCSString = (p) => {
-    if (!p || typeof p.totalMinionsKilled === 'undefined' || typeof p.neutralMinionsKilled === 'undefined' || !p.gameDuration || p.gameDuration === 0) return 'CS N/A';
-    const totalCS = p.totalMinionsKilled + p.neutralMinionsKilled;
-    const csPerMin = (totalCS / (p.gameDuration / 60)).toFixed(1);
-    return `CS ${totalCS} (${csPerMin})`;
-  };
-  
-  /**
-   * Processes timeline data for a specific player and their opponent.
-   * @param {Array<object>} timelineFrames - Array of frame data from Riot API.
-   * @param {number} playerParticipantId - The participant ID of the tracked player.
-   * @param {number|null} opponentParticipantId - The participant ID of the opponent, or null.
-   * @param {number} gameDurationSeconds - Total game duration in seconds.
-   * @returns {object} Processed timeline data.
-   */
-  export const processTimelineData = (timelineFrames, playerParticipantId, opponentParticipantId, gameDurationSeconds) => {
-    const processedData = {
-      snapshots: [], // For CS, gold, XP at specific times
-      skillOrder: [],
-      buildOrder: [],
-      firstLevel2Time: null,
-    };
-  
-    if (!timelineFrames || timelineFrames.length === 0) return processedData;
-  
-    // Define snapshot times in minutes
-    const snapshotMinutes = [5, 10, 15];
-    const snapshotTimestampsMs = snapshotMinutes.map(min => min * 60 * 1000);
-  
-    let lastPlayerLevel = 0;
-  
-    timelineFrames.forEach((frame, frameIndex) => {
-      const playerFrame = frame.participantFrames?.[playerParticipantId.toString()];
-      const opponentFrame = opponentParticipantId ? frame.participantFrames?.[opponentParticipantId.toString()] : null;
-  
-      if (playerFrame) {
-        // Snapshots
-        snapshotTimestampsMs.forEach((snapshotTimeMs, index) => {
-          // Check if this is the first frame at or after the snapshot time
-          // and if we haven't already taken this snapshot
-          if (frame.timestamp >= snapshotTimeMs && !processedData.snapshots.find(s => s.minute === snapshotMinutes[index])) {
-            const snapshot = {
-              minute: snapshotMinutes[index],
-              player: {
-                cs: playerFrame.minionsKilled + (playerFrame.jungleMinionsKilled || 0),
-                gold: playerFrame.totalGold,
-                xp: playerFrame.xp,
-                level: playerFrame.level,
-              },
-              opponent: opponentFrame ? {
-                cs: opponentFrame.minionsKilled + (opponentFrame.jungleMinionsKilled || 0),
-                gold: opponentFrame.totalGold,
-                xp: opponentFrame.xp,
-                level: opponentFrame.level,
-              } : null,
-            };
-            if (snapshot.opponent) {
-              snapshot.diff = {
-                cs: snapshot.player.cs - snapshot.opponent.cs,
-                gold: snapshot.player.gold - snapshot.opponent.gold,
-                xp: snapshot.player.xp - snapshot.opponent.xp,
+
+  if (!timelineFrames || timelineFrames.length === 0 || !targetParticipantId) return processedData;
+
+  const snapshotMinutes = [5, 10, 15]; 
+  const snapshotTimestampsMs = snapshotMinutes.map(min => min * 60 * 1000);
+
+  let lastTargetPlayerLevel = 0;
+
+  for (const frame of timelineFrames) { // Use for...of for potentially early exit if both lvl2 found
+    const targetPlayerFrameData = frame.participantFrames?.[targetParticipantId.toString()];
+    const opponentFrameData = opponentParticipantIdForLaning ? frame.participantFrames?.[opponentParticipantIdForLaning.toString()] : null;
+
+    if (targetPlayerFrameData) {
+      // Snapshots for target player vs opponent (if opponent exists)
+      snapshotTimestampsMs.forEach((snapshotTimeMs, index) => {
+        if (frame.timestamp >= snapshotTimeMs && !processedData.snapshots.find(s => s.minute === snapshotMinutes[index])) {
+          const snapshot = {
+            minute: snapshotMinutes[index],
+            player: {
+              cs: targetPlayerFrameData.minionsKilled + (targetPlayerFrameData.jungleMinionsKilled || 0),
+              gold: targetPlayerFrameData.totalGold,
+              xp: targetPlayerFrameData.xp,
+              level: targetPlayerFrameData.level,
+            },
+            opponent: null, 
+            diff: null, 
+          };
+          if (opponentFrameData) { 
+              snapshot.opponent = {
+                  cs: opponentFrameData.minionsKilled + (opponentFrameData.jungleMinionsKilled || 0),
+                  gold: opponentFrameData.totalGold,
+                  xp: opponentFrameData.xp,
+                  level: opponentFrameData.level,
               };
+              snapshot.diff = {
+                  cs: snapshot.player.cs - snapshot.opponent.cs,
+                  gold: snapshot.player.gold - snapshot.opponent.gold,
+                  xp: snapshot.player.xp - snapshot.opponent.xp,
+              };
+          }
+          processedData.snapshots.push(snapshot);
+        }
+      });
+
+      // Level 2 timestamp for target player
+      if (targetPlayerFrameData.level === 2 && processedData.laningPhase.playerLvl2Timestamp === null) {
+        processedData.laningPhase.playerLvl2Timestamp = frame.timestamp;
+      }
+
+      // Skill Order for target player
+      if (targetPlayerFrameData.level > lastTargetPlayerLevel) {
+        frame.events?.forEach(event => {
+          if (event.type === 'SKILL_LEVEL_UP' && event.participantId === targetParticipantId && event.levelUpType === 'NORMAL') {
+            if (processedData.skillOrder.length < 18 && !processedData.skillOrder.find(s => s.level === targetPlayerFrameData.level && s.skillSlot === event.skillSlot)) {
+                 processedData.skillOrder.push({ 
+                     level: targetPlayerFrameData.level, 
+                     skillSlot: event.skillSlot, 
+                     timestamp: event.timestamp 
+                  });
             }
-            processedData.snapshots.push(snapshot);
           }
         });
-  
-        // First Level 2
-        if (!processedData.firstLevel2Time && playerFrame.level === 2) {
-          processedData.firstLevel2Time = frame.timestamp;
-        }
-  
-        // Skill Order (only if level increased)
-        if (playerFrame.level > lastPlayerLevel) {
-          // Find SKILL_LEVEL_UP events for the player in this frame's events
-          frame.events?.forEach(event => {
-            if (event.type === 'SKILL_LEVEL_UP' && event.participantId === playerParticipantId && event.levelUpType === 'NORMAL') {
-              // Ensure we don't add duplicate skill-ups for the same level if events span frames
-              if (processedData.skillOrder.length < playerFrame.level) {
-                   processedData.skillOrder.push({ level: playerFrame.level, skillSlot: event.skillSlot, timestamp: event.timestamp });
-              }
-            }
-          });
-          lastPlayerLevel = playerFrame.level;
-        }
+        lastTargetPlayerLevel = targetPlayerFrameData.level;
       }
-  
-      // Build Order
-      frame.events?.forEach(event => {
-        if (event.type === 'ITEM_PURCHASED' && event.participantId === playerParticipantId) {
-          processedData.buildOrder.push({ itemId: event.itemId, timestamp: event.timestamp });
-        }
-        // Could also track ITEM_SOLD, ITEM_UNDO if needed
-      });
+    }
+
+    // Level 2 timestamp for opponent (if opponent exists)
+    if (opponentFrameData && opponentFrameData.level === 2 && processedData.laningPhase.opponentLvl2Timestamp === null) {
+      processedData.laningPhase.opponentLvl2Timestamp = frame.timestamp;
+    }
+
+    // Build Order for the target player
+    frame.events?.forEach(event => {
+      if (event.participantId === targetParticipantId) {
+          if (event.type === 'ITEM_PURCHASED') {
+            processedData.buildOrder.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'purchased' });
+          } else if (event.type === 'ITEM_SOLD') {
+            processedData.buildOrder.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'sold' });
+          } else if (event.type === 'ITEM_UNDO') {
+            const lastPurchaseIndex = processedData.buildOrder.slice().reverse().findIndex(
+              item => item.itemId === event.itemBefore && item.type === 'purchased'
+            );
+            if (lastPurchaseIndex !== -1) {
+              processedData.buildOrder.splice(processedData.buildOrder.length - 1 - lastPurchaseIndex, 1);
+            }
+          }
+      }
     });
-    
-    // Sort build order by timestamp
-    processedData.buildOrder.sort((a, b) => a.timestamp - b.timestamp);
-    // Sort skill order by level then timestamp (though level should be sufficient if processed correctly)
-    processedData.skillOrder.sort((a,b) => a.level - b.level || a.timestamp - b.timestamp);
+
+    // Optimization: if both level 2 timestamps are found, we might not need to iterate further for *this specific metric*.
+    // However, other metrics (snapshots, build/skill order) still need full iteration.
+    // For simplicity of this function, we'll iterate all frames.
+  }
   
+  // Determine "First to Lvl 2" based on collected timestamps
+  const { playerLvl2Timestamp, opponentLvl2Timestamp } = processedData.laningPhase;
+
+  if (playerLvl2Timestamp !== null) {
+      // Player reached level 2
+      if (opponentLvl2Timestamp === null || playerLvl2Timestamp <= opponentLvl2Timestamp) {
+          // Opponent didn't reach Lvl 2 OR Player was first/same time
+          processedData.laningPhase.firstToLvl2 = "Yes";
+      } else {
+          // Opponent was strictly faster
+          processedData.laningPhase.firstToLvl2 = "No";
+      }
+  } else {
+      // Player did not reach level 2 (or data missing for player)
+      // If opponent also didn't, it remains "No" (player wasn't first).
+      // If opponent did, it also remains "No" (player wasn't first).
+      processedData.laningPhase.firstToLvl2 = "No";
+  }
+
+  processedData.buildOrder.sort((a, b) => a.timestamp - b.timestamp);
   
-    return processedData;
-  };
-  
+  const skillLevels = {}; 
+  const finalSkillOrder = [];
+  const sortedRawSkillEvents = processedData.skillOrder.sort((a,b) => a.timestamp - b.timestamp);
+
+  sortedRawSkillEvents.forEach(event => {
+      skillLevels[event.skillSlot] = (skillLevels[event.skillSlot] || 0) + 1;
+      const maxPoints = event.skillSlot === 4 ? 3 : 5; 
+      if (skillLevels[event.skillSlot] <= maxPoints) {
+          finalSkillOrder.push({
+              skillSlot: event.skillSlot,
+              levelTakenAt: event.level, 
+              skillLevel: skillLevels[event.skillSlot], 
+              timestamp: event.timestamp,
+          });
+      }
+  });
+  processedData.skillOrder = finalSkillOrder;
+
+  processedData.snapshots.sort((a, b) => a.minute - b.minute);
+
+  return processedData;
+};
+

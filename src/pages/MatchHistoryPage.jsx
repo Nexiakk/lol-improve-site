@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import MatchNotesPanel from '../components/MatchNotesPanel';
 import PaginationControls from '../components/PaginationControls';
-import ExpandedMatchDetails from '../components/ExpandedMatchDetails'; // Zaimportowany nowy komponent
+import ExpandedMatchDetails from '../components/ExpandedMatchDetails'; 
 
-// Importuj funkcje narzędziowe
+// Import utility functions
 import {
     getContinentalRoute,
     delay,
@@ -20,12 +20,12 @@ import {
     getKDAStringSpans,
     getKDARatio,
     getCSString,
-    processTimelineData,
+    processTimelineData, // This function is now more generalized
     QUEUE_IDS
 } from '../utils/matchCalculations';
 
 
-// Importuj ikony ról
+// Import role icons
 import topIcon from '../assets/top_icon.svg';
 import jungleIcon from '../assets/jungle_icon.svg';
 import middleIcon from '../assets/mid_icon.svg';
@@ -34,16 +34,17 @@ import supportIcon from '../assets/support_icon.svg';
 
 const RIOT_API_KEY = import.meta.env.VITE_RIOT_API_KEY;
 
-const MATCH_COUNT_PER_FETCH = 20;
-const MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE = 10;
-const API_CALL_DELAY_MS = 1250;
-const MATCHES_PER_PAGE = 10;
+const MATCH_COUNT_PER_FETCH = 20; // Number of match IDs to fetch per account from Riot API
+const MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE = 10; // Max new match details to process per account in one "Update All" run
+const API_CALL_DELAY_MS = 1250; 
+const MATCHES_PER_PAGE = 10; // Matches displayed per page in the UI
 
-// Mapowanie ról na ikony - eksportowane, aby ExpandedMatchDetails mógł z nich korzystać
+// Role icon mapping - exported so ExpandedMatchDetails can use them
 export const ROLE_ICON_MAP = {
     TOP: topIcon, JUNGLE: jungleIcon, MIDDLE: middleIcon,
-    BOTTOM: bottomIcon, UTILITY: supportIcon
+    BOTTOM: bottomIcon, UTILITY: supportIcon 
 };
+// Order of roles for sorting players in scoreboard
 export const ROLE_ORDER = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 
@@ -67,14 +68,14 @@ function MatchHistoryPage() {
   const [ddragonVersion, setDdragonVersion] = useState('');
   const [summonerSpellsMap, setSummonerSpellsMap] = useState({});
   const [runesMap, setRunesMap] = useState({});
-  const [championData, setChampionData] = useState(null);
+  const [championData, setChampionData] = useState(null); 
 
-  const matchListContainerRef = useRef(null);
-  const prevPageRef = useRef(currentPage);
+  const matchListContainerRef = useRef(null); 
+  const prevPageRef = useRef(currentPage); 
 
-  // Pobieranie statycznych danych DDragon (wersje, bohaterowie, czary, runy)
+  // Fetch static DDragon data (versions, champions, spells, runes)
   useEffect(() => {
-    if (!RIOT_API_KEY) setError("Błąd Konfiguracji: Brak klucza API Riot.");
+    if (!RIOT_API_KEY) setError("Configuration Error: Riot API Key is missing.");
     fetch('https://ddragon.leagueoflegends.com/api/versions.json')
       .then(res => res.json())
       .then(versions => {
@@ -96,34 +97,35 @@ function MatchHistoryPage() {
             const runes = {};
             if (runesData && Array.isArray(runesData)) {
               runesData.forEach(style => {
-                runes[style.id] = { icon: style.icon, name: style.name };
+                runes[style.id] = { icon: style.icon, name: style.name }; 
                 style.slots.forEach(slot => slot.runes.forEach(rune => runes[rune.id] = { icon: rune.icon, name: rune.name, styleId: style.id }));
               });
             }
             setRunesMap(runes);
             if (champData && champData.data) {
-                setChampionData(champData.data);
+                setChampionData(champData.data); 
             }
-          }).catch(err => console.error("Błąd podczas pobierania statycznych danych DDragon:", err));
+          }).catch(err => console.error("Error fetching DDragon static data:", err));
         }
-      }).catch(err => console.error("Nie udało się pobrać wersji DDragon:", err));
+      }).catch(err => console.error("Failed to fetch DDragon versions:", err));
   }, []);
 
   const accountsCollectionRef = useMemo(() => db ? collection(db, "trackedAccounts") : null, []);
 
+  // Fetch tracked accounts from Firestore
   const fetchTrackedAccounts = useCallback(async () => {
-    if (!accountsCollectionRef) { setError("Firestore niedostępne."); setIsLoadingAccounts(false); return; }
+    if (!accountsCollectionRef) { setError("Firestore not available."); setIsLoadingAccounts(false); return; }
     setIsLoadingAccounts(true);
     try {
       const data = await getDocs(accountsCollectionRef);
       setTrackedAccounts(data.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-    } catch (err) { console.error("Błąd podczas pobierania śledzonych kont:", err); setError("Nie można załadować śledzonych kont.");
+    } catch (err) { console.error("Error fetching tracked accounts:", err); setError("Could not load tracked accounts.");
     } finally { setIsLoadingAccounts(false); }
   }, [accountsCollectionRef]);
 
   useEffect(() => { fetchTrackedAccounts(); }, [fetchTrackedAccounts]);
 
-  // Pobieranie wszystkich meczów z DB dla wszystkich śledzonych kont
+  // Fetch all matches from DB for all tracked accounts
    const fetchAllMatchesFromDb = useCallback(async () => {
     if (trackedAccounts.length === 0 || !db) {
       setAllMatchesFromDb([]);
@@ -151,10 +153,10 @@ function MatchHistoryPage() {
       setAllMatchesFromDb(combinedMatches);
       setTotalPages(Math.ceil(combinedMatches.length / MATCHES_PER_PAGE));
       setCurrentPage(1); 
-      prevPageRef.current = 1;
-    } catch (err) { console.error(`Błąd podczas pobierania zapisanych meczów:`, err); setError(`Nie udało się załadować zapisanych meczów.`);
+      prevPageRef.current = 1; 
+    } catch (err) { console.error(`Error fetching stored matches:`, err); setError(`Failed to load stored matches.`);
     } finally { setIsLoadingMatches(false); }
-  }, [trackedAccounts]);
+  }, [trackedAccounts]); 
 
   useEffect(() => {
     if (trackedAccounts.length > 0) {
@@ -166,6 +168,7 @@ function MatchHistoryPage() {
     }
   }, [trackedAccounts, fetchAllMatchesFromDb]);
 
+  // Effect to group matches by date when currentPage or allMatchesFromDb changes
   useEffect(() => {
     if (allMatchesFromDb.length === 0) {
       setGroupedMatches({});
@@ -176,10 +179,10 @@ function MatchHistoryPage() {
     const matchesForCurrentPage = allMatchesFromDb.slice(startIndex, endIndex);
 
     const groups = matchesForCurrentPage.reduce((acc, match) => {
-      if (!match.gameCreation || !match.gameCreation.seconds) return acc;
+      if (!match.gameCreation || !match.gameCreation.seconds) return acc; 
       const dateObj = new Date(match.gameCreation.seconds * 1000);
       const today = new Date(); const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
-      let dateKey = dateObj.toDateString() === today.toDateString() ? "Dzisiaj" : dateObj.toDateString() === yesterday.toDateString() ? "Wczoraj" : dateObj.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+      let dateKey = dateObj.toDateString() === today.toDateString() ? "Today" : dateObj.toDateString() === yesterday.toDateString() ? "Yesterday" : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
       if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push(match);
       return acc;
@@ -187,11 +190,12 @@ function MatchHistoryPage() {
     setGroupedMatches(groups);
   }, [currentPage, allMatchesFromDb]);
 
+  // Effect to scroll to top when page changes
   useEffect(() => {
     const pageActuallyChanged = prevPageRef.current !== currentPage;
-    prevPageRef.current = currentPage;
+    prevPageRef.current = currentPage; 
 
-    if (pageActuallyChanged) {
+    if (pageActuallyChanged) { 
       if (matchListContainerRef.current) {
         setTimeout(() => {
           if (matchListContainerRef.current) {
@@ -202,76 +206,88 @@ function MatchHistoryPage() {
         }, 0);
       }
     }
-  }, [currentPage, groupedMatches, selectedMatchForNotes]);
+  }, [currentPage, groupedMatches, selectedMatchForNotes]); 
 
+  // Function to handle updating all matches for all tracked accounts
   const handleUpdateAllMatches = async () => {
-    if (!RIOT_API_KEY) { setError("Brak klucza API Riot."); return; }
-    if (trackedAccounts.length === 0) { setError("Brak śledzonych kont."); return; }
+    if (!RIOT_API_KEY) { setError("Riot API Key is missing."); return; }
+    if (trackedAccounts.length === 0) { setError("No tracked accounts to update."); return; }
 
     setIsUpdatingAllMatches(true); setError('');
-    setUpdateProgress(`Rozpoczynanie aktualizacji dla ${trackedAccounts.length} kont...`);
+    setUpdateProgress(`Starting update for ${trackedAccounts.length} accounts...`);
     let totalNewMatchesActuallyStored = 0;
-    const twoWeeksAgoEpochSeconds = Math.floor((Date.now() - 14 * 24 * 60 * 60 * 1000) / 1000);
+    const twoWeeksAgoEpochSeconds = Math.floor((Date.now() - 14 * 24 * 60 * 60 * 1000) / 1000); 
 
     for (let i = 0; i < trackedAccounts.length; i++) {
       const account = trackedAccounts[i];
       if (!account.puuid || !account.platformId) {
-        setUpdateProgress(`Pominięto ${account.name}#${account.tag} (brak PUUID/Platformy). (${i + 1}/${trackedAccounts.length})`);
+        setUpdateProgress(`Skipped ${account.name}#${account.tag} (missing PUUID/Platform). (${i + 1}/${trackedAccounts.length})`);
         continue;
       }
-      setUpdateProgress(`Aktualizowanie ${account.name}#${account.tag} (${i + 1}/${trackedAccounts.length})...`);
+      setUpdateProgress(`Updating ${account.name}#${account.tag} (${i + 1}/${trackedAccounts.length})...`);
       try {
         const continentalRoute = getContinentalRoute(account.platformId);
+        // Fetch only Ranked Solo/Duo games for now, can be expanded
         const matchlistUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${twoWeeksAgoEpochSeconds}&queue=${QUEUE_IDS.RANKED_SOLO}&count=${MATCH_COUNT_PER_FETCH}&api_key=${RIOT_API_KEY}`;
-        await delay(API_CALL_DELAY_MS);
+        await delay(API_CALL_DELAY_MS); 
         const response = await fetch(matchlistUrl);
         if (!response.ok) {
-            const errData = await response.json().catch(() => ({ message: "Nieznany błąd API Riot (pobieranie ID meczów)" }));
-            console.error(`Błąd API Riot dla ${account.name} (ID meczów): ${response.status}`, errData);
-            setError(`Błąd dla ${account.name} (ID): ${errData.status?.message || response.statusText}`);
-            continue;
+            const errData = await response.json().catch(() => ({ message: "Unknown Riot API error (fetching match IDs)" }));
+            console.error(`Riot API error for ${account.name} (Match IDs): ${response.status}`, errData);
+            setError(`Error for ${account.name} (IDs): ${errData.status?.message || response.statusText}`);
+            continue; 
         }
         const matchIdsFromApi = await response.json();
         if (matchIdsFromApi.length === 0) {
-            setUpdateProgress(`Brak nowych meczów z API dla ${account.name}#${account.tag}. (${i + 1}/${trackedAccounts.length})`);
+            setUpdateProgress(`No new API matches for ${account.name}#${account.tag}. (${i + 1}/${trackedAccounts.length})`);
             continue;
         }
 
-        setUpdateProgress(`Znaleziono ${matchIdsFromApi.length} ostatnich ID dla ${account.name}. Sprawdzanie i pobieranie szczegółów...`);
+        setUpdateProgress(`Found ${matchIdsFromApi.length} recent IDs for ${account.name}. Checking & fetching details...`);
 
         let newMatchesProcessedForThisAccount = 0;
         for (const matchId of matchIdsFromApi) {
-          if (newMatchesProcessedForThisAccount >= MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE) break;
+          if (newMatchesProcessedForThisAccount >= MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE) break; 
 
           const matchDocRef = doc(db, "trackedAccounts", account.id, "matches", matchId);
           const docSnap = await getDoc(matchDocRef);
 
-          if (docSnap.exists() && docSnap.data().allParticipants && docSnap.data().teamObjectives && docSnap.data().timelineData) {
-              console.log(`Mecz ${matchId} dla ${account.name} posiada już pełne dane wraz z timeline. Pomijanie.`);
-              continue;
+          // If document exists and has rawTimelineFrames, assume it's fully processed.
+          // The processedTimelineForTrackedPlayer might be re-calculated if logic changes, but raw frames are key.
+          if (docSnap.exists() && docSnap.data().rawTimelineFrames && docSnap.data().allParticipants) {
+              console.log(`Match ${matchId} for ${account.name} already has raw timeline. Skipping re-fetch of timeline, will re-process if needed or merge details.`);
+              // Optionally, one could re-fetch matchDetail if only timeline was missing, but for simplicity,
+              // if rawTimelineFrames exists, we assume the core data is there.
+              // We will still setDoc later to ensure all fields are up-to-date based on current processing logic.
           }
 
-          setUpdateProgress(`Pobieranie szczegółów meczu ${matchId} dla ${account.name}...`);
+          setUpdateProgress(`Fetching match details ${matchId} for ${account.name}...`);
           await delay(API_CALL_DELAY_MS);
           const matchDetailUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${RIOT_API_KEY}`;
           const detailResponse = await fetch(matchDetailUrl);
 
           if (!detailResponse.ok) {
-            console.warn(`Nie udało się pobrać szczegółów meczu ${matchId} (Konto: ${account.name}). Status: ${detailResponse.status}`);
-            continue;
+            console.warn(`Failed to fetch match details for ${matchId} (Account: ${account.name}). Status: ${detailResponse.status}`);
+            continue; 
           }
           const matchDetail = await detailResponse.json();
           
-          await delay(API_CALL_DELAY_MS);
-          const timelineUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline?api_key=${RIOT_API_KEY}`;
-          const timelineResponse = await fetch(timelineUrl);
-          let timelineFrames = [];
-          if (timelineResponse.ok) {
-            const timelineJson = await timelineResponse.json();
-            timelineFrames = timelineJson.info?.frames || [];
-          } else {
-            console.warn(`Nie udało się pobrać timeline dla meczu ${matchId}. Status: ${timelineResponse.status}`);
+          let currentRawTimelineFrames = docSnap.exists() ? docSnap.data().rawTimelineFrames : null;
+          // Fetch timeline data only if not already present or if we decide to always refresh it
+          if (!currentRawTimelineFrames || currentRawTimelineFrames.length === 0) {
+            setUpdateProgress(`Fetching timeline for ${matchId}...`);
+            await delay(API_CALL_DELAY_MS);
+            const timelineUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline?api_key=${RIOT_API_KEY}`;
+            const timelineResponse = await fetch(timelineUrl);
+            if (timelineResponse.ok) {
+              const timelineJson = await timelineResponse.json();
+              currentRawTimelineFrames = timelineJson.info?.frames || [];
+            } else {
+              console.warn(`Failed to fetch timeline for match ${matchId}. Status: ${timelineResponse.status}`);
+              currentRawTimelineFrames = []; // Ensure it's an empty array if fetch fails
+            }
           }
+
 
           const playerParticipant = matchDetail.info.participants.find(p => p.puuid === account.puuid);
 
@@ -281,8 +297,8 @@ function MatchHistoryPage() {
             const subStyle = perks.styles?.find(s => s.description === 'subStyle');
             
             let opponentParticipant = null;
-            let opponentParticipantIdForTimeline = null;
-            if (playerParticipant.teamPosition && playerParticipant.teamPosition !== '') {
+            let opponentParticipantIdForTimeline = null; 
+            if (playerParticipant.teamPosition && playerParticipant.teamPosition !== '') { 
                 opponentParticipant = matchDetail.info.participants.find(p =>
                     p.teamId !== playerParticipant.teamId &&
                     p.teamPosition === playerParticipant.teamPosition
@@ -293,12 +309,12 @@ function MatchHistoryPage() {
             }
             const playerParticipantIdForTimeline = matchDetail.info.participants.findIndex(p => p.puuid === playerParticipant.puuid) + 1;
 
-
-            const processedTimeline = processTimelineData(
-                timelineFrames, 
+            // Process timeline data specifically for the tracked player and their direct opponent
+            const processedTimelineForTrackedPlayer = processTimelineData(
+                currentRawTimelineFrames, // Use fetched or existing raw frames
                 playerParticipantIdForTimeline, 
                 opponentParticipantIdForTimeline,
-                matchDetail.info.gameDuration
+                matchDetail.info.gameDuration 
             );
 
             const matchDataToStore = {
@@ -307,16 +323,16 @@ function MatchHistoryPage() {
               gameDuration: matchDetail.info.gameDuration,
               gameMode: matchDetail.info.gameMode,
               queueId: matchDetail.info.queueId,
-              platformId: account.platformId, puuid: account.puuid,
+              platformId: account.platformId, puuid: account.puuid, 
               win: playerParticipant.win, championName: playerParticipant.championName,
               championId: playerParticipant.championId, championLevel: playerParticipant.champLevel,
-              teamPosition: playerParticipant.teamPosition,
+              teamPosition: playerParticipant.teamPosition, 
               kills: playerParticipant.kills, deaths: playerParticipant.deaths, assists: playerParticipant.assists,
               totalMinionsKilled: playerParticipant.totalMinionsKilled, neutralMinionsKilled: playerParticipant.neutralMinionsKilled,
               goldEarned: playerParticipant.goldEarned,
               item0: playerParticipant.item0, item1: playerParticipant.item1, item2: playerParticipant.item2,
               item3: playerParticipant.item3, item4: playerParticipant.item4, item5: playerParticipant.item5,
-              item6: playerParticipant.item6,
+              item6: playerParticipant.item6, 
               summoner1Id: playerParticipant.summoner1Id, summoner2Id: playerParticipant.summoner2Id,
               primaryPerkId: primaryStyle?.selections?.[0]?.perk, subStyleId: subStyle?.style,
               opponentChampionName: opponentParticipant ? opponentParticipant.championName : null,
@@ -324,8 +340,8 @@ function MatchHistoryPage() {
               goals: docSnap.exists() ? docSnap.data().goals || "" : "",
               rating: docSnap.exists() ? docSnap.data().rating || null : null,
               allParticipants: matchDetail.info.participants.map(p => ({
-                puuid: p.puuid, summonerName: p.summonerName,
-                riotIdGameName: p.riotIdGameName, riotIdTagline: p.riotIdTagline,
+                puuid: p.puuid, summonerName: p.summonerName, 
+                riotIdGameName: p.riotIdGameName, riotIdTagline: p.riotIdTagline, 
                 championName: p.championName, champLevel: p.champLevel, teamId: p.teamId, teamPosition: p.teamPosition,
                 kills: p.kills, deaths: p.deaths, assists: p.assists,
                 totalMinionsKilled: p.totalMinionsKilled, neutralMinionsKilled: p.neutralMinionsKilled,
@@ -334,33 +350,39 @@ function MatchHistoryPage() {
                 visionWardsBoughtInGame: p.visionWardsBoughtInGame,
                 item0: p.item0, item1: p.item1, item2: p.item2, item3: p.item3, item4: p.item4, item5: p.item5, item6: p.item6,
                 summoner1Id: p.summoner1Id, summoner2Id: p.summoner2Id,
-                perks: p.perks,
+                perks: p.perks, 
               })),
               teamObjectives: matchDetail.info.teams.map(t => ({
                 teamId: t.teamId, win: t.win, objectives: t.objectives
               })),
-              timelineData: processedTimeline,
+              processedTimelineForTrackedPlayer: processedTimelineForTrackedPlayer, 
+              rawTimelineFrames: currentRawTimelineFrames, // Store/update raw frames
             };
-            await setDoc(matchDocRef, matchDataToStore, { merge: true });
-            totalNewMatchesActuallyStored++; newMatchesProcessedForThisAccount++;
+            await setDoc(matchDocRef, matchDataToStore, { merge: true }); 
+            if (!docSnap.exists() || !docSnap.data().rawTimelineFrames) { // Count as new only if raw timeline wasn't there
+                totalNewMatchesActuallyStored++;
+            }
+            newMatchesProcessedForThisAccount++;
           }
         }
       } catch (err) {
-        console.error(`Błąd przetwarzania konta ${account.name}#${account.tag}:`, err);
-        setError(`Błąd aktualizacji ${account.name}. Sprawdź konsolę.`);
+        console.error(`Error processing account ${account.name}#${account.tag}:`, err);
+        setError(`Update error for ${account.name}. Check console.`);
       }
     }
-    setUpdateProgress(`Aktualizacja zakończona. Zapisano/Zaktualizowano ${totalNewMatchesActuallyStored} meczów z pełnymi szczegółami.`);
+    setUpdateProgress(`Update finished. Processed details for up to ${MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE * trackedAccounts.length} matches. Newly stored/fully updated with timeline: ${totalNewMatchesActuallyStored}.`);
     setIsUpdatingAllMatches(false);
-    fetchAllMatchesFromDb();
+    fetchAllMatchesFromDb(); 
   };
 
+  // Handlers for notes panel
   const handleOpenNotes = (match) => { setSelectedMatchForNotes(match); };
   const handleCloseNotes = () => { setSelectedMatchForNotes(null); };
 
+  // Save notes and goals to Firestore
   const handleSaveNotes = async (matchDocumentId, newNotes, newGoals) => {
     if (!selectedMatchForNotes || !db || !selectedMatchForNotes.trackedAccountDocId) {
-      setError("Błąd: Nie można zapisać notatek. Brak danych meczu lub konta.");
+      setError("Error: Cannot save notes. Missing match or account data.");
       return;
     }
     setIsSavingNotes(true);
@@ -372,19 +394,20 @@ function MatchHistoryPage() {
       ));
       setSelectedMatchForNotes(prev => prev && prev.id === matchDocumentId ? {...prev, notes: newNotes, goals: newGoals} : prev);
     } catch (err) {
-      console.error("Błąd zapisu notatek:", err);
-      setError("Nie udało się zapisać notatek. Spróbuj ponownie.");
+      console.error("Error saving notes:", err);
+      setError("Failed to save notes. Please try again.");
     }
     finally { setIsSavingNotes(false); }
   };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    setExpandedMatchId(null);
+    setExpandedMatchId(null); 
   };
 
+  // Helper functions for DDragon data (images, names)
   const getChampionInfo = (championKeyApi) => {
-    if (!championData || !championKeyApi) return { displayName: championKeyApi, imageName: championKeyApi + ".png" };
+    if (!championData || !championKeyApi) return { displayName: championKeyApi, imageName: championKeyApi + ".png" }; 
     let ddragonKeyToLookup = championKeyApi === "Fiddlesticks" ? "FiddleSticks" : championKeyApi;
     const championInfo = championData[ddragonKeyToLookup] || Object.values(championData).find(c => c.id.toLowerCase() === championKeyApi.toLowerCase());
     return championInfo ? { displayName: championInfo.name, imageName: championInfo.image.full } : { displayName: championKeyApi, imageName: championKeyApi + ".png" };
@@ -398,37 +421,39 @@ function MatchHistoryPage() {
     return `https://ddragon.leagueoflegends.com/cdn/img/${runesMap[runeId].icon}`;
   };
 
+  // Toggle expanded match view
   const toggleExpandMatch = (matchId) => {
     setExpandedMatchId(prevId => (prevId === matchId ? null : matchId));
   };
 
-  if (!RIOT_API_KEY && !error.includes("Błąd Konfiguracji")) {
+  // Conditional rendering for API key error
+  if (!RIOT_API_KEY && !error.includes("Configuration Error")) { 
       return (
           <div className="p-4 sm:p-6 md:p-8 text-gray-100 flex flex-col items-center justify-center h-full">
               <AlertTriangle size={48} className="text-red-500 mb-4" />
-              <h2 className="text-2xl font-semibold text-red-400 mb-2">Błąd Konfiguracji</h2>
+              <h2 className="text-2xl font-semibold text-red-400 mb-2">Configuration Error</h2>
               <p className="text-gray-300 text-center max-w-md">
-                  Brak klucza API Riot. Upewnij się, że jest poprawnie ustawiony w zmiennych środowiskowych (VITE_RIOT_API_KEY).
+                  Riot API Key is missing. Please ensure it is correctly set in your environment variables (VITE_RIOT_API_KEY).
               </p>
           </div>
       );
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]">
+    <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]"> 
         <div
             ref={matchListContainerRef}
             className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto h-full
-                        ${selectedMatchForNotes ? 'w-full md:w-3/5 lg:w-2/3 xl:w-3/4' : 'w-full'}`}
+                        ${selectedMatchForNotes ? 'w-full md:w-3/5 lg:w-2/3 xl:w-3/4' : 'w-full'}`} 
         >
             <header className="mb-6 mt-4 px-4 sm:px-6 md:px-8 flex justify-end items-center">
                 <button
                 onClick={handleUpdateAllMatches}
                 disabled={isUpdatingAllMatches || isLoadingAccounts || trackedAccounts.length === 0 || !ddragonVersion || !championData}
-                className="bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed transition-opacity min-w-[150px]"
+                className="bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed transition-opacity min-w-[150px]" 
                 >
                 {isUpdatingAllMatches ? <Loader2 size={20} className="animate-spin mr-2" /> : <RefreshCw size={18} className="mr-2" />}
-                Aktualizuj Wszystko
+                Update All
                 </button>
             </header>
 
@@ -439,37 +464,37 @@ function MatchHistoryPage() {
             )}
             {error && (
                 <div className="mb-6 p-4 bg-red-900/30 text-red-300 border border-red-700/50 rounded-md max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
-                <p><AlertTriangle size={18} className="inline mr-2" />Błąd: {error}</p>
+                <p><AlertTriangle size={18} className="inline mr-2" />Error: {error}</p>
                 </div>
             )}
 
-            {isLoadingMatches && !isUpdatingAllMatches && (
+            {isLoadingMatches && !isUpdatingAllMatches && ( 
                 <div className="flex flex-col items-center justify-center p-10 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-gray-700/50 max-w-4xl mx-auto mt-8">
                 <Loader2 size={40} className="text-orange-500 animate-spin" />
-                <p className="text-gray-300 mt-4 text-lg">Ładowanie meczów...</p>
+                <p className="text-gray-300 mt-4 text-lg">Loading matches...</p>
                 </div>
             )}
 
             {!isLoadingMatches && Object.keys(groupedMatches).length === 0 && !error && !isUpdatingAllMatches && (
                 <div className="text-center py-10 px-6 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-dashed border-gray-700/50 max-w-4xl mx-auto mt-8">
                     <ListChecks size={48} className="text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400 text-lg">Nie znaleziono meczów dla tej strony.</p>
-                    {allMatchesFromDb.length > 0 && <p className="text-gray-500 text-sm">Spróbuj innej strony lub zaktualizuj mecze.</p>}
-                    {allMatchesFromDb.length === 0 && <p className="text-gray-500 text-sm">Kliknij "Aktualizuj Wszystko", aby pobrać ostatnie gry, lub dodaj konta na stronie 'Konta'.</p>}
+                    <p className="text-gray-400 text-lg">No matches found for this page.</p>
+                    {allMatchesFromDb.length > 0 && <p className="text-gray-500 text-sm">Try a different page or update matches.</p>}
+                    {allMatchesFromDb.length === 0 && <p className="text-gray-500 text-sm">Click "Update All" to fetch recent games, or add accounts on the 'Accounts' page.</p>}
                 </div>
             )}
 
             {!isLoadingMatches && Object.keys(groupedMatches).length > 0 && (
-              <div className="space-y-3 max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pb-8">
+              <div className="space-y-3 max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pb-8"> 
                 {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
                   <div key={dateKey}>
                     <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-1.5 border-b border-gray-700/80">
                         {dateKey}
                     </h2>
-                    <div className="space-y-1">
+                    <div className="space-y-1"> 
                         {matchesOnDate.map(match => {
-                        const participantData = match;
-                        const isWin = typeof match.win === 'boolean' ? match.win : null;
+                        const participantData = match; 
+                        const isWin = typeof match.win === 'boolean' ? match.win : null; 
                         const kdaStringSpans = getKDAStringSpans(participantData);
                         const kdaRatio = getKDARatio(participantData);
                         const kdaColorClass = getKDAColorClass(participantData.kills, participantData.deaths, participantData.assists);
@@ -490,16 +515,16 @@ function MatchHistoryPage() {
                         const hasNotesOrGoals = (match.notes && match.notes.trim() !== '') || (match.goals && match.goals.trim() !== '');
 
                         const resultBgOverlayClass = isWin === null
-                        ? 'bg-gray-800/25'
-                        : (isWin ? 'bg-blue-900/20' : 'bg-red-900/20');
+                        ? 'bg-gray-800/25' 
+                        : (isWin ? 'bg-blue-900/20' : 'bg-red-900/20'); 
 
                         const expandButtonBgClass = isWin === null ? 'bg-gray-700/60 hover:bg-gray-600/80' : (isWin ? 'bg-[#263964] hover:bg-[#304A80]' : 'bg-[#42212C] hover:bg-[#582C3A]');
                         const isExpanded = expandedMatchId === match.id;
 
                         return (
                               <div key={match.id} className={`rounded-lg shadow-lg overflow-hidden group ${resultBgOverlayClass}`}>
-                                <div className={`flex items-stretch ${isExpanded ? 'rounded-t-lg' : 'rounded-lg'} ${resultBgOverlayClass}`}>
-                                    <div className="flex flex-1 items-stretch p-3 ml-1">
+                                <div className={`flex items-stretch ${isExpanded ? 'rounded-t-lg' : 'rounded-lg'} ${resultBgOverlayClass}`}> 
+                                    <div className="flex flex-1 items-stretch p-3 ml-1"> 
                                         <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5">
                                             <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p>
                                             <div className="flex justify-start items-baseline w-full text-xs">
@@ -520,7 +545,7 @@ function MatchHistoryPage() {
                                                     onError={(e) => { (e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.championName ? match.championName.substring(0,1) : '?'}`); }}
                                                 />
                                                 {playerRoleIcon &&
-                                                    <img src={playerRoleIcon} alt={match.teamPosition || "Rola"} className="absolute -bottom-1 -left-1 w-5 h-5 p-0.5 bg-gray-950 rounded-full border border-gray-500 shadow-sm" />
+                                                    <img src={playerRoleIcon} alt={match.teamPosition || "Role"} className="absolute -bottom-1 -left-1 w-5 h-5 p-0.5 bg-gray-950 rounded-full border border-gray-500 shadow-sm" />
                                                 }
                                             </div>
                                             <div className="text-gray-400 text-sm font-light self-center px-0.5">vs</div>
@@ -546,18 +571,18 @@ function MatchHistoryPage() {
                                             <div className="flex space-x-1">
                                                 <div className="flex flex-col space-y-0.5">
                                                     <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
-                                                        {summoner1Img ? <img src={summoner1Img} alt="Cz. Przyw. 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
+                                                        {summoner1Img ? <img src={summoner1Img} alt="Summ. Spell 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                     </div>
                                                     <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
-                                                        {summoner2Img ? <img src={summoner2Img} alt="Cz. Przyw. 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
+                                                        {summoner2Img ? <img src={summoner2Img} alt="Summ. Spell 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col space-y-0.5">
                                                     <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px">
-                                                        {primaryRuneImg ? <img src={primaryRuneImg} alt="Główna Runa" className="w-5 h-5 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>}
+                                                        {primaryRuneImg ? <img src={primaryRuneImg} alt="Primary Rune" className="w-5 h-5 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>}
                                                     </div>
                                                     <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px">
-                                                        {subStyleImg ? <img src={subStyleImg} alt="Drugorzędny Styl Run" className="w-4 h-4 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>}
+                                                        {subStyleImg ? <img src={subStyleImg} alt="Secondary Rune Style" className="w-4 h-4 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>}
                                                     </div>
                                                 </div>
                                             </div>
@@ -565,20 +590,20 @@ function MatchHistoryPage() {
                                                 <div className="flex space-x-0.5">
                                                     {itemsRow1.map((itemSrc, idx) => (
                                                         <div key={`item-r1-${idx}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
-                                                            {itemSrc ? <img src={itemSrc} alt={`Przedmiot ${idx+1}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
+                                                            {itemSrc ? <img src={itemSrc} alt={`Item ${idx+1}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                         </div>
                                                     ))}
                                                     <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
-                                                        {trinketImg ? <img src={trinketImg} alt="Talizman" className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div> }
+                                                        {trinketImg ? <img src={trinketImg} alt="Trinket" className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div> }
                                                     </div>
                                                 </div>
                                                 <div className="flex space-x-0.5">
                                                     {itemsRow2.map((itemSrc, idx) => (
                                                         <div key={`item-r2-${idx}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">
-                                                            {itemSrc ? <img src={itemSrc} alt={`Przedmiot ${idx+4}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
+                                                            {itemSrc ? <img src={itemSrc} alt={`Item ${idx+4}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}
                                                         </div>
                                                     ))}
-                                                    <div className="w-6 h-6"></div>
+                                                    <div className="w-6 h-6"></div> 
                                                 </div>
                                             </div>
                                         </div>
@@ -599,9 +624,9 @@ function MatchHistoryPage() {
                                                 onClick={() => handleOpenNotes(match)}
                                                 className={`p-1.5 rounded-md transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center mr-2.5 w-auto h-auto
                                                             ${hasNotesOrGoals
-                                                                ? 'bg-sky-600 hover:bg-sky-500 text-white'
-                                                                : 'bg-orange-600 hover:bg-orange-500 text-white'}`}
-                                                title={hasNotesOrGoals ? "Zobacz/Edytuj Notatki" : "Dodaj Notatki"}
+                                                                ? 'bg-sky-600 hover:bg-sky-500 text-white' 
+                                                                : 'bg-orange-600 hover:bg-orange-500 text-white'}`} 
+                                                title={hasNotesOrGoals ? "View/Edit Notes" : "Add Notes"}
                                             >
                                                 {hasNotesOrGoals ? <MessageSquare size={18} /> : <Edit size={18} />}
                                             </button>
@@ -610,7 +635,7 @@ function MatchHistoryPage() {
 
                                     <button
                                         className={`flex items-center justify-center ${expandButtonBgClass} transition-colors w-8 cursor-pointer ${isExpanded ? 'rounded-tr-lg' : 'rounded-r-lg'}`}
-                                        title={isExpanded ? "Zwiń Szczegóły" : "Rozwiń Szczegóły"}
+                                        title={isExpanded ? "Collapse Details" : "Expand Details"}
                                         onClick={() => toggleExpandMatch(match.id)}
                                     >
                                         {isExpanded ? <ChevronUp size={18} className="text-gray-300 group-hover:text-orange-300"/> : <ChevronDown size={18} className="text-gray-400 group-hover:text-orange-300"/>}
@@ -618,7 +643,7 @@ function MatchHistoryPage() {
                                 </div>
                                 {isExpanded && (
                                     <ExpandedMatchDetails
-                                        match={match}
+                                        match={match} 
                                         ddragonVersion={ddragonVersion}
                                         championData={championData}
                                         summonerSpellsMap={summonerSpellsMap}
@@ -628,9 +653,10 @@ function MatchHistoryPage() {
                                         getItemImage={getItemImage}
                                         getRuneImage={getRuneImage}
                                         getChampionDisplayName={getChampionDisplayName}
-                                        isTrackedPlayerWin={isWin}
-                                        roleIconMap={ROLE_ICON_MAP} // Przekaż mapowanie ikon ról
-                                        roleOrder={ROLE_ORDER} // Przekaż kolejność ról
+                                        isTrackedPlayerWin={isWin} 
+                                        roleIconMap={ROLE_ICON_MAP} 
+                                        roleOrder={ROLE_ORDER} 
+                                        processTimelineDataForPlayer={processTimelineData} 
                                     />
                                 )}
                             </div>
@@ -654,8 +680,8 @@ function MatchHistoryPage() {
         {selectedMatchForNotes && (
             <MatchNotesPanel
                 match={selectedMatchForNotes}
-                championData={championData}
-                ddragonVersion={ddragonVersion}
+                championData={championData} 
+                ddragonVersion={ddragonVersion} 
                 onSave={handleSaveNotes}
                 onClose={handleCloseNotes}
                 isLoading={isSavingNotes}
