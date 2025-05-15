@@ -9,7 +9,7 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
   useEffect(() => {
     if (match) {
       setNotes(match.notes || '');
-      setGoals(match.goals || ''); 
+      setGoals(match.goals || '');
     } else {
       setNotes('');
       setGoals('');
@@ -17,25 +17,31 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
   }, [match]);
 
   const handleSave = () => {
-    if (match) {
-      onSave(match.id, notes, goals);
+    // Ensure 'match' and 'match.matchId' are present.
+    // 'match.matchId' is the primary key for the 'matches' table in Dexie.
+    if (match && match.matchId) {
+      onSave(match.matchId, notes, goals); // Pass match.matchId to the onSave handler
+    } else {
+      console.error("MatchNotesPanel: Cannot save, match or matchId is missing.", match);
+      // Optionally, provide user feedback here if critical
     }
   };
 
   if (!match) {
-    return null; 
+    return null;
   }
 
   const getChampionDisplayNameFromPanel = (championKeyApi) => {
     if (!championData || !championKeyApi) return championKeyApi || 'Champion';
     let ddragonKeyToLookup = championKeyApi;
-    if (championKeyApi === "Fiddlesticks") ddragonKeyToLookup = "FiddleSticks";
+    if (championKeyApi === "Fiddlesticks") ddragonKeyToLookup = "FiddleSticks"; // Common DDragon key correction
     const championInfo = championData[ddragonKeyToLookup] || Object.values(championData).find(c => c.id.toLowerCase() === championKeyApi.toLowerCase());
     return championInfo ? championInfo.name : championKeyApi;
   };
-  
+
   const championNameDisplay = getChampionDisplayNameFromPanel(match.championName);
-  const gameDate = match.gameCreation ? new Date(match.gameCreation.seconds * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+  // gameCreation is stored as milliseconds from epoch in Dexie
+  const gameDate = match.gameCreation ? new Date(match.gameCreation).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
 
 
   return (
@@ -59,7 +65,7 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
         </label>
         <textarea
           id="gameGoals"
-          rows="4" // Increased rows slightly
+          rows="4"
           className="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-100 placeholder-gray-500 text-sm"
           placeholder="What was your main focus this game? (e.g., CSing, map awareness, specific matchup, objective control)"
           value={goals}
@@ -69,12 +75,12 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
       </div>
 
       <div>
-        <label htmlFor="gameNotes" className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center">
+        <label htmlFor="gameNotes" className="text-sm font-medium text-gray-300 mb-1.5 flex items-center">
           <Edit2 size={16} className="mr-2 text-orange-500" /> Reflections & Learnings
         </label>
         <textarea
           id="gameNotes"
-          rows="10" // Increased rows slightly
+          rows="10"
           className="w-full p-2.5 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-100 placeholder-gray-500 text-sm"
           placeholder="1. What went well this game?&#10;2. What was one key mistake? How to avoid it?&#10;3. What's the main takeaway or learning?"
           value={notes}
@@ -82,10 +88,10 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
           disabled={isLoading}
         />
       </div>
-      
+
       <button
         onClick={handleSave}
-        disabled={isLoading}
+        disabled={isLoading || !match || !match.matchId} // Disable if match or matchId is missing
         className="w-full mt-2 bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-850 flex items-center justify-center disabled:opacity-60"
       >
         <Save size={18} className="mr-2" />
@@ -96,4 +102,3 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
 }
 
 export default MatchNotesPanel;
-    

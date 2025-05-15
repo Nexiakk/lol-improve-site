@@ -1,10 +1,11 @@
 // src/components/ExpandedMatchDetails.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react'; // Removed useMemo as it's not explicitly used at the top level here
 import { ImageOff } from 'lucide-react';
 import {
     formatGameDurationMMSS,
     getKDAColorClass,
     getKDAStringSpans,
+    // QUEUE_IDS, // Not directly used in this component, but good to be aware of if extending
 } from '../utils/matchCalculations';
 
 
@@ -44,49 +45,50 @@ const TowerIcon = ({ className = "" }) => (
 
 
 // Component for expanded match details
-const ExpandedMatchDetails = ({ 
-    match, 
-    ddragonVersion, 
-    championData, 
-    summonerSpellsMap, 
-    runesMap, 
-    getChampionImage, 
-    getSummonerSpellImage, 
-    getItemImage, 
-    getRuneImage, 
-    getChampionDisplayName, 
-    isTrackedPlayerWin, 
-    roleIconMap, 
+const ExpandedMatchDetails = ({
+    match, // The match object from Dexie, identified by match.matchId
+    ddragonVersion,
+    championData,
+    summonerSpellsMap,
+    runesMap,
+    getChampionImage,
+    getSummonerSpellImage,
+    getItemImage,
+    getRuneImage,
+    getChampionDisplayName,
+    isTrackedPlayerWin,
+    roleIconMap,
     roleOrder,
-    processTimelineDataForPlayer // New prop to process timeline for any player
+    processTimelineDataForPlayer
 }) => {
     const [activeTab, setActiveTab] = useState('General');
     // PUUID of the player whose details are currently being viewed in the "Details" tab
-    const [selectedPlayerForDetailsPuuid, setSelectedPlayerForDetailsPuuid] = useState(match.puuid); 
+    // match.puuid is the puuid of the player for whom this match was originally fetched/tracked.
+    const [selectedPlayerForDetailsPuuid, setSelectedPlayerForDetailsPuuid] = useState(match.puuid);
     // State to hold the processed timeline data for the currently selected player in the "Details" tab
     const [currentSelectedPlayerTimeline, setCurrentSelectedPlayerTimeline] = useState(null);
 
-
     // Destructure necessary fields from the match object
-    const { 
-        allParticipants = [], 
-        teamObjectives = [], 
-        gameDuration, 
+    const {
+        allParticipants = [],
+        teamObjectives = [],
+        gameDuration,
         puuid: trackedPlayerPuuid, // PUUID of the player this match was originally tracked for
-        processedTimelineForTrackedPlayer, // Pre-processed timeline for the tracked player
-        rawTimelineFrames // Raw timeline frames for on-demand processing
+        processedTimelineForTrackedPlayer, // Pre-processed timeline for the tracked player (from Dexie)
+        rawTimelineFrames, // Raw timeline frames for on-demand processing (from Dexie)
+        matchId // The primary key for the match from Dexie
     } = match;
 
-    // Effect to reset selected player and timeline when the match prop changes
+    // Effect to reset selected player and timeline when the match prop (identified by matchId) changes
     useEffect(() => {
-        setSelectedPlayerForDetailsPuuid(match.puuid); // Default to the tracked player
+        setSelectedPlayerForDetailsPuuid(trackedPlayerPuuid); // Default to the tracked player
         // Initially, set the timeline to the pre-processed one for the tracked player
-        setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null); 
-        setActiveTab('General'); 
-    }, [match.id, match.puuid, processedTimelineForTrackedPlayer]);
+        setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
+        setActiveTab('General'); // Reset to general tab when match changes
+    }, [matchId, trackedPlayerPuuid, processedTimelineForTrackedPlayer]); // Use matchId as dependency
 
 
-    // Effect to re-process timeline data when selectedPlayerForDetailsPuuid changes
+    // Effect to re-process timeline data when selectedPlayerForDetailsPuuid or activeTab changes
     useEffect(() => {
         if (activeTab !== 'Details') return; // Only process if details tab is active
 
@@ -99,13 +101,13 @@ const ExpandedMatchDetails = ({
             if (selectedParticipant) {
                 // Find the Riot's participantId (1-10) for the selected player
                 const targetParticipantId = allParticipants.findIndex(p => p.puuid === selectedPlayerForDetailsPuuid) + 1;
-                
+
                 // Determine opponent for laning phase comparison (if applicable for this selected player)
                 let opponentForSelected = null;
                 let opponentIdForSelectedTimeline = null;
                 if (selectedParticipant.teamPosition && selectedParticipant.teamPosition !== '') {
-                    opponentForSelected = allParticipants.find(p => 
-                        p.teamId !== selectedParticipant.teamId && 
+                    opponentForSelected = allParticipants.find(p =>
+                        p.teamId !== selectedParticipant.teamId &&
                         p.teamPosition === selectedParticipant.teamPosition
                     );
                 }
@@ -117,18 +119,21 @@ const ExpandedMatchDetails = ({
                     const timeline = processTimelineDataForPlayer(
                         rawTimelineFrames,
                         targetParticipantId,
-                        opponentIdForSelectedTimeline, // Pass opponent for laning comparison
+                        opponentIdForSelectedTimeline,
                         gameDuration
                     );
                     setCurrentSelectedPlayerTimeline(timeline);
                 } else {
-                    setCurrentSelectedPlayerTimeline(null); // Should not happen if selectedPlayerForDetailsPuuid is valid
+                    console.warn("Could not find targetParticipantId for timeline processing.");
+                    setCurrentSelectedPlayerTimeline(null);
                 }
             } else {
-                setCurrentSelectedPlayerTimeline(null); // Player not found in allParticipants
+                 console.warn("Selected player for details not found in allParticipants.");
+                setCurrentSelectedPlayerTimeline(null);
             }
         } else {
-            setCurrentSelectedPlayerTimeline(null); // Missing necessary data/functions
+            console.warn("Missing data for timeline processing (rawTimelineFrames, processTimelineDataForPlayer, or selectedPlayerForDetailsPuuid).");
+            setCurrentSelectedPlayerTimeline(null);
         }
     }, [selectedPlayerForDetailsPuuid, activeTab, rawTimelineFrames, processTimelineDataForPlayer, allParticipants, trackedPlayerPuuid, processedTimelineForTrackedPlayer, gameDuration]);
 
@@ -140,7 +145,6 @@ const ExpandedMatchDetails = ({
     const redTeamData = teamObjectives.find(t => t.teamId === 200) || { objectives: {}, win: false };
 
     const maxDamageInGame = Math.max(...allParticipants.map(p => p.totalDamageDealtToChampions || 0), 0);
-    // Calculate max damage separately for each team to highlight top damage dealer within that team
     const maxDamageBlueTeam = Math.max(0, ...blueTeam.map(p => p.totalDamageDealtToChampions || 0));
     const maxDamageRedTeam = Math.max(0, ...redTeam.map(p => p.totalDamageDealtToChampions || 0));
 
@@ -149,63 +153,57 @@ const ExpandedMatchDetails = ({
         const items = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5];
         const trinket = player.item6;
         const kdaColor = getKDAColorClass(player.kills, player.deaths, player.assists);
-        // Calculate KDA ratio, ensuring gameDuration is positive to avoid division by zero
         const kdaRatio = gameDuration > 0 ? (player.deaths === 0 ? (player.kills > 0 || player.assists > 0 ? 'Perfect' : '0.00') : ((player.kills + player.assists) / player.deaths).toFixed(2)) : '0.00';
         const kp = teamTotalKills > 0 ? (((player.kills + player.assists) / teamTotalKills) * 100).toFixed(0) + '%' : '0%';
         const cs = (player.totalMinionsKilled || 0) + (player.neutralMinionsKilled || 0);
         const csPerMin = gameDuration > 0 ? (cs / (gameDuration / 60)).toFixed(1) : '0.0';
         const damageDealt = player.totalDamageDealtToChampions || 0;
         const damagePerMin = gameDuration > 0 ? (damageDealt / (gameDuration / 60)).toFixed(0) : '0';
-        // Calculate damage percentage relative to the absolute max damage in the game
         const damagePercentage = maxDamageInGame > 0 ? (damageDealt / maxDamageInGame) * 100 : 0;
 
         const playerPrimaryPerk = player.perks?.styles?.find(s => s.description === 'primaryStyle')?.selections?.[0]?.perk;
         const playerSubStyle = player.perks?.styles?.find(s => s.description === 'subStyle')?.style;
         const roleIcon = roleIconMap[player.teamPosition?.toUpperCase()];
 
-        // Determine text and bar color for damage, highlighting top damage dealer in their team
         const damageTextColorClass = isTopDamageInTeam ? 'text-white font-semibold' : 'text-gray-200';
         const damageBarColorClass = isTopDamageInTeam
-            ? (player.teamId === 100 ? 'neon-bg-blue' : 'neon-bg-red') // Neon for top damage in team
-            : (player.teamId === 100 ? 'bg-blue-500' : 'bg-red-500'); // Standard team color otherwise
+            ? (player.teamId === 100 ? 'neon-bg-blue' : 'neon-bg-red')
+            : (player.teamId === 100 ? 'bg-blue-500' : 'bg-red-500');
 
-        const trackedPlayerClass = isTrackedPlayerRow ? 'tracked-player-highlight' : ''; // Apply highlight class
+        const trackedPlayerClass = isTrackedPlayerRow ? 'tracked-player-highlight' : '';
 
         return (
             <div key={player.puuid || player.summonerName} className={`flex items-center gap-x-2 sm:gap-x-3 py-0.5 px-1 text-xs hover:bg-gray-700/10 transition-colors duration-150 ${trackedPlayerClass}`}>
                 {/* Champion Info */}
                 <div className="flex items-center space-x-1.5 w-[120px] sm:w-[140px] flex-shrink-0">
                     <div className="relative w-9 h-9">
-                        <img src={getChampionImage(player.championName)} alt={getChampionDisplayName(player.championName)} className="w-full h-full rounded-md border border-gray-600" />
+                        <img src={getChampionImage(player.championName)} alt={getChampionDisplayName(player.championName)} className="w-full h-full rounded-md border border-gray-600" onError={(e) => { e.target.src = `https://placehold.co/36x36/222/ccc?text=${player.championName ? player.championName.substring(0,1) : '?'}`; }}/>
                         <span className="absolute -bottom-1 -right-1 bg-black bg-opacity-80 text-white text-[9px] px-1 rounded-sm leading-tight border border-gray-500/50">{player.champLevel}</span>
                         {roleIcon && (
                             <img src={roleIcon} alt={player.teamPosition || 'Role'} className="absolute -top-1 -left-1 w-4 h-4 p-0.5 bg-gray-800 rounded-full border border-gray-400/70 shadow-sm" />
                         )}
                     </div>
                     <div className="flex flex-col overflow-hidden">
-                        <span className="font-semibold text-gray-100 truncate" title={player.riotIdGameName || player.summonerName}>
+                        <span className="font-semibold text-gray-100 truncate" title={player.riotIdGameName ? `${player.riotIdGameName}#${player.riotIdTagline}` : player.summonerName}>
                             {player.riotIdGameName || player.summonerName || 'Player'}
                         </span>
-                        <span className="text-gray-400 text-[10px]">Unranked</span> {/* Placeholder for rank */}
+                        {/* <span className="text-gray-400 text-[10px]">Unranked</span> */} {/* Placeholder for rank */}
                     </div>
                 </div>
 
                 {/* Build Info */}
                 <div className="flex items-center space-x-1 flex-shrink-0">
-                    {/* Spells */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner1Id)} alt="S1" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner2Id)} alt="S2" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
                     </div>
-                    {/* Runes */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerPrimaryPerk)} alt="R1" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerSubStyle)} alt="R2" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                     </div>
-                    {/* Items */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="flex space-x-0.5">
-                            {[items[0], items[1], items[2], trinket].map((item, idx) => ( // Trinket in first row
+                            {[items[0], items[1], items[2], trinket].map((item, idx) => (
                                 <div key={`item-top-${idx}-${player.puuid}`} className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center">
                                     {item && item !== 0 ? <img src={getItemImage(item)} alt={`Item ${idx}`} className="w-full h-full rounded-sm" /> : <div className="w-4 h-4 bg-gray-700/50 rounded-sm"></div>}
                                 </div>
@@ -217,14 +215,13 @@ const ExpandedMatchDetails = ({
                                     {item && item !== 0 ? <img src={getItemImage(item)} alt={`Item ${idx + 3}`} className="w-full h-full rounded-sm" /> : <div className="w-4 h-4 bg-gray-700/50 rounded-sm"></div>}
                                 </div>
                             ))}
-                            <div className="w-5 h-5"></div> {/* Spacer for alignment with trinket row */}
+                            <div className="w-5 h-5"></div>
                         </div>
                     </div>
                 </div>
 
                 {/* Stats Block */}
                 <div className="flex flex-1 justify-around items-start gap-x-1 sm:gap-x-2 text-center min-w-0">
-                    {/* KDA */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-100">{getKDAStringSpans(player)}</span>
                         <div>
@@ -232,17 +229,14 @@ const ExpandedMatchDetails = ({
                             <span className="text-[10px] text-gray-300 ml-0.5 sm:ml-1">KDA</span>
                         </div>
                     </div>
-                    {/* KP */}
                     <div className="flex flex-col items-center min-w-[30px] sm:min-w-[35px]">
                         <span className="text-gray-200">{kp}</span>
                         <span className="text-[10px] text-gray-300">KP</span>
                     </div>
-                    {/* CS */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-200">{cs}</span>
                         <span className="text-[10px] text-gray-300">{csPerMin} CS/m</span>
                     </div>
-                    {/* Damage */}
                     <div className="flex flex-col items-center flex-grow min-w-[70px] sm:min-w-[90px] max-w-[120px]">
                         <div className="flex justify-between w-full items-baseline">
                             <span className={`${damageTextColorClass} text-[10px]`}>{damageDealt.toLocaleString()}</span>
@@ -252,7 +246,6 @@ const ExpandedMatchDetails = ({
                             <div className={`h-full ${damageBarColorClass}`} style={{ width: `${damagePercentage}%` }}></div>
                         </div>
                     </div>
-                    {/* Vision */}
                     <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
                         <span className="text-gray-200">{player.visionWardsBoughtInGame || 0}</span>
                         <span className="text-[10px] text-gray-300">{player.wardsPlaced || 0}/{player.wardsKilled || 0}</span>
@@ -261,17 +254,15 @@ const ExpandedMatchDetails = ({
             </div>
         );
     };
-    
-    // Function to render a team section in the scoreboard
+
     const renderTeamSection = (team, teamData, teamName, teamMaxDamage) => {
         const totalKills = teamData?.objectives?.champion?.kills || 0;
         const teamSide = teamName === 'Blue Team' ? 'Blue Side' : 'Red Side';
         const teamColorForText = teamName === 'Blue Team' ? 'text-blue-400' : 'text-red-400';
-        const objectiveIconSize = "w-5 h-5"; // Consistent size for objective icons
+        const objectiveIconSize = "w-5 h-5";
 
         return (
             <div className="p-2 sm:p-3 rounded-md">
-                {/* Team Header: Win/Loss, Side, Objectives */}
                 <div className="flex items-center mb-1.5 pb-1">
                     <h3 className={`text-md sm:text-lg font-semibold ${teamColorForText}`}>
                         {teamData.win ? 'Victory' : 'Defeat'}
@@ -279,7 +270,6 @@ const ExpandedMatchDetails = ({
                             ({teamSide})
                         </span>
                     </h3>
-                    {/* Objective Icons */}
                     <div className="flex space-x-1.5 sm:space-x-2 items-center text-xs">
                         <span title="Voidgrubs" className="flex items-center"><GrubIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.horde?.kills || 0}</span>
                         <span title="Dragons" className="flex items-center"><DragonIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.dragon?.kills || 0}</span>
@@ -289,18 +279,16 @@ const ExpandedMatchDetails = ({
                         <span title="Towers" className="flex items-center"><TowerIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.tower?.kills || 0}</span>
                     </div>
                 </div>
-                {/* Player Rows */}
                 {team.map(player => renderPlayerRow(
                     player,
                     totalKills,
-                    player.totalDamageDealtToChampions === teamMaxDamage && teamMaxDamage > 0, // Check if this player is top damage in their team
-                    player.puuid === trackedPlayerPuuid // Highlight only if it's the tracked player for this match
+                    player.totalDamageDealtToChampions === teamMaxDamage && teamMaxDamage > 0,
+                    player.puuid === trackedPlayerPuuid
                 ))}
             </div>
         );
     };
 
-    // Content for the "General" (Scoreboard) tab
     const GeneralTabContent = () => (
         <div className="space-y-3">
             {renderTeamSection(blueTeam, blueTeamData, "Blue Team", maxDamageBlueTeam)}
@@ -308,42 +296,47 @@ const ExpandedMatchDetails = ({
         </div>
     );
 
-    // Content for the "Details" tab
     const DetailsTabContent = () => {
         const currentPlayerForDisplay = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
-        
-        if (!currentPlayerForDisplay) return <p className="text-gray-400 p-4">Player data not found for selection.</p>;
 
-        // Use currentSelectedPlayerTimeline which is updated based on selection
-        const timelineToDisplay = currentSelectedPlayerTimeline; 
-        
+        if (!currentPlayerForDisplay) return <p className="text-gray-400 p-4">Player data not found for selection.</p>;
+        if (!currentSelectedPlayerTimeline && activeTab === 'Details') {
+             return (
+                <div className="p-4 text-center text-gray-400">
+                    <Loader2 size={24} className="animate-spin mx-auto mb-2 text-orange-500" />
+                    Loading player details...
+                </div>
+            );
+        }
+
+
+        const timelineToDisplay = currentSelectedPlayerTimeline;
         const snapshot15min = timelineToDisplay?.snapshots?.find(s => s.minute === 15);
         const firstToLvl2Display = timelineToDisplay?.laningPhase?.firstToLvl2 || "N/A";
 
-        // Helper component for stat items
         const StatItem = ({ value, label, title }) => (
             <div className="flex flex-col items-center text-center" title={title}>
                 <span className="text-gray-100 font-medium text-sm sm:text-base">{value !== undefined && value !== null ? value : 'N/A'}</span>
                 <span className="text-gray-400 text-[10px] sm:text-xs leading-tight mt-0.5">{label}</span>
             </div>
         );
-        
-        // Renders champion icons for selection in the Details tab
+
         const renderChampionIconWithRole = (player) => {
             const roleIconSrc = roleIconMap[player.teamPosition?.toUpperCase()];
             const isSelected = player.puuid === selectedPlayerForDetailsPuuid;
             return (
-                <button 
-                    key={player.puuid} 
+                <button
+                    key={player.puuid}
                     className={`relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 focus:outline-none transition-all duration-150
                                 ${isSelected ? 'ring-2 ring-orange-500 rounded-md scale-110' : 'opacity-75 hover:opacity-100'}`}
                     title={`Show stats for ${getChampionDisplayName(player.championName)}`}
-                    onClick={() => setSelectedPlayerForDetailsPuuid(player.puuid)} // Update selected PUUID
+                    onClick={() => setSelectedPlayerForDetailsPuuid(player.puuid)}
                 >
                     <img
                         src={getChampionImage(player.championName)}
                         alt={getChampionDisplayName(player.championName)}
                         className="w-full h-full rounded-md border-2 border-gray-600"
+                        onError={(e) => { e.target.src = `https://placehold.co/48x48/222/ccc?text=${player.championName ? player.championName.substring(0,1) : '?'}`; }}
                     />
                     {roleIconSrc && (
                         <img
@@ -358,7 +351,6 @@ const ExpandedMatchDetails = ({
 
         return (
             <div className="p-3 sm:p-4 text-gray-200 space-y-4">
-                {/* Champion Icons Header for selecting player */}
                 <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-4 p-2 rounded-lg">
                     <div className="flex space-x-1 sm:space-x-1.5">
                         {blueTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
@@ -368,10 +360,8 @@ const ExpandedMatchDetails = ({
                         {redTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
                     </div>
                 </div>
-                
-                {/* Row 1: Laning, Wards, Global Stats */}
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-                    {/* Laning Phase (at 15 min) */}
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[100px] flex flex-col justify-center">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Laning Phase</h4>
                         {timelineToDisplay && timelineToDisplay.snapshots ? (
@@ -379,14 +369,12 @@ const ExpandedMatchDetails = ({
                                 <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="CS Diff @15" />
                                 <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="Gold Diff @15" />
                                 <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="XP Diff @15" />
-                                <StatItem 
-                                    value={firstToLvl2Display} 
-                                    label="First to Lvl 2" 
+                                <StatItem
+                                    value={firstToLvl2Display}
+                                    label="First to Lvl 2"
                                     title={
                                         firstToLvl2Display === "Yes" ? "You (or same time) reached level 2 first." :
                                         firstToLvl2Display === "No" ? "Opponent reached level 2 first." :
-                                        firstToLvl2Display.includes("Player N/A") ? "Opponent reached level 2; your data N/A." :
-                                        firstToLvl2Display.includes("Opponent N/A") ? "You reached level 2; opponent data N/A." :
                                         "Level 2 race data not available."
                                     }
                                 />
@@ -396,7 +384,6 @@ const ExpandedMatchDetails = ({
                         )}
                     </div>
 
-                    {/* Wards */}
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Wards</h4>
                         <div className="grid grid-cols-3 gap-x-2 gap-y-3">
@@ -406,7 +393,6 @@ const ExpandedMatchDetails = ({
                         </div>
                     </div>
 
-                    {/* Global Stats */}
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Global Stats</h4>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3">
@@ -418,7 +404,6 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
-                {/* Build Order */}
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[80px] flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Build Order</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
@@ -426,11 +411,12 @@ const ExpandedMatchDetails = ({
                             {timelineToDisplay.buildOrder.map((itemEvent, index) => (
                                 getItemImage(itemEvent.itemId) ?
                                 <img
-                                    key={`build-${index}-${itemEvent.itemId}-${itemEvent.timestamp}`} // Added timestamp for better key uniqueness
+                                    key={`build-${index}-${itemEvent.itemId}-${itemEvent.timestamp}`}
                                     src={getItemImage(itemEvent.itemId)}
                                     alt={`Item ${itemEvent.itemId}`}
                                     className="w-8 h-8 sm:w-9 sm:h-9 rounded border border-gray-500"
                                     title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
+                                    onError={(e) => { e.target.style.display = 'none'; }}
                                 />
                                 : null
                             ))}
@@ -438,15 +424,14 @@ const ExpandedMatchDetails = ({
                     ) : <p className="text-gray-500 text-xs sm:text-sm italic">Missing build order data for this player.</p>}
                 </div>
 
-                {/* Skill Order */}
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Skill Order (QWER)</h4>
                     {timelineToDisplay && timelineToDisplay.skillOrder && timelineToDisplay.skillOrder.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                             {timelineToDisplay.skillOrder.map((skill, index) => (
-                                <span 
-                                    key={`skill-${index}-${skill.skillSlot}-${skill.timestamp}`} // Added timestamp for better key
-                                    className="bg-gray-800 px-2 py-1 rounded text-orange-300 text-xs sm:text-sm border border-gray-600" 
+                                <span
+                                    key={`skill-${index}-${skill.skillSlot}-${skill.timestamp}`}
+                                    className="bg-gray-800 px-2 py-1 rounded text-orange-300 text-xs sm:text-sm border border-gray-600"
                                     title={`Lvl ${skill.levelTakenAt} (Skill Lvl ${skill.skillLevel}) @ ${formatGameDurationMMSS(skill.timestamp / 1000)}`}
                                 >
                                     {['Q', 'W', 'E', 'R'][skill.skillSlot - 1] || '?'}
@@ -455,28 +440,40 @@ const ExpandedMatchDetails = ({
                         </div>
                     ) : <p className="text-gray-500 text-xs sm:text-sm italic">Missing skill order data for this player.</p>}
                 </div>
-                
-                {/* Runes (Placeholder - Full rune display can be complex) */}
+
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Runes</h4>
-                    {/* You can display primary and secondary tree names, and keystone here */}
-                    {/* Example: currentPlayerForDisplay.perks.styles... */}
-                    <p className="text-gray-400 text-xs sm:text-sm">Detailed rune display not yet implemented.</p>
+                     {/* Basic Rune Display */}
+                    {currentPlayerForDisplay.perks && currentPlayerForDisplay.perks.styles && currentPlayerForDisplay.perks.styles.length > 0 ? (
+                        <div className="flex flex-col space-y-2">
+                            {currentPlayerForDisplay.perks.styles.map((style, styleIndex) => (
+                                <div key={`style-${style.style}-${styleIndex}`} className="flex items-center space-x-2">
+                                    <img src={getRuneImage(style.style)} alt={runesMap[style.style]?.name || 'Rune Style'} className="w-6 h-6" onError={(e) => e.target.style.display='none'}/>
+                                    <span className="text-gray-300 text-xs">{runesMap[style.style]?.name || (style.description === 'primaryStyle' ? 'Primary' : 'Secondary')}</span>
+                                    <div className="flex space-x-1">
+                                        {style.selections.map((selection, selIndex) => (
+                                            <img key={`rune-${selection.perk}-${selIndex}`} src={getRuneImage(selection.perk)} alt={runesMap[selection.perk]?.name || `Rune ${selection.perk}`} className="w-5 h-5 opacity-80" onError={(e) => e.target.style.display='none'}/>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-gray-400 text-xs sm:text-sm">Rune data not available.</p>
+                    )}
                 </div>
             </div>
         );
     };
-    
-    // Determine background color for the expanded section based on win/loss of the tracked player
+
     const expandedBgClass = isTrackedPlayerWin === null
-    ? 'bg-gray-950/40' // Neutral if win status is unknown
+    ? 'bg-gray-950/40'
     : isTrackedPlayerWin
-        ? 'bg-blue-950/30' // Blue tint for win
-        : 'bg-red-950/30';  // Red tint for loss
+        ? 'bg-blue-950/30'
+        : 'bg-red-950/30';
 
     return (
         <div className={`mt-0.5 p-2 sm:p-3 ${expandedBgClass} backdrop-blur-sm rounded-b-lg border-t border-gray-700/50 shadow-inner`}>
-            {/* Tabs for switching between General Scoreboard and Detailed View */}
             <div className="flex border-b border-gray-600/80 mb-2 sm:mb-3">
                 <button
                     onClick={() => setActiveTab('General')}
@@ -493,7 +490,6 @@ const ExpandedMatchDetails = ({
                     Details
                 </button>
             </div>
-            {/* Render content based on active tab */}
             {activeTab === 'General' && <GeneralTabContent />}
             {activeTab === 'Details' && <DetailsTabContent />}
         </div>
