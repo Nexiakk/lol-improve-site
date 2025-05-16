@@ -1,16 +1,14 @@
 // src/components/ExpandedMatchDetails.jsx
-import React, { useState, useEffect } from 'react'; // Removed useMemo as it's not explicitly used at the top level here
-import { ImageOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ImageOff, ChevronRight, X } from 'lucide-react';
 import {
     formatGameDurationMMSS,
     getKDAColorClass,
     getKDAStringSpans,
-    // QUEUE_IDS, // Not directly used in this component, but good to be aware of if extending
 } from '../utils/matchCalculations';
 
 
 // --- OBJECTIVE ICONS ---
-// (Objective Icons remain the same as previously defined)
 const GrubIcon = ({ className = "" }) => (
   <svg viewBox="0 0 32 32" className={`inline-block text-purple-500 ${className}`} xmlns="http://www.w3.org/2000/svg">
     <path fillRule="evenodd" clipRule="evenodd" d="M24 7.26397C27 7.26397 27 10.264 27 11.264C27 14.264 24 15.264 24 15.264H27C26.0189 15.918 25.3587 17.1069 24.6345 18.4107C23.1444 21.0938 21.3837 24.264 16 24.264C10.6163 24.264 8.85561 21.0938 7.36548 18.4107C6.64135 17.1069 5.9811 15.918 5 15.264H8C8 15.264 5 14.264 5 11.264C5 10.264 5 7.26397 8 7.26397H9.58357C10.5151 7.26397 11.4337 7.0471 12.2669 6.63052L15.1056 5.21115C15.6686 4.92962 16.3314 4.92962 16.8944 5.21115L19.7331 6.63051C20.5663 7.0471 21.4849 7.26397 22.4164 7.26397H24ZM19.5354 12.264L15.9999 8.72845L12.4644 12.264L13.7322 13.5319L10.4646 16.7995L14.0001 20.335L15.9993 18.3359L17.9984 20.335L21.5339 16.7995L18.2669 13.5325L19.5354 12.264Z" fill="currentColor"></path>
@@ -46,7 +44,7 @@ const TowerIcon = ({ className = "" }) => (
 
 // Component for expanded match details
 const ExpandedMatchDetails = ({
-    match, // The match object from Dexie, identified by match.matchId
+    match,
     ddragonVersion,
     championData,
     summonerSpellsMap,
@@ -62,47 +60,35 @@ const ExpandedMatchDetails = ({
     processTimelineDataForPlayer
 }) => {
     const [activeTab, setActiveTab] = useState('General');
-    // PUUID of the player whose details are currently being viewed in the "Details" tab
-    // match.puuid is the puuid of the player for whom this match was originally fetched/tracked.
     const [selectedPlayerForDetailsPuuid, setSelectedPlayerForDetailsPuuid] = useState(match.puuid);
-    // State to hold the processed timeline data for the currently selected player in the "Details" tab
     const [currentSelectedPlayerTimeline, setCurrentSelectedPlayerTimeline] = useState(null);
 
-    // Destructure necessary fields from the match object
     const {
         allParticipants = [],
         teamObjectives = [],
         gameDuration,
-        puuid: trackedPlayerPuuid, // PUUID of the player this match was originally tracked for
-        processedTimelineForTrackedPlayer, // Pre-processed timeline for the tracked player (from Dexie)
-        rawTimelineFrames, // Raw timeline frames for on-demand processing (from Dexie)
-        matchId // The primary key for the match from Dexie
+        puuid: trackedPlayerPuuid,
+        processedTimelineForTrackedPlayer,
+        rawTimelineFrames,
+        matchId
     } = match;
 
-    // Effect to reset selected player and timeline when the match prop (identified by matchId) changes
     useEffect(() => {
-        setSelectedPlayerForDetailsPuuid(trackedPlayerPuuid); // Default to the tracked player
-        // Initially, set the timeline to the pre-processed one for the tracked player
+        setSelectedPlayerForDetailsPuuid(trackedPlayerPuuid);
         setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
-        setActiveTab('General'); // Reset to general tab when match changes
-    }, [matchId, trackedPlayerPuuid, processedTimelineForTrackedPlayer]); // Use matchId as dependency
+        setActiveTab('General');
+    }, [matchId, trackedPlayerPuuid, processedTimelineForTrackedPlayer]);
 
 
-    // Effect to re-process timeline data when selectedPlayerForDetailsPuuid or activeTab changes
     useEffect(() => {
-        if (activeTab !== 'Details') return; // Only process if details tab is active
+        if (activeTab !== 'Details') return;
 
         if (selectedPlayerForDetailsPuuid === trackedPlayerPuuid) {
-            // If it's the tracked player, use the pre-processed data
             setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
         } else if (rawTimelineFrames && processTimelineDataForPlayer && selectedPlayerForDetailsPuuid) {
-            // If it's a different player, process their timeline data on the fly
             const selectedParticipant = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
             if (selectedParticipant) {
-                // Find the Riot's participantId (1-10) for the selected player
                 const targetParticipantId = allParticipants.findIndex(p => p.puuid === selectedPlayerForDetailsPuuid) + 1;
-
-                // Determine opponent for laning phase comparison (if applicable for this selected player)
                 let opponentForSelected = null;
                 let opponentIdForSelectedTimeline = null;
                 if (selectedParticipant.teamPosition && selectedParticipant.teamPosition !== '') {
@@ -148,7 +134,6 @@ const ExpandedMatchDetails = ({
     const maxDamageBlueTeam = Math.max(0, ...blueTeam.map(p => p.totalDamageDealtToChampions || 0));
     const maxDamageRedTeam = Math.max(0, ...redTeam.map(p => p.totalDamageDealtToChampions || 0));
 
-    // Function to render a player row in the scoreboard
     const renderPlayerRow = (player, teamTotalKills, isTopDamageInTeam, isTrackedPlayerRow) => {
         const items = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5];
         const trinket = player.item6;
@@ -187,7 +172,6 @@ const ExpandedMatchDetails = ({
                         <span className="font-semibold text-gray-100 truncate" title={player.riotIdGameName ? `${player.riotIdGameName}#${player.riotIdTagline}` : player.summonerName}>
                             {player.riotIdGameName || player.summonerName || 'Player'}
                         </span>
-                        {/* <span className="text-gray-400 text-[10px]">Unranked</span> */} {/* Placeholder for rank */}
                     </div>
                 </div>
 
@@ -303,16 +287,14 @@ const ExpandedMatchDetails = ({
         if (!currentSelectedPlayerTimeline && activeTab === 'Details') {
              return (
                 <div className="p-4 text-center text-gray-400">
-                    <Loader2 size={24} className="animate-spin mx-auto mb-2 text-orange-500" />
+                    {/* <Loader2 size={24} className="animate-spin mx-auto mb-2 text-orange-500" /> */}
                     Loading player details...
                 </div>
             );
         }
 
-
         const timelineToDisplay = currentSelectedPlayerTimeline;
         const snapshot15min = timelineToDisplay?.snapshots?.find(s => s.minute === 15);
-        const firstToLvl2Display = timelineToDisplay?.laningPhase?.firstToLvl2 || "N/A";
 
         const StatItem = ({ value, label, title }) => (
             <div className="flex flex-col items-center text-center" title={title}>
@@ -349,6 +331,17 @@ const ExpandedMatchDetails = ({
             );
         };
 
+        // Group build order items by minute
+        const groupedBuildOrder = timelineToDisplay?.buildOrder?.reduce((acc, itemEvent) => {
+            const minute = Math.floor(itemEvent.timestamp / (1000 * 60)); // Round up to the nearest minute
+            if (!acc[minute]) {
+                acc[minute] = [];
+            }
+            acc[minute].push(itemEvent);
+            return acc;
+        }, {}) || {};
+
+
         return (
             <div className="p-3 sm:p-4 text-gray-200 space-y-4">
                 <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-4 p-2 rounded-lg">
@@ -363,21 +356,12 @@ const ExpandedMatchDetails = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[100px] flex flex-col justify-center">
-                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Laning Phase</h4>
+                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">LANING PHASE (AT 15)</h4>
                         {timelineToDisplay && timelineToDisplay.snapshots ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3">
-                                <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="CS Diff @15" />
-                                <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="Gold Diff @15" />
-                                <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="XP Diff @15" />
-                                <StatItem
-                                    value={firstToLvl2Display}
-                                    label="First to Lvl 2"
-                                    title={
-                                        firstToLvl2Display === "Yes" ? "You (or same time) reached level 2 first." :
-                                        firstToLvl2Display === "No" ? "Opponent reached level 2 first." :
-                                        "Level 2 race data not available."
-                                    }
-                                />
+                            <div className="grid grid-cols-3 gap-x-2 gap-y-3">
+                                <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="cs diff" />
+                                <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="gold diff" />
+                                <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="xp diff" />
                             </div>
                         ) : (
                             <p className="text-gray-500 text-center text-sm italic">Missing detailed laning stats for this player.</p>
@@ -385,44 +369,68 @@ const ExpandedMatchDetails = ({
                     </div>
 
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
-                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Wards</h4>
+                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">WARDS</h4>
                         <div className="grid grid-cols-3 gap-x-2 gap-y-3">
-                            <StatItem value={currentPlayerForDisplay.wardsPlaced || 0} label="Placed" />
-                            <StatItem value={currentPlayerForDisplay.wardsKilled || 0} label="Killed" />
-                            <StatItem value={currentPlayerForDisplay.visionWardsBoughtInGame || 0} label="Control" />
+                            <StatItem value={currentPlayerForDisplay.wardsPlaced || 0} label="placed" />
+                            <StatItem value={currentPlayerForDisplay.wardsKilled || 0} label="killed" />
+                            <StatItem value={currentPlayerForDisplay.visionWardsBoughtInGame || 0} label="control" />
                         </div>
                     </div>
 
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
-                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">Global Stats</h4>
+                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">GLOBAL STATS</h4>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3">
-                            <StatItem value={gameDuration > 0 ? (((currentPlayerForDisplay.totalMinionsKilled || 0) + (currentPlayerForDisplay.neutralMinionsKilled || 0)) / (gameDuration / 60)).toFixed(1) : '0.0'} label="CS/min" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.visionScore || 0) / (gameDuration / 60)).toFixed(2) : '0.00'} label="VS/min" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.totalDamageDealtToChampions || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="DMG/min" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.goldEarned || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="Gold/min" />
+                            <StatItem value={gameDuration > 0 ? (((currentPlayerForDisplay.totalMinionsKilled || 0) + (currentPlayerForDisplay.neutralMinionsKilled || 0)) / (gameDuration / 60)).toFixed(1) : '0.0'} label="CS/m" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.visionScore || 0) / (gameDuration / 60)).toFixed(2) : '0.00'} label="VS/m" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.totalDamageDealtToChampions || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="DMG/m" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.goldEarned || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="Gold/m" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[80px] flex flex-col justify-center">
-                    <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Build Order</h4>
+                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center"> {/* Adjusted min-h */}
+                    <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">BUILD ORDER</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5">
-                            {timelineToDisplay.buildOrder.map((itemEvent, index) => (
-                                getItemImage(itemEvent.itemId) ?
-                                <img
-                                    key={`build-${index}-${itemEvent.itemId}-${itemEvent.timestamp}`}
-                                    src={getItemImage(itemEvent.itemId)}
-                                    alt={`Item ${itemEvent.itemId}`}
-                                    className="w-8 h-8 sm:w-9 sm:h-9 rounded border border-gray-500"
-                                    title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
-                                    onError={(e) => { e.target.style.display = 'none'; }}
-                                />
-                                : null
-                            ))}
+                        <div className="flex flex-wrap items-start gap-x-1 gap-y-2"> {/* Main container for build order - items-start */}
+                            {Object.entries(groupedBuildOrder)
+                                .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB))
+                                .map(([minute, itemsInMinute], groupIndex, arr) => (
+                                    <React.Fragment key={`build-group-${minute}`}>
+                                        <div className="flex flex-col items-center"> {/* Wrapper for items + minute text */}
+                                            <div className="flex items-center gap-x-0.5 h-5 sm:h-6"> {/* Item images container with fixed height */}
+                                                {itemsInMinute.map((itemEvent, itemIndex) => {
+                                                    const itemSrc = getItemImage(itemEvent.itemId);
+                                                    const isSold = itemEvent.type === 'sold';
+                                                    return itemSrc ? (
+                                                        <div key={`build-${minute}-${itemIndex}-${itemEvent.itemId}-${itemEvent.timestamp}`} className="relative">
+                                                            <img
+                                                                src={itemSrc}
+                                                                alt={`Item ${itemEvent.itemId}`}
+                                                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded border 
+                                                                    ${isSold ? 'border-red-600/70 opacity-50' : 'border-gray-600'}`}
+                                                                title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
+                                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                                            />
+                                                            {isSold && (
+                                                                <X size={10} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-500 stroke-[2.5px]" />
+                                                            )}
+                                                        </div>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                            <span className="text-[9px] text-gray-300 mt-0.75">{minute} min</span>
+                                        </div>
+                                        {groupIndex < arr.length - 1 && (
+                                            <div className="flex items-center justify-center h-5 sm:h-6 mx-1"> {/* Separator wrapper with matching height */}
+                                                <ChevronRight size={18} className="text-gray-400" />
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                ))}
                         </div>
                     ) : <p className="text-gray-500 text-xs sm:text-sm italic">Missing build order data for this player.</p>}
                 </div>
+
 
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Skill Order (QWER)</h4>
@@ -443,7 +451,6 @@ const ExpandedMatchDetails = ({
 
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Runes</h4>
-                     {/* Basic Rune Display */}
                     {currentPlayerForDisplay.perks && currentPlayerForDisplay.perks.styles && currentPlayerForDisplay.perks.styles.length > 0 ? (
                         <div className="flex flex-col space-y-2">
                             {currentPlayerForDisplay.perks.styles.map((style, styleIndex) => (

@@ -23,9 +23,9 @@ export const getContinentalRoute = (platformId) => {
   if (!platformId) return 'europe'; // Default or error case
   const lowerPlatformId = platformId.toLowerCase();
   if (['eun1', 'euw1', 'tr1', 'ru'].includes(lowerPlatformId)) return 'europe';
-  if (['na1', 'br1', 'la1', 'la2', 'oc1', 'americas'].includes(lowerPlatformId)) return 'americas'; 
-  if (['kr', 'jp1', 'asia'].includes(lowerPlatformId)) return 'asia'; 
-  if (['vn2', 'th2', 'tw2', 'sg2', 'ph2', 'sea'].includes(lowerPlatformId)) return 'sea'; 
+  if (['na1', 'br1', 'la1', 'la2', 'oc1', 'americas'].includes(lowerPlatformId)) return 'americas';
+  if (['kr', 'jp1', 'asia'].includes(lowerPlatformId)) return 'asia';
+  if (['vn2', 'th2', 'tw2', 'sg2', 'ph2', 'sea'].includes(lowerPlatformId)) return 'sea';
   return 'europe'; // Fallback
 };
 
@@ -64,7 +64,7 @@ export const timeAgo = (timestampSeconds) => {
 export const formatGameDurationMMSS = (durationSeconds) => {
   if (typeof durationSeconds !== 'number' || isNaN(durationSeconds) || durationSeconds < 0) return 'N/A';
   const minutes = Math.floor(durationSeconds / 60);
-  const seconds = Math.floor(durationSeconds % 60); 
+  const seconds = Math.floor(durationSeconds % 60);
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
@@ -103,12 +103,12 @@ export const getKDAColorClass = (kills, deaths, assists) => {
   }
   const kda = deaths === 0 ? (kills > 0 || assists > 0 ? (kills + assists) * 2 : 0) : (kills + assists) / deaths;
 
-  if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-yellow-400'; 
+  if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-yellow-400';
   if (kda >= 5) return 'text-green-400';
-  if (kda >= 3) return 'text-blue-400';  
-  if (kda >= 1.5) return 'text-sky-400';  
-  if (kda >= 0.75) return 'text-gray-400'; 
-  return 'text-red-400';                 
+  if (kda >= 3) return 'text-blue-400';
+  if (kda >= 1.5) return 'text-sky-400';
+  if (kda >= 0.75) return 'text-gray-400';
+  return 'text-red-400';
 };
 
 /**
@@ -159,28 +159,26 @@ export const getCSString = (p) => {
  * @param {number} targetParticipantId - The participant ID (1-10) of the player for whom to process data.
  * @param {number|null} opponentParticipantIdForLaning - The participant ID (1-10) of the opponent for laning comparison, or null.
  * @param {number} gameDurationSeconds - Total game duration in seconds.
- * @returns {object} Processed timeline data including snapshots, skill/build orders, and level 2 race.
+ * @returns {object} Processed timeline data including snapshots, skill/build orders.
  */
 export const processTimelineData = (timelineFrames, targetParticipantId, opponentParticipantIdForLaning, gameDurationSeconds) => {
   const processedData = {
-    snapshots: [], 
+    snapshots: [],
     skillOrder: [],
     buildOrder: [],
-    laningPhase: { 
-      playerLvl2Timestamp: null, 
-      opponentLvl2Timestamp: null, 
-      firstToLvl2: "No", // Default to "No", will be changed to "Yes" if conditions met
+    laningPhase: { // Removed firstToLvl2 and related timestamps
+      // Other laning phase stats can be added here if needed in the future
     },
   };
 
   if (!timelineFrames || timelineFrames.length === 0 || !targetParticipantId) return processedData;
 
-  const snapshotMinutes = [5, 10, 15]; 
+  const snapshotMinutes = [5, 10, 15];
   const snapshotTimestampsMs = snapshotMinutes.map(min => min * 60 * 1000);
 
   let lastTargetPlayerLevel = 0;
 
-  for (const frame of timelineFrames) { // Use for...of for potentially early exit if both lvl2 found
+  for (const frame of timelineFrames) {
     const targetPlayerFrameData = frame.participantFrames?.[targetParticipantId.toString()];
     const opponentFrameData = opponentParticipantIdForLaning ? frame.participantFrames?.[opponentParticipantIdForLaning.toString()] : null;
 
@@ -196,10 +194,10 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
               xp: targetPlayerFrameData.xp,
               level: targetPlayerFrameData.level,
             },
-            opponent: null, 
-            diff: null, 
+            opponent: null,
+            diff: null,
           };
-          if (opponentFrameData) { 
+          if (opponentFrameData) {
               snapshot.opponent = {
                   cs: opponentFrameData.minionsKilled + (opponentFrameData.jungleMinionsKilled || 0),
                   gold: opponentFrameData.totalGold,
@@ -216,31 +214,21 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
         }
       });
 
-      // Level 2 timestamp for target player
-      if (targetPlayerFrameData.level === 2 && processedData.laningPhase.playerLvl2Timestamp === null) {
-        processedData.laningPhase.playerLvl2Timestamp = frame.timestamp;
-      }
-
       // Skill Order for target player
       if (targetPlayerFrameData.level > lastTargetPlayerLevel) {
         frame.events?.forEach(event => {
           if (event.type === 'SKILL_LEVEL_UP' && event.participantId === targetParticipantId && event.levelUpType === 'NORMAL') {
             if (processedData.skillOrder.length < 18 && !processedData.skillOrder.find(s => s.level === targetPlayerFrameData.level && s.skillSlot === event.skillSlot)) {
-                 processedData.skillOrder.push({ 
-                     level: targetPlayerFrameData.level, 
-                     skillSlot: event.skillSlot, 
-                     timestamp: event.timestamp 
+                 processedData.skillOrder.push({
+                     level: targetPlayerFrameData.level,
+                     skillSlot: event.skillSlot,
+                     timestamp: event.timestamp
                   });
             }
           }
         });
         lastTargetPlayerLevel = targetPlayerFrameData.level;
       }
-    }
-
-    // Level 2 timestamp for opponent (if opponent exists)
-    if (opponentFrameData && opponentFrameData.level === 2 && processedData.laningPhase.opponentLvl2Timestamp === null) {
-      processedData.laningPhase.opponentLvl2Timestamp = frame.timestamp;
     }
 
     // Build Order for the target player
@@ -260,45 +248,22 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
           }
       }
     });
-
-    // Optimization: if both level 2 timestamps are found, we might not need to iterate further for *this specific metric*.
-    // However, other metrics (snapshots, build/skill order) still need full iteration.
-    // For simplicity of this function, we'll iterate all frames.
-  }
-  
-  // Determine "First to Lvl 2" based on collected timestamps
-  const { playerLvl2Timestamp, opponentLvl2Timestamp } = processedData.laningPhase;
-
-  if (playerLvl2Timestamp !== null) {
-      // Player reached level 2
-      if (opponentLvl2Timestamp === null || playerLvl2Timestamp <= opponentLvl2Timestamp) {
-          // Opponent didn't reach Lvl 2 OR Player was first/same time
-          processedData.laningPhase.firstToLvl2 = "Yes";
-      } else {
-          // Opponent was strictly faster
-          processedData.laningPhase.firstToLvl2 = "No";
-      }
-  } else {
-      // Player did not reach level 2 (or data missing for player)
-      // If opponent also didn't, it remains "No" (player wasn't first).
-      // If opponent did, it also remains "No" (player wasn't first).
-      processedData.laningPhase.firstToLvl2 = "No";
   }
 
   processedData.buildOrder.sort((a, b) => a.timestamp - b.timestamp);
-  
-  const skillLevels = {}; 
+
+  const skillLevels = {};
   const finalSkillOrder = [];
   const sortedRawSkillEvents = processedData.skillOrder.sort((a,b) => a.timestamp - b.timestamp);
 
   sortedRawSkillEvents.forEach(event => {
       skillLevels[event.skillSlot] = (skillLevels[event.skillSlot] || 0) + 1;
-      const maxPoints = event.skillSlot === 4 ? 3 : 5; 
+      const maxPoints = event.skillSlot === 4 ? 3 : 5;
       if (skillLevels[event.skillSlot] <= maxPoints) {
           finalSkillOrder.push({
               skillSlot: event.skillSlot,
-              levelTakenAt: event.level, 
-              skillLevel: skillLevels[event.skillSlot], 
+              levelTakenAt: event.level,
+              skillLevel: skillLevels[event.skillSlot],
               timestamp: event.timestamp,
           });
       }
@@ -309,4 +274,3 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
 
   return processedData;
 };
-
