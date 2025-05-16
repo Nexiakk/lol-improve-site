@@ -17,11 +17,13 @@
   --shadow-neon-red: 0 0 7px var(--color-glow-red),
                      0 0 12px var(--color-glow-red),
                      0 0 18px var(--color-glow-red);
+
+  --color-black-800: 13 15 16;
+  --color-black-0: 255 255 255;
 }
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: theme('colors.gray.900');
 }
 
 

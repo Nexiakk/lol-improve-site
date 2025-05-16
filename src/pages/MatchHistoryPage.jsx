@@ -519,7 +519,7 @@ function MatchHistoryPage() {
                         const hasNotesOrGoals = (match.notes && match.notes.trim() !== '') || (match.goals && match.goals.trim() !== '');
 
                         const resultBgOverlayClass = isWin === null ? 'bg-gray-800/25' : (isWin ? 'bg-blue-900/20' : 'bg-red-900/20');
-                        const expandButtonBgClass = isWin === null ? 'bg-gray-700/60 hover:bg-gray-600/80' : (isWin ? 'bg-[#263964] hover:bg-[#304A80]' : 'bg-[#42212C] hover:bg-[#582C3A]');
+                        const expandButtonBgClass = isWin === null ? 'bg-gray-700/60 hover:bg-gray-600/80' : (isWin ? 'bg-blue-900/25 hover:bg-[#304A80]' : 'bg-red-900/25 hover:bg-[#582C3A]');
                         const isExpanded = expandedMatchId === match.matchId;
                         const animationClass = match.isNew ? 'match-item-enter-active' : '';
 
@@ -586,7 +586,7 @@ function MatchHistoryPage() {
                                         </div>
                                     </div>
                                     <button className={`flex items-center justify-center ${expandButtonBgClass} transition-colors w-8 cursor-pointer ${isExpanded ? 'rounded-tr-lg' : 'rounded-r-lg'}`} title={isExpanded ? "Collapse Details" : "Expand Details"} onClick={() => toggleExpandMatch(match.matchId)}>
-                                        {isExpanded ? <ChevronUp size={18} className="text-gray-300 group-hover:text-orange-300"/> : <ChevronDown size={18} className="text-gray-400 group-hover:text-orange-300"/>}
+                                        {isExpanded ? <ChevronUp size={18} className="text-gray-300 group-hover:text-orange-300"/> : <ChevronDown size={18} className="text-gray-400"/>}
                                     </button>
                                 </div>
                                 {isExpanded && (

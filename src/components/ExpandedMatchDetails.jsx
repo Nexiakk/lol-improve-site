@@ -41,6 +41,45 @@ const TowerIcon = ({ className = "" }) => (
 );
 // --- END OBJECTIVE ICONS ---
 
+// --- NEW STAT SECTION ICONS ---
+const LaningPhaseIcon = ({ className = "w-5 h-5" }) => (
+    <svg width="32" height="32" viewBox="0 0 32 32" className={`${className} text-lime-400`} xmlns="http://www.w3.org/2000/svg">
+        <path d="M7.92988 4.37281C7.92988 5.68327 6.86754 6.74561 5.55707 6.74561C4.24661 6.74561 3.18427 5.68327 3.18427 4.37281C3.18427 3.06234 4.24661 2 5.55707 2C6.86754 2 7.92988 3.06234 7.92988 4.37281Z" fill="currentColor"></path>
+        <path d="M8.29558 9.81035C7.64287 9.0248 6.65854 8.52463 5.5574 8.52463C3.61985 8.52463 2.04399 10.0732 2 12.0002H9.00609L12.1056 8.51031C11.7271 8.32416 11.3012 8.21961 10.8509 8.21961C9.72953 8.21961 8.7596 8.86801 8.29558 9.81035Z" fill="currentColor"></path>
+        <path d="M12.7485 4.89822C12.7485 5.94659 11.8987 6.79645 10.8503 6.79645C9.80196 6.79645 8.9521 5.94659 8.9521 4.89822C8.9521 3.84986 9.80196 3 10.8503 3C11.8987 3 12.7485 3.84986 12.7485 4.89822Z" fill="currentColor"></path>
+        <path d="M3.99952 24.5L6.49953 27L10.4522 23.4527L12.4995 25.5L14.9995 23L13.0874 21.0878L25.9995 9.5V5H21.4995L9.91169 17.9122L7.99952 16L5.49952 18.5L7.54682 20.5473L3.99952 24.5Z" fill="currentColor"></path>
+        <path d="M23.0696 21.3728C23.0696 22.6833 24.132 23.7456 25.4424 23.7456C26.7529 23.7456 27.8153 22.6833 27.8153 21.3728C27.8153 20.0623 26.7529 19 25.4424 19C24.132 19 23.0696 20.0623 23.0696 21.3728Z" fill="currentColor"></path>
+        <path d="M22.3702 27.286C22.9879 26.2322 24.1324 25.5246 25.4421 25.5246C27.3797 25.5246 28.9555 27.0732 28.9995 29.0002L17.3029 28.9999C17.3381 27.4584 18.5988 26.2196 20.1488 26.2196C21.0472 26.2196 21.8485 26.6359 22.3702 27.286Z" fill="currentColor"></path>
+        <path d="M18.2511 22.8982C18.2511 23.9466 19.101 24.7964 20.1493 24.7964C21.1977 24.7964 22.0476 23.9466 22.0476 22.8982C22.0476 21.8499 21.1977 21 20.1493 21C19.101 21 18.2511 21.8499 18.2511 22.8982Z" fill="currentColor"></path>
+    </svg>
+);
+
+const WardsIcon = ({ className = "w-5 h-5" }) => (
+    <svg width="32" height="32" viewBox="0 0 32 32" className={`${className} text-yellow-400`} xmlns="http://www.w3.org/2000/svg">
+        <path d="M10.593 4.93605L9.70156 4H6.13566L5.24419 4.93605L7.91861 7.74419L10.593 4.93605Z" fill="currentColor"></path>
+        <path d="M5.94365 7.82558L4.46244 6.29069H1.5C1.5291 6.33893 1.55778 6.38802 1.58675 6.43761C1.96747 7.0892 2.39772 7.82558 4.46244 7.82558L3.47496 8.84883C3.63321 9.44573 4.22316 10.6395 5.31698 10.6395L5.94365 7.82558Z" fill="currentColor"></path>
+        <path d="M9.26712 12.687H6.5701L7.42487 8.84883H8.41235L9.26712 12.687Z" fill="currentColor"></path>
+        <path d="M25.4297 12.687H22.7327L23.5875 8.84883H24.5749L25.4297 12.687Z" fill="currentColor"></path>
+        <path d="M11.3748 6.29069L9.89357 7.82558L10.5202 10.6395C11.6141 10.6395 12.204 9.44573 12.3623 8.84883L11.3748 7.82558C13.4395 7.82558 13.8698 7.0892 14.2505 6.4376C14.2794 6.38803 14.3081 6.33893 14.3372 6.29069H11.3748Z" fill="currentColor"></path>
+        <path d="M26.7556 4.93605L25.8642 4H22.2983L21.4068 4.93605L24.0812 7.74419L26.7556 4.93605Z" fill="currentColor"></path>
+        <path d="M22.1063 7.82558L20.625 6.29069H17.6626C17.6917 6.33893 17.7204 6.38802 17.7493 6.43761C18.1301 7.0892 18.5603 7.82558 20.625 7.82558L19.6376 8.84883C19.7958 9.44573 20.3858 10.6395 21.4796 10.6395L22.1063 7.82558Z" fill="currentColor"></path>
+        <path d="M27.5374 6.29069L26.0562 7.82558L26.6828 10.6395C27.7767 10.6395 28.3666 9.44573 28.5249 8.84883L27.5374 7.82558C29.6021 7.82558 30.0323 7.0892 30.4131 6.43761C30.442 6.38802 30.4707 6.33893 30.4998 6.29069H27.5374Z" fill="currentColor"></path>
+        <path d="M13.2308 28H18.7692L16.6923 18.7462H15.3077L13.2308 28Z" fill="currentColor"></path>
+        <path d="M13.2308 17.3225L11.1538 15.187H7C7.57692 16.1362 8.03846 17.3225 11.1538 17.3225L9.76923 18.7462C9.99112 19.5767 10.8183 21.2376 12.3521 21.2376L13.2308 17.3225Z" fill="currentColor"></path>
+        <path d="M18.7692 17.3225L20.8462 15.187H25C24.4231 16.1362 23.9615 17.3225 20.8462 17.3225L22.2308 18.7462C22.0089 19.5767 21.1817 21.2376 19.6479 21.2376L18.7692 17.3225Z" fill="currentColor"></path>
+        <path d="M19.75 13.3023L18.5 12H13.5L12.25 13.3023L16 17.2093L19.75 13.3023Z" fill="currentColor"></path>
+    </svg>
+);
+
+const GlobalStatsIcon = ({ className = "w-5 h-5" }) => (
+    <svg width="32" height="32" viewBox="0 0 32 32" className={`${className} text-cyan-300`} xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 14C8 9.58172 10 7 16 5C22 7 24 9.58172 24 14V16.7243L19.8297 21.3712C19.9432 20.192 20 19.0108 20 18C20 18 23 17 23 13C20 13 17 15 17 17V21.5C17 21.7761 16.7761 22 16.5 22H15.5C15.2239 22 15 21.7761 15 21.5V17C15 15 12 13 9 13C9 17 12 18 12 18C12 21 12.5 25.5 13.5 27C8.5 27 7 23 7 21.5C7.5 21.5 8 20.5 8 19V14Z" fill="currentColor"></path>
+        <path d="M18 28.6364L19.3636 30L21.5197 28.0651L22.6364 29.1818L24 27.8182L22.957 26.7752L30 20.4545L30 18H27.5455L21.2248 25.043L20.1818 24L18.8182 25.3636L19.9349 26.4803L18 28.6364Z" fill="currentColor"></path>
+    </svg>
+);
+// --- END NEW STAT SECTION ICONS ---
+
+
 // --- SKILL ICON LOGIC ---
 const SKILL_PLACEHOLDER_TEXT = { 
     1: 'Q', 2: 'W', 3: 'E', 4: 'R' 
@@ -204,14 +243,16 @@ const ExpandedMatchDetails = ({
             <div key={player.puuid || player.summonerName} className={`flex items-center gap-x-2 sm:gap-x-3 py-0.5 px-1 text-xs hover:bg-gray-700/10 transition-colors duration-150 ${trackedPlayerClass}`}>
                 {/* Champion, Level, Name */}
                 <div className="flex items-center space-x-1.5 w-[120px] sm:w-[140px] flex-shrink-0">
-                    <div className="relative w-9 h-9">
+                    {/* Icon Container - Added flex-shrink-0 here */}
+                    <div className="relative w-9 h-9 flex-shrink-0"> 
                         <img src={getChampionImage(player.championName)} alt={getChampionDisplayName(player.championName)} className="w-full h-full rounded-md border border-gray-600" onError={(e) => { e.target.src = `https://placehold.co/36x36/222/ccc?text=${player.championName ? player.championName.substring(0,1) : '?'}`; }}/>
                         <span className="absolute -bottom-1 -right-1 bg-black bg-opacity-80 text-white text-[9px] px-1 rounded-sm leading-tight border border-gray-500/50">{player.champLevel}</span>
                         {roleIcon && (
                             <img src={roleIcon} alt={player.teamPosition || 'Role'} className="absolute -top-1 -left-1 w-4 h-4 p-0.5 bg-gray-800 rounded-full border border-gray-400/70 shadow-sm" />
                         )}
                     </div>
-                    <div className="flex flex-col overflow-hidden">
+                     {/* Name Container */}
+                    <div className="flex flex-col overflow-hidden"> {/* This container allows the name to take remaining space and truncate */}
                         <span className="font-semibold text-gray-100 truncate" title={player.riotIdGameName ? `${player.riotIdGameName}#${player.riotIdTagline}` : player.summonerName}>
                             {player.riotIdGameName || player.summonerName || 'Player'}
                         </span>
@@ -347,8 +388,10 @@ const ExpandedMatchDetails = ({
 
         const StatItem = ({ value, label, title }) => (
             <div className="flex flex-col items-center text-center" title={title}>
-                <span className="text-gray-100 font-medium text-sm sm:text-base">{value !== undefined && value !== null ? value : 'N/A'}</span>
-                <span className="text-gray-400 text-[10px] sm:text-xs leading-tight mt-0.5">{label}</span>
+                {/* Font size for stat value updated */}
+                <span className="text-gray-100 font-medium text-sm">{value !== undefined && value !== null ? value : 'N/A'}</span>
+                {/* Font size for stat label updated */}
+                <span className="text-gray-400 text-[10px] leading-tight">{label}</span>
             </div>
         );
 
@@ -358,8 +401,8 @@ const ExpandedMatchDetails = ({
             return (
                 <button
                     key={player.puuid}
-                    className={`relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 focus:outline-none transition-all duration-150
-                                ${isSelected ? 'ring-2 ring-orange-500 rounded-md scale-110' : 'opacity-75 hover:opacity-100'}`}
+                    className={`relative w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 focus:outline-none transition-all duration-150 p-0.5
+                                ${isSelected ? 'bg-white/20 rounded-md scale-110 shadow-lg' : 'opacity-75 hover:opacity-100'}`} 
                     title={`Show stats for ${getChampionDisplayName(player.championName)}`}
                     onClick={() => setSelectedPlayerForDetailsPuuid(player.puuid)}
                 >
@@ -417,8 +460,7 @@ const ExpandedMatchDetails = ({
 
 
         return (
-            <div className="p-2 sm:p-3 text-gray-200 space-y-4">
-                {/* Player Selection Header */}
+            <div className="p-2 sm:p-3 text-gray-200 space-y-3">
                 <div className="flex items-center justify-center space-x-2 sm:space-x-5 mb-1 p-2 rounded-lg">
                     <div className="flex space-x-1 sm:space-x-3.5">
                         {blueTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
@@ -429,36 +471,41 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
-                {/* Stats Sections */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-                    {/* Laning Phase Stats */}
-                    <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[100px] flex flex-col justify-center">
-                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">LANING PHASE (AT 15)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+                    <div className="bg-purple-200/5 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
+                            <LaningPhaseIcon className="w-4 h-4 mr-1.5" /> 
+                            Laning Phase (at 15)
+                        </h4>
                         {timelineToDisplay && timelineToDisplay.snapshots && timelineToDisplay.snapshots.length > 0 && snapshot15min ? (
-                            <div className="grid grid-cols-3 gap-x-2 gap-y-3">
+                            <div className="grid grid-cols-3 gap-x-1.5 gap-y-1">
                                 <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="cs diff" />
                                 <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="gold diff" />
                                 <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="xp diff" />
                             </div>
                         ) : (
-                            <p className="text-gray-500 text-center text-sm italic">Missing detailed laning stats for this player.</p>
+                            <p className="text-gray-500 text-center text-sm italic py-2">Missing detailed laning stats.</p>
                         )}
                     </div>
 
-                    {/* Wards Stats */}
-                    <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
-                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">WARDS</h4>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-3">
+                    <div className="bg-gray-700/40 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
+                            <WardsIcon className="w-4 h-4 mr-1.5" />
+                            Wards
+                        </h4>
+                        <div className="grid grid-cols-3 gap-x-1.5 gap-y-1">
                             <StatItem value={currentPlayerForDisplay.wardsPlaced || 0} label="placed" />
                             <StatItem value={currentPlayerForDisplay.wardsKilled || 0} label="killed" />
                             <StatItem value={currentPlayerForDisplay.visionWardsBoughtInGame || 0} label="control" />
                         </div>
                     </div>
 
-                    {/* Global Stats */}
-                    <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
-                        <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">GLOBAL STATS</h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3">
+                    <div className="bg-gray-700/40 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
+                            <GlobalStatsIcon className="w-4 h-4 mr-1.5" />
+                            Global Stats
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-1.5 gap-y-1">
                             <StatItem value={gameDuration > 0 ? (((currentPlayerForDisplay.totalMinionsKilled || 0) + (currentPlayerForDisplay.neutralMinionsKilled || 0)) / (gameDuration / 60)).toFixed(1) : '0.0'} label="CS/m" />
                             <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.visionScore || 0) / (gameDuration / 60)).toFixed(2) : '0.00'} label="VS/m" />
                             <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.totalDamageDealtToChampions || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="DMG/m" />
@@ -467,20 +514,18 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
-                {/* Skill Order Section */}
-                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
-                    <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base">SKILL ORDER</h4>
-                    <div className="space-y-1.5">
+                <div className="bg-gray-700/40 p-2 rounded-lg border border-gray-600/50">
+                    <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">SKILL ORDER</h4>
+                    <div className="space-y-1"> 
                         {[1, 2, 3, 4].map(skillSlotKey => { 
                             const championInfo = championData && championData[currentPlayerForDisplay.championName];
                             const championDdragonId = championInfo ? championInfo.id : currentPlayerForDisplay.championName;
                             const skillKeyBadgeText = SKILL_PLACEHOLDER_TEXT[skillSlotKey];
 
                             return (
-                                <div key={`skill-row-${skillSlotKey}`} className="flex items-center space-x-2">
-                                    {/* Skill Icon with Badge */}
+                                <div key={`skill-row-${skillSlotKey}`} className="flex items-center space-x-1.5"> 
                                     <div 
-                                        className="relative w-8 h-8 flex-shrink-0 bg-gray-800 rounded border border-gray-600 p-0.5" // Increased icon size
+                                        className="relative w-7 h-7 flex-shrink-0 bg-gray-800 rounded border border-gray-600 p-px" 
                                         title={`Skill ${skillKeyBadgeText}`}
                                     >
                                         <SkillIconDisplay
@@ -489,36 +534,29 @@ const ExpandedMatchDetails = ({
                                             skillSlotKey={skillSlotKey}
                                         />
                                         <span 
-                                            className={`absolute -bottom-1 -right-1 w-4 h-4 flex items-center justify-center
-                                                       text-[10px] font-bold rounded-full shadow-sm border border-black/50
-                                                       bg-gray-700 text-gray-200`} // Consistent gray badge
+                                            className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 flex items-center justify-center
+                                                       text-[9px] font-bold rounded-full shadow-sm border border-black/50
+                                                       bg-gray-700 text-gray-200`} 
                                         >
                                             {skillKeyBadgeText}
                                         </span>
                                     </div>
-                                    {/* Skill Level Boxes */}
-                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-0.5 flex-grow">
+                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-px flex-grow"> 
                                         {Array.from({ length: 18 }).map((_, levelIndex) => { 
                                             const championLevel = levelIndex + 1; 
-
                                             const skillEventForThisBox = timelineToDisplay?.skillOrder?.find(
                                                 event => event.levelTakenAt === championLevel && event.skillSlot === skillSlotKey
                                             );
-                                            
                                             const currentTotalPointsInThisSkillSlot = skillLevelsByAbility[skillSlotKey]?.[levelIndex];
-
                                             let boxColor = 'bg-gray-600/30'; 
                                             let textColor = 'text-gray-400';
-
                                             if (skillEventForThisBox) { 
                                                 boxColor = SKILL_ROW_ACTIVE_COLORS[skillSlotKey] || 'bg-orange-500/80 text-white'; 
                                             }
-                                            
                                             return (
                                                 <div
                                                     key={`skill-${skillSlotKey}-lvl-${championLevel}`}
-                                                    // Skill boxes: height matches icon (h-8), width is less (e.g., w-4 or w-5)
-                                                    className={`w-8 h-8 text-[12px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`}
+                                                    className={`h-7 text-[10px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`} 
                                                     title={skillEventForThisBox
                                                         ? `Level ${championLevel}: Leveled ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} (Tier ${skillEventForThisBox.skillLevel})`
                                                         : (currentTotalPointsInThisSkillSlot ? `${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} Tier ${currentTotalPointsInThisSkillSlot}` : `Champ Lvl ${championLevel}`)
@@ -536,22 +574,20 @@ const ExpandedMatchDetails = ({
                         })}
                     </div>
                     {(!timelineToDisplay?.skillOrder || timelineToDisplay.skillOrder.length === 0) && (
-                        <p className="text-gray-500 text-xs sm:text-sm italic mt-2">Missing skill order data for this player.</p>
+                        <p className="text-gray-500 text-xs italic mt-1.5">Missing skill order data.</p>
                     )}
                 </div>
 
-
-                {/* Build Order Section */}
-                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center">
-                    <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">BUILD ORDER</h4>
+                <div className="bg-gray-700/40 p-2 rounded-lg border border-gray-600/50 flex flex-col justify-center">
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base">BUILD ORDER</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
-                        <div className="flex flex-wrap items-start gap-x-1 gap-y-2">
+                        <div className="flex flex-wrap items-start gap-x-0.5 gap-y-1"> 
                             {Object.entries(groupedBuildOrder)
                                 .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB)) 
                                 .map(([minute, itemsInMinute], groupIndex, arr) => (
                                     <React.Fragment key={`build-group-${minute}`}>
                                         <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-x-0.5 h-5 sm:h-6">
+                                            <div className="flex items-center gap-x-0.5 h-5"> 
                                                 {itemsInMinute.map((itemEvent, itemIndex) => {
                                                     const itemSrc = getItemImage(itemEvent.itemId);
                                                     const isSold = itemEvent.type === 'sold';
@@ -560,81 +596,71 @@ const ExpandedMatchDetails = ({
                                                             <img
                                                                 src={itemSrc}
                                                                 alt={`Item ${itemEvent.itemId}`}
-                                                                className={`w-5 h-5 sm:w-6 sm:h-6 rounded border 
-                                                                    ${isSold ? 'border-red-600/70 opacity-50' : 'border-gray-600'}`}
+                                                                className={`w-5 h-5 rounded border ${isSold ? 'border-red-600/70 opacity-50' : 'border-gray-600'}`} 
                                                                 title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
                                                                 onError={(e) => { e.target.style.display = 'none'; }}
                                                             />
                                                             {isSold && (
-                                                                <X size={10} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-500 stroke-[2.5px]" />
+                                                                <X size={8} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-500 stroke-[2px]" /> 
                                                             )}
                                                         </div>
                                                     ) : null;
                                                 })}
                                             </div>
-                                            <span className="text-[9px] text-gray-300 mt-0.75">{minute} min</span>
+                                            <span className="text-[8px] text-gray-300 mt-px">{minute} min</span> 
                                         </div>
                                         {groupIndex < arr.length - 1 && ( 
-                                            <div className="flex items-center justify-center h-5 sm:h-6 mx-1">
-                                                <ChevronRight size={18} className="text-gray-400" />
+                                            <div className="flex items-center justify-center h-5 mx-0.5"> 
+                                                <ChevronRight size={16} className="text-gray-400" /> 
                                             </div>
                                         )}
                                     </React.Fragment>
                                 ))}
                         </div>
-                    ) : <p className="text-gray-500 text-xs sm:text-sm italic">Missing build order data for this player.</p>}
+                    ) : <p className="text-gray-500 text-xs italic">Missing build order data.</p>}
                 </div>
 
-
-                {/* Runes Section */}
-                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
-                    <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Runes</h4>
+                <div className="bg-gray-700/40 p-2 rounded-lg border border-gray-600/50">
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base">Runes</h4>
                     {currentPlayerForDisplay.perks && currentPlayerForDisplay.perks.styles && currentPlayerForDisplay.perks.styles.length > 0 ? (
-                        <div className="flex flex-col space-y-2">
+                        <div className="flex flex-col space-y-1"> 
                             {currentPlayerForDisplay.perks.styles.map((style, styleIndex) => (
-                                <div key={`style-${style.style}-${styleIndex}`} className="flex items-center space-x-2">
-                                    <img src={getRuneImage(style.style)} alt={runesMap[style.style]?.name || 'Rune Style'} className="w-6 h-6" onError={(e) => e.target.style.display='none'}/>
-                                    <span className="text-gray-300 text-xs">{runesMap[style.style]?.name || (style.description === 'primaryStyle' ? 'Primary' : 'Secondary')}</span>
-                                    <div className="flex space-x-1">
+                                <div key={`style-${style.style}-${styleIndex}`} className="flex items-center space-x-1.5"> 
+                                    <img src={getRuneImage(style.style)} alt={runesMap[style.style]?.name || 'Rune Style'} className="w-5 h-5" onError={(e) => e.target.style.display='none'}/> 
+                                    <span className="text-gray-300 text-[11px]">{runesMap[style.style]?.name || (style.description === 'primaryStyle' ? 'Primary' : 'Secondary')}</span> 
+                                    <div className="flex space-x-0.5"> 
                                         {style.selections.map((selection, selIndex) => (
-                                            <img key={`rune-${selection.perk}-${selIndex}`} src={getRuneImage(selection.perk)} alt={runesMap[selection.perk]?.name || `Rune ${selection.perk}`} className="w-5 h-5 opacity-80" onError={(e) => e.target.style.display='none'}/>
+                                            <img key={`rune-${selection.perk}-${selIndex}`} src={getRuneImage(selection.perk)} alt={runesMap[selection.perk]?.name || `Rune ${selection.perk}`} className="w-4 h-4 opacity-80" onError={(e) => e.target.style.display='none'}/> 
                                         ))}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <p className="text-gray-400 text-xs sm:text-sm">Rune data not available.</p>
+                        <p className="text-gray-400 text-xs italic">Rune data not available.</p>
                     )}
                 </div>
             </div>
         );
     };
 
-    const expandedBgClass = isTrackedPlayerWin === null
-    ? 'bg-gray-950/40' 
-    : isTrackedPlayerWin
-        ? 'bg-blue-950/30' 
-        : 'bg-red-950/30'; 
+    const expandedBgClass = 'bg-black-800/50 '
     
-    // Define base and active background colors for tabs based on win/loss
-    let tabBaseBg = 'bg-gray-800/25'; // Default if expandedBgClass is neutral
-    let tabActiveBg = 'bg-gray-700/45'; // Darker default
+    let tabBaseBg = 'bg-gray-800/25'; 
+    let tabActiveBg = 'bg-black-800/45'; 
 
-    if (isTrackedPlayerWin === true) { // Win
-        tabBaseBg = 'bg-blue-900/20'; // Slightly lighter or different hue than main expanded win bg
-        tabActiveBg = 'bg-blue-900/25'; // Darker version for active tab
-    } else if (isTrackedPlayerWin === false) { // Loss
+    if (isTrackedPlayerWin === true) { 
+        tabBaseBg = 'bg-blue-900/20'; 
+        tabActiveBg = 'bg-black-800/40'; 
+    } else if (isTrackedPlayerWin === false) { 
         tabBaseBg = 'bg-red-900/20';
         tabActiveBg = 'bg-red-900/40';
     }
-    // If isTrackedPlayerWin is null, the defaults (grayish) will be used.
 
 
     return (
-        <div className={`p-2 sm:p-0 ${expandedBgClass} backdrop-blur-sm rounded-b-lg border-t border-gray-700/50 shadow-inner`}>
-            {/* Tabs */}
-            <div className={`flex w-full rounded-t-md overflow-hidden ${tabBaseBg}`}>
+        <div className={`p-2 sm:p-0 ${expandedBgClass} backdrop-blur-sm rounded-b-lg shadow-inner`}>
+            <div className={`flex w-full overflow-hidden ${tabBaseBg}`}>
                 <button
                     onClick={() => setActiveTab('General')}
                     className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors focus:outline-none
@@ -654,7 +680,6 @@ const ExpandedMatchDetails = ({
                     <span>Details</span>
                 </button>
             </div>
-            {/* Content based on active tab */}
             {activeTab === 'General' && <GeneralTabContent />}
             {activeTab === 'Details' && <DetailsTabContent />}
         </div>
@@ -662,4 +687,3 @@ const ExpandedMatchDetails = ({
 };
 
 export default ExpandedMatchDetails;
-
