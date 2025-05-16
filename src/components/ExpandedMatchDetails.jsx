@@ -1,6 +1,6 @@
 // src/components/ExpandedMatchDetails.jsx
 import React, { useState, useEffect } from 'react';
-import { ImageOff, ChevronRight, X } from 'lucide-react'; // Base icons
+import { ImageOff, ChevronRight, X, LayoutList, PieChart } from 'lucide-react'; // Added LayoutList and PieChart
 import {
     formatGameDurationMMSS,
     getKDAColorClass,
@@ -42,13 +42,20 @@ const TowerIcon = ({ className = "" }) => (
 // --- END OBJECTIVE ICONS ---
 
 // --- SKILL ICON LOGIC ---
-const SKILL_PLACEHOLDER_TEXT = {
-    1: 'q', 2: 'w', 3: 'e', 4: 'r'
+const SKILL_PLACEHOLDER_TEXT = { 
+    1: 'Q', 2: 'W', 3: 'E', 4: 'R' 
+};
+
+const SKILL_ROW_ACTIVE_COLORS = {
+    1: 'bg-blue-500/80 text-white',   
+    2: 'bg-orange-500/80 text-white', 
+    3: 'bg-purple-500/80 text-white', 
+    4: 'bg-rose-500/80 text-white'    
 };
 
 const getSkillIconUrl = (ddragonVersion, championDdragonId, skillSlot) => {
   if (!ddragonVersion || !championDdragonId || !skillSlot) return null;
-  const skillKeyChar = SKILL_PLACEHOLDER_TEXT[skillSlot];
+  const skillKeyChar = SKILL_PLACEHOLDER_TEXT[skillSlot]?.toLowerCase();
   if (!skillKeyChar) return null;
   return `https://cdn.communitydragon.org/${ddragonVersion}/champion/${championDdragonId}/ability-icon/${skillKeyChar}.png`;
 };
@@ -56,21 +63,22 @@ const getSkillIconUrl = (ddragonVersion, championDdragonId, skillSlot) => {
 const SkillIconDisplay = ({ ddragonVersion, championDdragonId, skillSlotKey }) => {
   const [imgError, setImgError] = useState(false);
   const skillIconUrl = getSkillIconUrl(ddragonVersion, championDdragonId, skillSlotKey);
-  const skillPlaceholder = SKILL_PLACEHOLDER_TEXT[skillSlotKey];
+  const skillAltText = SKILL_PLACEHOLDER_TEXT[skillSlotKey] || '?';
+
 
   useEffect(() => {
-    setImgError(false);
+    setImgError(false); 
   }, [skillIconUrl]);
 
   if (!skillIconUrl || imgError) {
-    return <span className="text-xs font-semibold text-gray-300">{skillPlaceholder}</span>;
+    return <span className="text-xs font-semibold text-gray-400">{skillAltText}</span>;
   }
 
   return (
     <img
       src={skillIconUrl}
-      alt={skillPlaceholder}
-      className="w-full h-full object-contain"
+      alt={skillAltText}
+      className="w-full h-full object-contain" 
       onError={() => setImgError(true)}
     />
   );
@@ -82,18 +90,18 @@ const SkillIconDisplay = ({ ddragonVersion, championDdragonId, skillSlotKey }) =
 const ExpandedMatchDetails = ({
     match,
     ddragonVersion,
-    championData, // Full DDragon champion data object { "Ahri": { id: "Ahri", ...}, ... }
+    championData, 
     summonerSpellsMap,
     runesMap,
-    getChampionImage, // Assumes this function returns DDragon image URL for a champion key
+    getChampionImage, 
     getSummonerSpellImage,
     getItemImage,
     getRuneImage,
-    getChampionDisplayName, // Assumes this function returns display name for a champion key
+    getChampionDisplayName, 
     isTrackedPlayerWin,
     roleIconMap,
     roleOrder,
-    processTimelineDataForPlayer // The actual processing function
+    processTimelineDataForPlayer 
 }) => {
     const [activeTab, setActiveTab] = useState('General');
     const [selectedPlayerForDetailsPuuid, setSelectedPlayerForDetailsPuuid] = useState(match.puuid);
@@ -104,21 +112,21 @@ const ExpandedMatchDetails = ({
         teamObjectives = [],
         gameDuration,
         puuid: trackedPlayerPuuid,
-        // processedTimelineForTrackedPlayer should ideally be passed already processed by the parent
-        // or processed here if not. Let's assume it's passed.
         processedTimelineForTrackedPlayer,
-        rawTimelineFrames, // Needed if we re-process for other players
+        rawTimelineFrames, 
         matchId
     } = match;
 
+    // Reset selected player and active tab when the match context changes
     useEffect(() => {
         setSelectedPlayerForDetailsPuuid(trackedPlayerPuuid);
         setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
-        setActiveTab('General');
+        setActiveTab('General'); 
     }, [matchId, trackedPlayerPuuid, processedTimelineForTrackedPlayer]);
 
-    useEffect(() => {
-        if (activeTab !== 'Details') return;
+    // Effect to process timeline data when selected player or tab changes
+     useEffect(() => {
+        if (activeTab !== 'Details') return; 
 
         if (selectedPlayerForDetailsPuuid === trackedPlayerPuuid) {
             setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
@@ -126,6 +134,7 @@ const ExpandedMatchDetails = ({
             const selectedParticipant = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
             if (selectedParticipant) {
                 const targetParticipantId = allParticipants.findIndex(p => p.puuid === selectedPlayerForDetailsPuuid) + 1;
+                
                 let opponentForSelected = null;
                 let opponentIdForSelectedTimeline = null;
                 if (selectedParticipant.teamPosition && selectedParticipant.teamPosition !== '') {
@@ -138,19 +147,19 @@ const ExpandedMatchDetails = ({
                     opponentIdForSelectedTimeline = allParticipants.findIndex(p => p.puuid === opponentForSelected.puuid) + 1;
                 }
 
-                if (targetParticipantId > 0) {
+                if (targetParticipantId > 0) { 
                     const timeline = processTimelineDataForPlayer(
                         rawTimelineFrames,
                         targetParticipantId,
-                        opponentIdForSelectedTimeline,
+                        opponentIdForSelectedTimeline, 
                         gameDuration
                     );
                     setCurrentSelectedPlayerTimeline(timeline);
                 } else {
-                    setCurrentSelectedPlayerTimeline(null);
+                    setCurrentSelectedPlayerTimeline(null); 
                 }
             } else {
-                setCurrentSelectedPlayerTimeline(null);
+                setCurrentSelectedPlayerTimeline(null); 
             }
         } else {
             setCurrentSelectedPlayerTimeline(null);
@@ -193,6 +202,7 @@ const ExpandedMatchDetails = ({
 
         return (
             <div key={player.puuid || player.summonerName} className={`flex items-center gap-x-2 sm:gap-x-3 py-0.5 px-1 text-xs hover:bg-gray-700/10 transition-colors duration-150 ${trackedPlayerClass}`}>
+                {/* Champion, Level, Name */}
                 <div className="flex items-center space-x-1.5 w-[120px] sm:w-[140px] flex-shrink-0">
                     <div className="relative w-9 h-9">
                         <img src={getChampionImage(player.championName)} alt={getChampionDisplayName(player.championName)} className="w-full h-full rounded-md border border-gray-600" onError={(e) => { e.target.src = `https://placehold.co/36x36/222/ccc?text=${player.championName ? player.championName.substring(0,1) : '?'}`; }}/>
@@ -208,7 +218,9 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
+                {/* Spells, Runes, Items */}
                 <div className="flex items-center space-x-1 flex-shrink-0">
+                    {/* Spells & Runes */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner1Id)} alt="S1" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner2Id)} alt="S2" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
@@ -217,6 +229,7 @@ const ExpandedMatchDetails = ({
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerPrimaryPerk)} alt="R1" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerSubStyle)} alt="R2" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                     </div>
+                    {/* Items */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="flex space-x-0.5">
                             {[items[0], items[1], items[2], trinket].map((item, idx) => (
@@ -231,12 +244,14 @@ const ExpandedMatchDetails = ({
                                     {item && item !== 0 ? <img src={getItemImage(item)} alt={`Item ${idx + 3}`} className="w-full h-full rounded-sm" /> : <div className="w-4 h-4 bg-gray-700/50 rounded-sm"></div>}
                                 </div>
                             ))}
-                            <div className="w-5 h-5"></div>
+                            <div className="w-5 h-5"></div> {/* Placeholder for alignment */}
                         </div>
                     </div>
                 </div>
 
+                {/* Stats: KDA, KP, CS, Damage, Vision */}
                 <div className="flex flex-1 justify-around items-start gap-x-1 sm:gap-x-2 text-center min-w-0">
+                    {/* KDA */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-100">{getKDAStringSpans(player)}</span>
                         <div>
@@ -244,14 +259,17 @@ const ExpandedMatchDetails = ({
                             <span className="text-[10px] text-gray-300 ml-0.5 sm:ml-1">KDA</span>
                         </div>
                     </div>
+                    {/* KP */}
                     <div className="flex flex-col items-center min-w-[30px] sm:min-w-[35px]">
                         <span className="text-gray-200">{kp}</span>
                         <span className="text-[10px] text-gray-300">KP</span>
                     </div>
+                    {/* CS */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-200">{cs}</span>
                         <span className="text-[10px] text-gray-300">{csPerMin} CS/m</span>
                     </div>
+                    {/* Damage */}
                     <div className="flex flex-col items-center flex-grow min-w-[70px] sm:min-w-[90px] max-w-[120px]">
                         <div className="flex justify-between w-full items-baseline">
                             <span className={`${damageTextColorClass} text-[10px]`}>{damageDealt.toLocaleString()}</span>
@@ -261,6 +279,7 @@ const ExpandedMatchDetails = ({
                             <div className={`h-full ${damageBarColorClass}`} style={{ width: `${damagePercentage}%` }}></div>
                         </div>
                     </div>
+                    {/* Vision */}
                     <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
                         <span className="text-gray-200">{player.visionWardsBoughtInGame || 0}</span>
                         <span className="text-[10px] text-gray-300">{player.wardsPlaced || 0}/{player.wardsKilled || 0}</span>
@@ -274,11 +293,11 @@ const ExpandedMatchDetails = ({
         const totalKills = teamData?.objectives?.champion?.kills || 0;
         const teamSide = teamName === 'Blue Team' ? 'Blue Side' : 'Red Side';
         const teamColorForText = teamName === 'Blue Team' ? 'text-blue-400' : 'text-red-400';
-        const objectiveIconSize = "w-5 h-5";
+        const objectiveIconSize = "w-5 h-5"; 
 
         return (
-            <div className="p-2 sm:p-3 rounded-md">
-                <div className="flex items-center mb-1.5 pb-1">
+            <div className="px-2 sm:px-3 py-2 mb-0 rounded-md">
+                <div className="flex items-center pb-1">
                     <h3 className={`text-md sm:text-lg font-semibold ${teamColorForText}`}>
                         {teamData.win ? 'Victory' : 'Defeat'}
                         <span className="text-xs sm:text-sm text-gray-400 font-normal ml-1.5 mr-2 sm:mr-3">
@@ -297,8 +316,8 @@ const ExpandedMatchDetails = ({
                 {team.map(player => renderPlayerRow(
                     player,
                     totalKills,
-                    player.totalDamageDealtToChampions === teamMaxDamage && teamMaxDamage > 0,
-                    player.puuid === trackedPlayerPuuid
+                    player.totalDamageDealtToChampions === teamMaxDamage && teamMaxDamage > 0, 
+                    player.puuid === trackedPlayerPuuid 
                 ))}
             </div>
         );
@@ -362,7 +381,7 @@ const ExpandedMatchDetails = ({
         };
 
         const groupedBuildOrder = timelineToDisplay?.buildOrder?.reduce((acc, itemEvent) => {
-            const minute = Math.floor(itemEvent.timestamp / (1000 * 60));
+            const minute = Math.floor(itemEvent.timestamp / (1000 * 60)); 
             if (!acc[minute]) {
                 acc[minute] = [];
             }
@@ -370,60 +389,52 @@ const ExpandedMatchDetails = ({
             return acc;
         }, {}) || {};
 
-        // Prepare skill order data for display
-        // skillLevelsByAbility[skillSlot][championLevelIndex] = currentPointsInThatSkill
-        const skillLevelsByAbility = { 1: [], 2: [], 3: [], 4: [] }; // Q, W, E, R (0-indexed for champion level)
-        const currentPointsInSkill = { 1: 0, 2: 0, 3: 0, 4: 0 };
+        const skillLevelsByAbility = { 1: [], 2: [], 3: [], 4: [] }; 
+        const currentPointsInSkill = { 1: 0, 2: 0, 3: 0, 4: 0 }; 
 
         if (timelineToDisplay?.skillOrder && Array.isArray(timelineToDisplay.skillOrder)) {
-             // Ensure skillOrder is sorted by levelTakenAt, then by timestamp.
             const sortedSkillOrderEvents = [...timelineToDisplay.skillOrder].sort((a, b) => {
                 if (a.levelTakenAt === b.levelTakenAt) {
-                    return a.timestamp - b.timestamp;
+                    return a.timestamp - b.timestamp; 
                 }
                 return a.levelTakenAt - b.levelTakenAt;
             });
 
-            // Iterate through champion levels 1 to 18
             for (let champLvl = 1; champLvl <= 18; champLvl++) {
-                // Find all skill events that occurred AT this champion level
-                const eventsAtThisChampLevel = sortedSkillOrderEvents.filter(
+                const eventThisLevel = sortedSkillOrderEvents.find(
                     event => event.levelTakenAt === champLvl
                 );
 
-                // Update current points for skills leveled at this champion level
-                eventsAtThisChampLevel.forEach(event => {
-                    currentPointsInSkill[event.skillSlot] = event.skillLevel;
-                });
+                if (eventThisLevel) {
+                    currentPointsInSkill[eventThisLevel.skillSlot] = eventThisLevel.skillLevel;
+                }
 
-                // For each skill slot, record its current point total at this champion level
-                for (const slot of [1, 2, 3, 4]) { // Skill slots Q, W, E, R
-                    if (currentPointsInSkill[slot] > 0) {
-                        // Store into the array at index (championLevel - 1)
-                        skillLevelsByAbility[slot][champLvl - 1] = currentPointsInSkill[slot];
-                    }
-                    // If currentPointsInSkill[slot] is 0, skillLevelsByAbility[slot][champLvl - 1] remains undefined
+                for (const slot of [1, 2, 3, 4]) { 
+                    skillLevelsByAbility[slot][champLvl - 1] = currentPointsInSkill[slot] > 0 ? currentPointsInSkill[slot] : undefined;
                 }
             }
         }
 
 
         return (
-            <div className="p-3 sm:p-4 text-gray-200 space-y-4">
-                <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-4 p-2 rounded-lg">
-                    <div className="flex space-x-1 sm:space-x-1.5">
+            <div className="p-2 sm:p-3 text-gray-200 space-y-4">
+                {/* Player Selection Header */}
+                <div className="flex items-center justify-center space-x-2 sm:space-x-5 mb-1 p-2 rounded-lg">
+                    <div className="flex space-x-1 sm:space-x-3.5">
                         {blueTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
                     </div>
-                    <span className="text-orange-500 font-bold text-sm sm:text-md">VS</span>
-                    <div className="flex space-x-1 sm:space-x-1.5">
+                    <span className="text-white-500 font-bold text-sm sm:text-md">VS</span>
+                    <div className="flex space-x-1 sm:space-x-3.5">
                         {redTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
                     </div>
                 </div>
 
+                {/* Stats Sections */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                    {/* Laning Phase Stats */}
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[100px] flex flex-col justify-center">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">LANING PHASE (AT 15)</h4>
-                        {timelineToDisplay && timelineToDisplay.snapshots && timelineToDisplay.snapshots.length > 0 ? (
+                        {timelineToDisplay && timelineToDisplay.snapshots && timelineToDisplay.snapshots.length > 0 && snapshot15min ? (
                             <div className="grid grid-cols-3 gap-x-2 gap-y-3">
                                 <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="cs diff" />
                                 <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="gold diff" />
@@ -434,6 +445,7 @@ const ExpandedMatchDetails = ({
                         )}
                     </div>
 
+                    {/* Wards Stats */}
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">WARDS</h4>
                         <div className="grid grid-cols-3 gap-x-2 gap-y-3">
@@ -443,6 +455,7 @@ const ExpandedMatchDetails = ({
                         </div>
                     </div>
 
+                    {/* Global Stats */}
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">GLOBAL STATS</h4>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-3">
@@ -458,53 +471,62 @@ const ExpandedMatchDetails = ({
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                     <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base">SKILL ORDER</h4>
                     <div className="space-y-1.5">
-                        {[1, 2, 3, 4].map(skillSlotKey => { // skillSlotKey is 1 for Q, 2 for W, etc.
-                            // Get the DDragon champion ID. This assumes championName in participant data is the DDragon ID.
-                            // If championData is available and contains mapping from API key to DDragon ID, use that.
-                            // For simplicity, assuming currentPlayerForDisplay.championName is the DDragon ID (e.g., "Ahri")
-                            const championDdragonId = championData && championData[currentPlayerForDisplay.championName] ?
-                                                      championData[currentPlayerForDisplay.championName].id :
-                                                      currentPlayerForDisplay.championName;
+                        {[1, 2, 3, 4].map(skillSlotKey => { 
+                            const championInfo = championData && championData[currentPlayerForDisplay.championName];
+                            const championDdragonId = championInfo ? championInfo.id : currentPlayerForDisplay.championName;
+                            const skillKeyBadgeText = SKILL_PLACEHOLDER_TEXT[skillSlotKey];
 
                             return (
-                                <div key={`skill-row-${skillSlotKey}`} className="flex items-center space-x-1">
-                                    <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center bg-gray-800 rounded border border-gray-600 p-0.5" title={`Skill ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]}`}>
+                                <div key={`skill-row-${skillSlotKey}`} className="flex items-center space-x-2">
+                                    {/* Skill Icon with Badge */}
+                                    <div 
+                                        className="relative w-8 h-8 flex-shrink-0 bg-gray-800 rounded border border-gray-600 p-0.5" // Increased icon size
+                                        title={`Skill ${skillKeyBadgeText}`}
+                                    >
                                         <SkillIconDisplay
                                             ddragonVersion={ddragonVersion}
                                             championDdragonId={championDdragonId}
                                             skillSlotKey={skillSlotKey}
                                         />
+                                        <span 
+                                            className={`absolute -bottom-1 -right-1 w-4 h-4 flex items-center justify-center
+                                                       text-[10px] font-bold rounded-full shadow-sm border border-black/50
+                                                       bg-gray-700 text-gray-200`} // Consistent gray badge
+                                        >
+                                            {skillKeyBadgeText}
+                                        </span>
                                     </div>
-                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-px flex-grow">
-                                        {Array.from({ length: 18 }).map((_, levelIndex) => { // levelIndex is 0-17
-                                            const championLevel = levelIndex + 1; // championLevel is 1-18
+                                    {/* Skill Level Boxes */}
+                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-0.5 flex-grow">
+                                        {Array.from({ length: 18 }).map((_, levelIndex) => { 
+                                            const championLevel = levelIndex + 1; 
 
-                                            // Check if this skill (skillSlotKey) was the one that received a point at this championLevel
                                             const skillEventForThisBox = timelineToDisplay?.skillOrder?.find(
                                                 event => event.levelTakenAt === championLevel && event.skillSlot === skillSlotKey
                                             );
+                                            
+                                            const currentTotalPointsInThisSkillSlot = skillLevelsByAbility[skillSlotKey]?.[levelIndex];
 
-                                            // Get the total points in this skill up to this champion level
-                                            const currentTotalPointsInSkill = skillLevelsByAbility[skillSlotKey]?.[levelIndex];
+                                            let boxColor = 'bg-gray-600/30'; 
+                                            let textColor = 'text-gray-400';
 
-                                            let boxColor = 'bg-gray-600/30'; // Default for empty or not yet skilled
-                                            if (skillEventForThisBox) {
-                                                boxColor = 'bg-orange-500/70'; // Skill point added at this exact champion level
-                                            } else if (currentTotalPointsInSkill) {
-                                                boxColor = 'bg-gray-500/50'; // Skill has points, but wasn't skilled at this exact champion level
+                                            if (skillEventForThisBox) { 
+                                                boxColor = SKILL_ROW_ACTIVE_COLORS[skillSlotKey] || 'bg-orange-500/80 text-white'; 
                                             }
-
+                                            
                                             return (
                                                 <div
                                                     key={`skill-${skillSlotKey}-lvl-${championLevel}`}
-                                                    className={`w-full h-5 text-[10px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`}
+                                                    // Skill boxes: height matches icon (h-8), width is less (e.g., w-4 or w-5)
+                                                    className={`w-8 h-8 text-[12px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`}
                                                     title={skillEventForThisBox
-                                                        ? `Leveled ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} to ${skillEventForThisBox.skillLevel} at Champ Lvl ${championLevel}`
-                                                        : (currentTotalPointsInSkill ? `${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} Lvl ${currentTotalPointsInSkill}` : `Champ Lvl ${championLevel}`)
+                                                        ? `Level ${championLevel}: Leveled ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} (Tier ${skillEventForThisBox.skillLevel})`
+                                                        : (currentTotalPointsInThisSkillSlot ? `${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} Tier ${currentTotalPointsInThisSkillSlot}` : `Champ Lvl ${championLevel}`)
                                                     }
                                                 >
-                                                    {/* Display the skill level IF this skill was the one leveled at this champion level */}
-                                                    {skillEventForThisBox ? skillEventForThisBox.skillLevel : ''}
+                                                    <span className={skillEventForThisBox ? SKILL_ROW_ACTIVE_COLORS[skillSlotKey].split(' ').find(cls => cls.startsWith('text-')) || textColor : textColor}>
+                                                      {skillEventForThisBox ? skillEventForThisBox.levelTakenAt : ''}
+                                                    </span>
                                                 </div>
                                             );
                                         })}
@@ -519,12 +541,13 @@ const ExpandedMatchDetails = ({
                 </div>
 
 
+                {/* Build Order Section */}
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">BUILD ORDER</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
                         <div className="flex flex-wrap items-start gap-x-1 gap-y-2">
                             {Object.entries(groupedBuildOrder)
-                                .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB))
+                                .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB)) 
                                 .map(([minute, itemsInMinute], groupIndex, arr) => (
                                     <React.Fragment key={`build-group-${minute}`}>
                                         <div className="flex flex-col items-center">
@@ -551,7 +574,7 @@ const ExpandedMatchDetails = ({
                                             </div>
                                             <span className="text-[9px] text-gray-300 mt-0.75">{minute} min</span>
                                         </div>
-                                        {groupIndex < arr.length - 1 && (
+                                        {groupIndex < arr.length - 1 && ( 
                                             <div className="flex items-center justify-center h-5 sm:h-6 mx-1">
                                                 <ChevronRight size={18} className="text-gray-400" />
                                             </div>
@@ -563,6 +586,7 @@ const ExpandedMatchDetails = ({
                 </div>
 
 
+                {/* Runes Section */}
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Runes</h4>
                     {currentPlayerForDisplay.perks && currentPlayerForDisplay.perks.styles && currentPlayerForDisplay.perks.styles.length > 0 ? (
@@ -588,29 +612,49 @@ const ExpandedMatchDetails = ({
     };
 
     const expandedBgClass = isTrackedPlayerWin === null
-    ? 'bg-gray-950/40'
+    ? 'bg-gray-950/40' 
     : isTrackedPlayerWin
-        ? 'bg-blue-950/30'
-        : 'bg-red-950/30';
+        ? 'bg-blue-950/30' 
+        : 'bg-red-950/30'; 
+    
+    // Define base and active background colors for tabs based on win/loss
+    let tabBaseBg = 'bg-gray-800/25'; // Default if expandedBgClass is neutral
+    let tabActiveBg = 'bg-gray-700/45'; // Darker default
+
+    if (isTrackedPlayerWin === true) { // Win
+        tabBaseBg = 'bg-blue-900/20'; // Slightly lighter or different hue than main expanded win bg
+        tabActiveBg = 'bg-blue-900/25'; // Darker version for active tab
+    } else if (isTrackedPlayerWin === false) { // Loss
+        tabBaseBg = 'bg-red-900/20';
+        tabActiveBg = 'bg-red-900/40';
+    }
+    // If isTrackedPlayerWin is null, the defaults (grayish) will be used.
+
 
     return (
-        <div className={`mt-0.5 p-2 sm:p-3 ${expandedBgClass} backdrop-blur-sm rounded-b-lg border-t border-gray-700/50 shadow-inner`}>
-            <div className="flex border-b border-gray-600/80 mb-2 sm:mb-3">
+        <div className={`p-2 sm:p-0 ${expandedBgClass} backdrop-blur-sm rounded-b-lg border-t border-gray-700/50 shadow-inner`}>
+            {/* Tabs */}
+            <div className={`flex w-full rounded-t-md overflow-hidden ${tabBaseBg}`}>
                 <button
                     onClick={() => setActiveTab('General')}
-                    className={`py-1.5 sm:py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors focus:outline-none
-                        ${activeTab === 'General' ? 'text-orange-400 border-b-2 border-orange-500' : 'text-gray-400 hover:text-gray-200 hover:border-b-2 hover:border-gray-500'}`}
+                    className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors focus:outline-none
+                                flex items-center justify-center space-x-2
+                                ${activeTab === 'General' ? `${tabActiveBg} text-gray-100` : 'text-gray-400 hover:text-gray-100 hover:bg-white/5'}`}
                 >
-                    Scoreboard
+                    <LayoutList size={16} className={`${activeTab === 'General' ? 'text-gray-100' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                    <span>Scoreboard</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('Details')}
-                    className={`py-1.5 sm:py-2 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors focus:outline-none
-                        ${activeTab === 'Details' ? 'text-orange-400 border-b-2 border-orange-500' : 'text-gray-400 hover:text-gray-200 hover:border-b-2 hover:border-gray-500'}`}
+                    className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors focus:outline-none
+                                flex items-center justify-center space-x-2
+                                ${activeTab === 'Details' ? `${tabActiveBg} text-gray-100` : 'text-gray-400 hover:text-gray-100 hover:bg-white/5'}`}
                 >
-                    Details
+                    <PieChart size={16} className={`${activeTab === 'Details' ? 'text-gray-100' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                    <span>Details</span>
                 </button>
             </div>
+            {/* Content based on active tab */}
             {activeTab === 'General' && <GeneralTabContent />}
             {activeTab === 'Details' && <DetailsTabContent />}
         </div>
@@ -618,3 +662,4 @@ const ExpandedMatchDetails = ({
 };
 
 export default ExpandedMatchDetails;
+

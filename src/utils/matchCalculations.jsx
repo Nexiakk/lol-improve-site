@@ -164,19 +164,18 @@ export const getCSString = (p) => {
 export const processTimelineData = (timelineFrames, targetParticipantId, opponentParticipantIdForLaning, gameDurationSeconds) => {
   const processedData = {
     snapshots: [],
-    skillOrder: [], // Will be populated with { skillSlot, levelTakenAt, skillLevel, timestamp }
+    skillOrder: [], 
     buildOrder: [],
-    // Laning phase specific data can be added here if needed later
   };
 
   if (!timelineFrames || timelineFrames.length === 0 || !targetParticipantId) return processedData;
 
-  const snapshotMinutes = [5, 10, 15]; // Minutes for which to take snapshots
+  const snapshotMinutes = [5, 10, 15]; 
   const snapshotTimestampsMs = snapshotMinutes.map(min => min * 60 * 1000);
-  const collectedRawSkillEvents = [];
+  const collectedRawSkillEventsForProcessing = []; // Stores { skillSlot, timestamp }
   const collectedBuildEvents = [];
 
-
+  // Iterate through frames to collect events and snapshot data
   for (const frame of timelineFrames) {
     const targetPlayerFrameData = frame.participantFrames?.[targetParticipantId.toString()];
     const opponentFrameData = opponentParticipantIdForLaning ? frame.participantFrames?.[opponentParticipantIdForLaning.toString()] : null;
@@ -184,7 +183,6 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
     // Process snapshots
     if (targetPlayerFrameData) {
       snapshotTimestampsMs.forEach((snapshotTimeMs, index) => {
-        // Check if this frame is the first one at or after the snapshot time and snapshot not yet taken
         if (frame.timestamp >= snapshotTimeMs && !processedData.snapshots.find(s => s.minute === snapshotMinutes[index])) {
           const snapshot = {
             minute: snapshotMinutes[index],
@@ -215,29 +213,23 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
       });
     }
 
-    // Collect all relevant events from the frame
+    // Collect skill and item events
     frame.events?.forEach(event => {
       if (event.participantId === targetParticipantId) {
         if (event.type === 'SKILL_LEVEL_UP' && event.levelUpType === 'NORMAL') {
-          if (targetPlayerFrameData) { // Ensure we have player frame data to get their level
-            collectedRawSkillEvents.push({
-              championLevelAtEvent: targetPlayerFrameData.level, // Champion's level when event occurred
-              skillSlot: event.skillSlot,
-              timestamp: event.timestamp,
-            });
-          }
+          collectedRawSkillEventsForProcessing.push({
+            skillSlot: event.skillSlot,
+            timestamp: event.timestamp,
+          });
         } else if (event.type === 'ITEM_PURCHASED') {
           collectedBuildEvents.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'purchased' });
         } else if (event.type === 'ITEM_SOLD') {
           collectedBuildEvents.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'sold' });
         } else if (event.type === 'ITEM_UNDO') {
-          // For UNDO, we need to find the last corresponding purchase/sell and remove it
-          // This implementation is simplified: it assumes undo applies to the most recent action.
-          // A more robust undo would track itemBefore and itemAfter.
-          // For now, we'll add it and it can be filtered/handled during final build order processing if needed.
+          // Basic undo handling: store the event. More complex logic might be needed for perfect accuracy.
           collectedBuildEvents.push({
-            itemId: event.itemBefore, // Item that was "undone"
-            targetItemId: event.itemAfter, // Item that results from undo (often 0 if purchase undone)
+            itemId: event.itemBefore, 
+            targetItemId: event.itemAfter, 
             timestamp: event.timestamp,
             type: 'undo'
           });
@@ -246,29 +238,47 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
     });
   }
 
-  // Process collected skill events
-  collectedRawSkillEvents.sort((a, b) => a.timestamp - b.timestamp); // Sort by time
+  // New Skill Order Processing Logic:
+  // Sort raw skill events strictly by timestamp.
+  collectedRawSkillEventsForProcessing.sort((a, b) => a.timestamp - b.timestamp);
+
   const skillPointsCount = { 1: 0, 2: 0, 3: 0, 4: 0 }; // Q, W, E, R
-  collectedRawSkillEvents.forEach(event => {
-    skillPointsCount[event.skillSlot]++;
-    const maxPointsForSkill = event.skillSlot === 4 ? 3 : 5; // R max 3, others 5
-    if (skillPointsCount[event.skillSlot] <= maxPointsForSkill) {
+  let championLevelForSkillAssignment = 1; // Start assigning skills from champion level 1
+
+  for (const skillEvent of collectedRawSkillEventsForProcessing) {
+    if (championLevelForSkillAssignment > 18) break; // Max 18 skill points normally
+
+    skillPointsCount[skillEvent.skillSlot]++;
+    const maxPointsForSkill = skillEvent.skillSlot === 4 ? 3 : 5; // R max 3, others 5
+
+    // Check if leveling this skill would exceed its max points
+    if (skillPointsCount[skillEvent.skillSlot] <= maxPointsForSkill) {
       processedData.skillOrder.push({
-        skillSlot: event.skillSlot,
-        levelTakenAt: event.championLevelAtEvent, // Champion level when skill point was assigned
-        skillLevel: skillPointsCount[event.skillSlot],   // The new level of this specific skill (1st point, 2nd, etc.)
-        timestamp: event.timestamp,
+        skillSlot: skillEvent.skillSlot,
+        levelTakenAt: championLevelForSkillAssignment, // Assign to the current sequential champion level
+        skillLevel: skillPointsCount[skillEvent.skillSlot],   // The new level of this specific skill (1st point, 2nd, etc.)
+        timestamp: skillEvent.timestamp, // Keep original timestamp for reference
       });
+      championLevelForSkillAssignment++; // Move to the next champion level for the next skill point
+    } else {
+      // If skill is already maxed, this event might be an anomaly or for a special champ mechanic not handled.
+      // Decrement count as this point isn't "spent" in the normal progression.
+      skillPointsCount[skillEvent.skillSlot]--; 
+      // console.warn(`Skill order processing: Attempted to level skill ${skillEvent.skillSlot} (currently ${skillPointsCount[skillEvent.skillSlot]}/${maxPointsForSkill}) at timestamp ${skillEvent.timestamp} for assigned champ level ${championLevelForSkillAssignment}. This point was likely for an already maxed skill or an anomaly.`);
     }
+  }
+  
+  // Sort final skill order by levelTakenAt, then timestamp (should already be mostly sorted by levelTakenAt)
+  processedData.skillOrder.sort((a,b) => {
+      if (a.levelTakenAt === b.levelTakenAt) {
+          return a.timestamp - b.timestamp;
+      }
+      return a.levelTakenAt - b.levelTakenAt;
   });
 
-  // Process collected build events (simple sort by timestamp for now)
-  // A more complex undo logic might be needed for perfect accuracy if ITEM_UNDO is frequent.
+  // Sort build order and snapshots
   processedData.buildOrder = collectedBuildEvents.sort((a, b) => a.timestamp - b.timestamp);
-  // Filter out UNDO events for simplicity if they are problematic, or handle them properly
-  // For now, we just sort. A real undo handling would remove the undone purchase/sale.
-
-  processedData.snapshots.sort((a, b) => a.minute - b.minute); // Ensure snapshots are sorted
+  processedData.snapshots.sort((a, b) => a.minute - b.minute); 
 
   return processedData;
 };
