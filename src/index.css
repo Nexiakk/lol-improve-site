@@ -5,9 +5,11 @@
 
 /* Definicja niestandardowych właściwości (zmiennych CSS) dla kolorów i cieni neonowych */
 @theme {
-  --color-glow-blue: #00ccff; /* Jaśniejszy, bardziej elektryczny niebieski */
-  --color-glow-red: #ff007f;  /* Intensywny różowy/magenta dla lepszego kontrastu */
+  /* Kolory neonowe */
+  --color-glow-blue: #00ccff;
+  --color-glow-red: #ff007f;
 
+  /* Cienie neonowe */
   --shadow-neon-blue: 0 0 7px var(--color-glow-blue),
                       0 0 12px var(--color-glow-blue),
                       0 0 18px var(--color-glow-blue);
@@ -19,7 +21,7 @@
 
 body {
     font-family: 'Plus Jakarta Sans', sans-serif;
-    background-color: theme('colors.gray.900'); /* Upewnienie się, że tło body jest ciemne */
+    background-color: theme('colors.gray.900');
 }
 
 
@@ -33,10 +35,22 @@ body {
     box-shadow: var(--shadow-neon-red);
 }
 
-/* Klasa do podświetlania wiersza śledzonego gracza */
 .tracked-player-highlight {
   background-image: linear-gradient(to right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
 }
 
-/* Usunięto .neon-text-blue i .neon-text-red, ponieważ tekst obrażeń jest teraz biały */
+/* Animation for newly added match items */
+@keyframes fadeInSlideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
+.match-item-enter-active {
+  animation: fadeInSlideDown 0.5s ease-out forwards;
+}

@@ -1,6 +1,6 @@
 // src/components/ExpandedMatchDetails.jsx
 import React, { useState, useEffect } from 'react';
-import { ImageOff, ChevronRight, X } from 'lucide-react';
+import { ImageOff, ChevronRight, X } from 'lucide-react'; // Base icons
 import {
     formatGameDurationMMSS,
     getKDAColorClass,
@@ -41,23 +41,59 @@ const TowerIcon = ({ className = "" }) => (
 );
 // --- END OBJECTIVE ICONS ---
 
+// --- SKILL ICON LOGIC ---
+const SKILL_PLACEHOLDER_TEXT = {
+    1: 'q', 2: 'w', 3: 'e', 4: 'r'
+};
+
+const getSkillIconUrl = (ddragonVersion, championDdragonId, skillSlot) => {
+  if (!ddragonVersion || !championDdragonId || !skillSlot) return null;
+  const skillKeyChar = SKILL_PLACEHOLDER_TEXT[skillSlot];
+  if (!skillKeyChar) return null;
+  return `https://cdn.communitydragon.org/${ddragonVersion}/champion/${championDdragonId}/ability-icon/${skillKeyChar}.png`;
+};
+
+const SkillIconDisplay = ({ ddragonVersion, championDdragonId, skillSlotKey }) => {
+  const [imgError, setImgError] = useState(false);
+  const skillIconUrl = getSkillIconUrl(ddragonVersion, championDdragonId, skillSlotKey);
+  const skillPlaceholder = SKILL_PLACEHOLDER_TEXT[skillSlotKey];
+
+  useEffect(() => {
+    setImgError(false);
+  }, [skillIconUrl]);
+
+  if (!skillIconUrl || imgError) {
+    return <span className="text-xs font-semibold text-gray-300">{skillPlaceholder}</span>;
+  }
+
+  return (
+    <img
+      src={skillIconUrl}
+      alt={skillPlaceholder}
+      className="w-full h-full object-contain"
+      onError={() => setImgError(true)}
+    />
+  );
+};
+// --- END SKILL ICON LOGIC ---
+
 
 // Component for expanded match details
 const ExpandedMatchDetails = ({
     match,
     ddragonVersion,
-    championData,
+    championData, // Full DDragon champion data object { "Ahri": { id: "Ahri", ...}, ... }
     summonerSpellsMap,
     runesMap,
-    getChampionImage,
+    getChampionImage, // Assumes this function returns DDragon image URL for a champion key
     getSummonerSpellImage,
     getItemImage,
     getRuneImage,
-    getChampionDisplayName,
+    getChampionDisplayName, // Assumes this function returns display name for a champion key
     isTrackedPlayerWin,
     roleIconMap,
     roleOrder,
-    processTimelineDataForPlayer
+    processTimelineDataForPlayer // The actual processing function
 }) => {
     const [activeTab, setActiveTab] = useState('General');
     const [selectedPlayerForDetailsPuuid, setSelectedPlayerForDetailsPuuid] = useState(match.puuid);
@@ -68,8 +104,10 @@ const ExpandedMatchDetails = ({
         teamObjectives = [],
         gameDuration,
         puuid: trackedPlayerPuuid,
+        // processedTimelineForTrackedPlayer should ideally be passed already processed by the parent
+        // or processed here if not. Let's assume it's passed.
         processedTimelineForTrackedPlayer,
-        rawTimelineFrames,
+        rawTimelineFrames, // Needed if we re-process for other players
         matchId
     } = match;
 
@@ -79,13 +117,12 @@ const ExpandedMatchDetails = ({
         setActiveTab('General');
     }, [matchId, trackedPlayerPuuid, processedTimelineForTrackedPlayer]);
 
-
     useEffect(() => {
         if (activeTab !== 'Details') return;
 
         if (selectedPlayerForDetailsPuuid === trackedPlayerPuuid) {
             setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
-        } else if (rawTimelineFrames && processTimelineDataForPlayer && selectedPlayerForDetailsPuuid) {
+        } else if (rawTimelineFrames && processTimelineDataForPlayer && selectedPlayerForDetailsPuuid && allParticipants.length > 0) {
             const selectedParticipant = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
             if (selectedParticipant) {
                 const targetParticipantId = allParticipants.findIndex(p => p.puuid === selectedPlayerForDetailsPuuid) + 1;
@@ -110,15 +147,12 @@ const ExpandedMatchDetails = ({
                     );
                     setCurrentSelectedPlayerTimeline(timeline);
                 } else {
-                    console.warn("Could not find targetParticipantId for timeline processing.");
                     setCurrentSelectedPlayerTimeline(null);
                 }
             } else {
-                 console.warn("Selected player for details not found in allParticipants.");
                 setCurrentSelectedPlayerTimeline(null);
             }
         } else {
-            console.warn("Missing data for timeline processing (rawTimelineFrames, processTimelineDataForPlayer, or selectedPlayerForDetailsPuuid).");
             setCurrentSelectedPlayerTimeline(null);
         }
     }, [selectedPlayerForDetailsPuuid, activeTab, rawTimelineFrames, processTimelineDataForPlayer, allParticipants, trackedPlayerPuuid, processedTimelineForTrackedPlayer, gameDuration]);
@@ -159,7 +193,6 @@ const ExpandedMatchDetails = ({
 
         return (
             <div key={player.puuid || player.summonerName} className={`flex items-center gap-x-2 sm:gap-x-3 py-0.5 px-1 text-xs hover:bg-gray-700/10 transition-colors duration-150 ${trackedPlayerClass}`}>
-                {/* Champion Info */}
                 <div className="flex items-center space-x-1.5 w-[120px] sm:w-[140px] flex-shrink-0">
                     <div className="relative w-9 h-9">
                         <img src={getChampionImage(player.championName)} alt={getChampionDisplayName(player.championName)} className="w-full h-full rounded-md border border-gray-600" onError={(e) => { e.target.src = `https://placehold.co/36x36/222/ccc?text=${player.championName ? player.championName.substring(0,1) : '?'}`; }}/>
@@ -175,7 +208,6 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
-                {/* Build Info */}
                 <div className="flex items-center space-x-1 flex-shrink-0">
                     <div className="flex flex-col space-y-0.5">
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner1Id)} alt="S1" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
@@ -204,7 +236,6 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
-                {/* Stats Block */}
                 <div className="flex flex-1 justify-around items-start gap-x-1 sm:gap-x-2 text-center min-w-0">
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-100">{getKDAStringSpans(player)}</span>
@@ -287,7 +318,6 @@ const ExpandedMatchDetails = ({
         if (!currentSelectedPlayerTimeline && activeTab === 'Details') {
              return (
                 <div className="p-4 text-center text-gray-400">
-                    {/* <Loader2 size={24} className="animate-spin mx-auto mb-2 text-orange-500" /> */}
                     Loading player details...
                 </div>
             );
@@ -331,15 +361,51 @@ const ExpandedMatchDetails = ({
             );
         };
 
-        // Group build order items by minute
         const groupedBuildOrder = timelineToDisplay?.buildOrder?.reduce((acc, itemEvent) => {
-            const minute = Math.floor(itemEvent.timestamp / (1000 * 60)); // Round up to the nearest minute
+            const minute = Math.floor(itemEvent.timestamp / (1000 * 60));
             if (!acc[minute]) {
                 acc[minute] = [];
             }
             acc[minute].push(itemEvent);
             return acc;
         }, {}) || {};
+
+        // Prepare skill order data for display
+        // skillLevelsByAbility[skillSlot][championLevelIndex] = currentPointsInThatSkill
+        const skillLevelsByAbility = { 1: [], 2: [], 3: [], 4: [] }; // Q, W, E, R (0-indexed for champion level)
+        const currentPointsInSkill = { 1: 0, 2: 0, 3: 0, 4: 0 };
+
+        if (timelineToDisplay?.skillOrder && Array.isArray(timelineToDisplay.skillOrder)) {
+             // Ensure skillOrder is sorted by levelTakenAt, then by timestamp.
+            const sortedSkillOrderEvents = [...timelineToDisplay.skillOrder].sort((a, b) => {
+                if (a.levelTakenAt === b.levelTakenAt) {
+                    return a.timestamp - b.timestamp;
+                }
+                return a.levelTakenAt - b.levelTakenAt;
+            });
+
+            // Iterate through champion levels 1 to 18
+            for (let champLvl = 1; champLvl <= 18; champLvl++) {
+                // Find all skill events that occurred AT this champion level
+                const eventsAtThisChampLevel = sortedSkillOrderEvents.filter(
+                    event => event.levelTakenAt === champLvl
+                );
+
+                // Update current points for skills leveled at this champion level
+                eventsAtThisChampLevel.forEach(event => {
+                    currentPointsInSkill[event.skillSlot] = event.skillLevel;
+                });
+
+                // For each skill slot, record its current point total at this champion level
+                for (const slot of [1, 2, 3, 4]) { // Skill slots Q, W, E, R
+                    if (currentPointsInSkill[slot] > 0) {
+                        // Store into the array at index (championLevel - 1)
+                        skillLevelsByAbility[slot][champLvl - 1] = currentPointsInSkill[slot];
+                    }
+                    // If currentPointsInSkill[slot] is 0, skillLevelsByAbility[slot][champLvl - 1] remains undefined
+                }
+            }
+        }
 
 
         return (
@@ -357,7 +423,7 @@ const ExpandedMatchDetails = ({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                     <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[100px] flex flex-col justify-center">
                         <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base text-center">LANING PHASE (AT 15)</h4>
-                        {timelineToDisplay && timelineToDisplay.snapshots ? (
+                        {timelineToDisplay && timelineToDisplay.snapshots && timelineToDisplay.snapshots.length > 0 ? (
                             <div className="grid grid-cols-3 gap-x-2 gap-y-3">
                                 <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="cs diff" />
                                 <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="gold diff" />
@@ -388,16 +454,81 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
-                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center"> {/* Adjusted min-h */}
+                {/* Skill Order Section */}
+                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
+                    <h4 className="font-semibold text-gray-300 mb-3 text-sm sm:text-base">SKILL ORDER</h4>
+                    <div className="space-y-1.5">
+                        {[1, 2, 3, 4].map(skillSlotKey => { // skillSlotKey is 1 for Q, 2 for W, etc.
+                            // Get the DDragon champion ID. This assumes championName in participant data is the DDragon ID.
+                            // If championData is available and contains mapping from API key to DDragon ID, use that.
+                            // For simplicity, assuming currentPlayerForDisplay.championName is the DDragon ID (e.g., "Ahri")
+                            const championDdragonId = championData && championData[currentPlayerForDisplay.championName] ?
+                                                      championData[currentPlayerForDisplay.championName].id :
+                                                      currentPlayerForDisplay.championName;
+
+                            return (
+                                <div key={`skill-row-${skillSlotKey}`} className="flex items-center space-x-1">
+                                    <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center bg-gray-800 rounded border border-gray-600 p-0.5" title={`Skill ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]}`}>
+                                        <SkillIconDisplay
+                                            ddragonVersion={ddragonVersion}
+                                            championDdragonId={championDdragonId}
+                                            skillSlotKey={skillSlotKey}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-px flex-grow">
+                                        {Array.from({ length: 18 }).map((_, levelIndex) => { // levelIndex is 0-17
+                                            const championLevel = levelIndex + 1; // championLevel is 1-18
+
+                                            // Check if this skill (skillSlotKey) was the one that received a point at this championLevel
+                                            const skillEventForThisBox = timelineToDisplay?.skillOrder?.find(
+                                                event => event.levelTakenAt === championLevel && event.skillSlot === skillSlotKey
+                                            );
+
+                                            // Get the total points in this skill up to this champion level
+                                            const currentTotalPointsInSkill = skillLevelsByAbility[skillSlotKey]?.[levelIndex];
+
+                                            let boxColor = 'bg-gray-600/30'; // Default for empty or not yet skilled
+                                            if (skillEventForThisBox) {
+                                                boxColor = 'bg-orange-500/70'; // Skill point added at this exact champion level
+                                            } else if (currentTotalPointsInSkill) {
+                                                boxColor = 'bg-gray-500/50'; // Skill has points, but wasn't skilled at this exact champion level
+                                            }
+
+                                            return (
+                                                <div
+                                                    key={`skill-${skillSlotKey}-lvl-${championLevel}`}
+                                                    className={`w-full h-5 text-[10px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`}
+                                                    title={skillEventForThisBox
+                                                        ? `Leveled ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} to ${skillEventForThisBox.skillLevel} at Champ Lvl ${championLevel}`
+                                                        : (currentTotalPointsInSkill ? `${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} Lvl ${currentTotalPointsInSkill}` : `Champ Lvl ${championLevel}`)
+                                                    }
+                                                >
+                                                    {/* Display the skill level IF this skill was the one leveled at this champion level */}
+                                                    {skillEventForThisBox ? skillEventForThisBox.skillLevel : ''}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {(!timelineToDisplay?.skillOrder || timelineToDisplay.skillOrder.length === 0) && (
+                        <p className="text-gray-500 text-xs sm:text-sm italic mt-2">Missing skill order data for this player.</p>
+                    )}
+                </div>
+
+
+                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">BUILD ORDER</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
-                        <div className="flex flex-wrap items-start gap-x-1 gap-y-2"> {/* Main container for build order - items-start */}
+                        <div className="flex flex-wrap items-start gap-x-1 gap-y-2">
                             {Object.entries(groupedBuildOrder)
                                 .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB))
                                 .map(([minute, itemsInMinute], groupIndex, arr) => (
                                     <React.Fragment key={`build-group-${minute}`}>
-                                        <div className="flex flex-col items-center"> {/* Wrapper for items + minute text */}
-                                            <div className="flex items-center gap-x-0.5 h-5 sm:h-6"> {/* Item images container with fixed height */}
+                                        <div className="flex flex-col items-center">
+                                            <div className="flex items-center gap-x-0.5 h-5 sm:h-6">
                                                 {itemsInMinute.map((itemEvent, itemIndex) => {
                                                     const itemSrc = getItemImage(itemEvent.itemId);
                                                     const isSold = itemEvent.type === 'sold';
@@ -421,7 +552,7 @@ const ExpandedMatchDetails = ({
                                             <span className="text-[9px] text-gray-300 mt-0.75">{minute} min</span>
                                         </div>
                                         {groupIndex < arr.length - 1 && (
-                                            <div className="flex items-center justify-center h-5 sm:h-6 mx-1"> {/* Separator wrapper with matching height */}
+                                            <div className="flex items-center justify-center h-5 sm:h-6 mx-1">
                                                 <ChevronRight size={18} className="text-gray-400" />
                                             </div>
                                         )}
@@ -431,23 +562,6 @@ const ExpandedMatchDetails = ({
                     ) : <p className="text-gray-500 text-xs sm:text-sm italic">Missing build order data for this player.</p>}
                 </div>
 
-
-                <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50 min-h-[60px] flex flex-col justify-center">
-                    <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Skill Order (QWER)</h4>
-                    {timelineToDisplay && timelineToDisplay.skillOrder && timelineToDisplay.skillOrder.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                            {timelineToDisplay.skillOrder.map((skill, index) => (
-                                <span
-                                    key={`skill-${index}-${skill.skillSlot}-${skill.timestamp}`}
-                                    className="bg-gray-800 px-2 py-1 rounded text-orange-300 text-xs sm:text-sm border border-gray-600"
-                                    title={`Lvl ${skill.levelTakenAt} (Skill Lvl ${skill.skillLevel}) @ ${formatGameDurationMMSS(skill.timestamp / 1000)}`}
-                                >
-                                    {['Q', 'W', 'E', 'R'][skill.skillSlot - 1] || '?'}
-                                </span>
-                            ))}
-                        </div>
-                    ) : <p className="text-gray-500 text-xs sm:text-sm italic">Missing skill order data for this player.</p>}
-                </div>
 
                 <div className="bg-gray-700/40 p-3 rounded-lg border border-gray-600/50">
                     <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">Runes</h4>

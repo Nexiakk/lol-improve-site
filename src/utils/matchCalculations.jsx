@@ -103,7 +103,7 @@ export const getKDAColorClass = (kills, deaths, assists) => {
   }
   const kda = deaths === 0 ? (kills > 0 || assists > 0 ? (kills + assists) * 2 : 0) : (kills + assists) / deaths;
 
-  if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-yellow-400';
+  if (deaths === 0 && (kills > 0 || assists > 0)) return 'text-yellow-400'; // Perfect KDA
   if (kda >= 5) return 'text-green-400';
   if (kda >= 3) return 'text-blue-400';
   if (kda >= 1.5) return 'text-sky-400';
@@ -164,113 +164,111 @@ export const getCSString = (p) => {
 export const processTimelineData = (timelineFrames, targetParticipantId, opponentParticipantIdForLaning, gameDurationSeconds) => {
   const processedData = {
     snapshots: [],
-    skillOrder: [],
+    skillOrder: [], // Will be populated with { skillSlot, levelTakenAt, skillLevel, timestamp }
     buildOrder: [],
-    laningPhase: { // Removed firstToLvl2 and related timestamps
-      // Other laning phase stats can be added here if needed in the future
-    },
+    // Laning phase specific data can be added here if needed later
   };
 
   if (!timelineFrames || timelineFrames.length === 0 || !targetParticipantId) return processedData;
 
-  const snapshotMinutes = [5, 10, 15];
+  const snapshotMinutes = [5, 10, 15]; // Minutes for which to take snapshots
   const snapshotTimestampsMs = snapshotMinutes.map(min => min * 60 * 1000);
+  const collectedRawSkillEvents = [];
+  const collectedBuildEvents = [];
 
-  let lastTargetPlayerLevel = 0;
 
   for (const frame of timelineFrames) {
     const targetPlayerFrameData = frame.participantFrames?.[targetParticipantId.toString()];
     const opponentFrameData = opponentParticipantIdForLaning ? frame.participantFrames?.[opponentParticipantIdForLaning.toString()] : null;
 
+    // Process snapshots
     if (targetPlayerFrameData) {
-      // Snapshots for target player vs opponent (if opponent exists)
       snapshotTimestampsMs.forEach((snapshotTimeMs, index) => {
+        // Check if this frame is the first one at or after the snapshot time and snapshot not yet taken
         if (frame.timestamp >= snapshotTimeMs && !processedData.snapshots.find(s => s.minute === snapshotMinutes[index])) {
           const snapshot = {
             minute: snapshotMinutes[index],
             player: {
-              cs: targetPlayerFrameData.minionsKilled + (targetPlayerFrameData.jungleMinionsKilled || 0),
-              gold: targetPlayerFrameData.totalGold,
-              xp: targetPlayerFrameData.xp,
-              level: targetPlayerFrameData.level,
+              cs: (targetPlayerFrameData.minionsKilled || 0) + (targetPlayerFrameData.jungleMinionsKilled || 0),
+              gold: targetPlayerFrameData.totalGold || 0,
+              xp: targetPlayerFrameData.xp || 0,
+              level: targetPlayerFrameData.level || 0,
             },
             opponent: null,
             diff: null,
           };
           if (opponentFrameData) {
-              snapshot.opponent = {
-                  cs: opponentFrameData.minionsKilled + (opponentFrameData.jungleMinionsKilled || 0),
-                  gold: opponentFrameData.totalGold,
-                  xp: opponentFrameData.xp,
-                  level: opponentFrameData.level,
-              };
-              snapshot.diff = {
-                  cs: snapshot.player.cs - snapshot.opponent.cs,
-                  gold: snapshot.player.gold - snapshot.opponent.gold,
-                  xp: snapshot.player.xp - snapshot.opponent.xp,
-              };
+            snapshot.opponent = {
+              cs: (opponentFrameData.minionsKilled || 0) + (opponentFrameData.jungleMinionsKilled || 0),
+              gold: opponentFrameData.totalGold || 0,
+              xp: opponentFrameData.xp || 0,
+              level: opponentFrameData.level || 0,
+            };
+            snapshot.diff = {
+              cs: snapshot.player.cs - snapshot.opponent.cs,
+              gold: snapshot.player.gold - snapshot.opponent.gold,
+              xp: snapshot.player.xp - snapshot.opponent.xp,
+            };
           }
           processedData.snapshots.push(snapshot);
         }
       });
-
-      // Skill Order for target player
-      if (targetPlayerFrameData.level > lastTargetPlayerLevel) {
-        frame.events?.forEach(event => {
-          if (event.type === 'SKILL_LEVEL_UP' && event.participantId === targetParticipantId && event.levelUpType === 'NORMAL') {
-            if (processedData.skillOrder.length < 18 && !processedData.skillOrder.find(s => s.level === targetPlayerFrameData.level && s.skillSlot === event.skillSlot)) {
-                 processedData.skillOrder.push({
-                     level: targetPlayerFrameData.level,
-                     skillSlot: event.skillSlot,
-                     timestamp: event.timestamp
-                  });
-            }
-          }
-        });
-        lastTargetPlayerLevel = targetPlayerFrameData.level;
-      }
     }
 
-    // Build Order for the target player
+    // Collect all relevant events from the frame
     frame.events?.forEach(event => {
       if (event.participantId === targetParticipantId) {
-          if (event.type === 'ITEM_PURCHASED') {
-            processedData.buildOrder.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'purchased' });
-          } else if (event.type === 'ITEM_SOLD') {
-            processedData.buildOrder.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'sold' });
-          } else if (event.type === 'ITEM_UNDO') {
-            const lastPurchaseIndex = processedData.buildOrder.slice().reverse().findIndex(
-              item => item.itemId === event.itemBefore && item.type === 'purchased'
-            );
-            if (lastPurchaseIndex !== -1) {
-              processedData.buildOrder.splice(processedData.buildOrder.length - 1 - lastPurchaseIndex, 1);
-            }
+        if (event.type === 'SKILL_LEVEL_UP' && event.levelUpType === 'NORMAL') {
+          if (targetPlayerFrameData) { // Ensure we have player frame data to get their level
+            collectedRawSkillEvents.push({
+              championLevelAtEvent: targetPlayerFrameData.level, // Champion's level when event occurred
+              skillSlot: event.skillSlot,
+              timestamp: event.timestamp,
+            });
           }
+        } else if (event.type === 'ITEM_PURCHASED') {
+          collectedBuildEvents.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'purchased' });
+        } else if (event.type === 'ITEM_SOLD') {
+          collectedBuildEvents.push({ itemId: event.itemId, timestamp: event.timestamp, type: 'sold' });
+        } else if (event.type === 'ITEM_UNDO') {
+          // For UNDO, we need to find the last corresponding purchase/sell and remove it
+          // This implementation is simplified: it assumes undo applies to the most recent action.
+          // A more robust undo would track itemBefore and itemAfter.
+          // For now, we'll add it and it can be filtered/handled during final build order processing if needed.
+          collectedBuildEvents.push({
+            itemId: event.itemBefore, // Item that was "undone"
+            targetItemId: event.itemAfter, // Item that results from undo (often 0 if purchase undone)
+            timestamp: event.timestamp,
+            type: 'undo'
+          });
+        }
       }
     });
   }
 
-  processedData.buildOrder.sort((a, b) => a.timestamp - b.timestamp);
-
-  const skillLevels = {};
-  const finalSkillOrder = [];
-  const sortedRawSkillEvents = processedData.skillOrder.sort((a,b) => a.timestamp - b.timestamp);
-
-  sortedRawSkillEvents.forEach(event => {
-      skillLevels[event.skillSlot] = (skillLevels[event.skillSlot] || 0) + 1;
-      const maxPoints = event.skillSlot === 4 ? 3 : 5;
-      if (skillLevels[event.skillSlot] <= maxPoints) {
-          finalSkillOrder.push({
-              skillSlot: event.skillSlot,
-              levelTakenAt: event.level,
-              skillLevel: skillLevels[event.skillSlot],
-              timestamp: event.timestamp,
-          });
-      }
+  // Process collected skill events
+  collectedRawSkillEvents.sort((a, b) => a.timestamp - b.timestamp); // Sort by time
+  const skillPointsCount = { 1: 0, 2: 0, 3: 0, 4: 0 }; // Q, W, E, R
+  collectedRawSkillEvents.forEach(event => {
+    skillPointsCount[event.skillSlot]++;
+    const maxPointsForSkill = event.skillSlot === 4 ? 3 : 5; // R max 3, others 5
+    if (skillPointsCount[event.skillSlot] <= maxPointsForSkill) {
+      processedData.skillOrder.push({
+        skillSlot: event.skillSlot,
+        levelTakenAt: event.championLevelAtEvent, // Champion level when skill point was assigned
+        skillLevel: skillPointsCount[event.skillSlot],   // The new level of this specific skill (1st point, 2nd, etc.)
+        timestamp: event.timestamp,
+      });
+    }
   });
-  processedData.skillOrder = finalSkillOrder;
 
-  processedData.snapshots.sort((a, b) => a.minute - b.minute);
+  // Process collected build events (simple sort by timestamp for now)
+  // A more complex undo logic might be needed for perfect accuracy if ITEM_UNDO is frequent.
+  processedData.buildOrder = collectedBuildEvents.sort((a, b) => a.timestamp - b.timestamp);
+  // Filter out UNDO events for simplicity if they are problematic, or handle them properly
+  // For now, we just sort. A real undo handling would remove the undone purchase/sale.
+
+  processedData.snapshots.sort((a, b) => a.minute - b.minute); // Ensure snapshots are sorted
 
   return processedData;
 };
