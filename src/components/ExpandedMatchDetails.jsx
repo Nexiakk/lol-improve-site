@@ -488,7 +488,7 @@ const ExpandedMatchDetails = ({
                         )}
                     </div>
 
-                    <div className="bg-gray-700/40 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
+                    <div className="bg-purple-200/5 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
                         <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
                             <WardsIcon className="w-4 h-4 mr-1.5" />
                             Wards
@@ -500,7 +500,7 @@ const ExpandedMatchDetails = ({
                         </div>
                     </div>
 
-                    <div className="bg-gray-700/40 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
+                    <div className="bg-purple-200/5 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
                         <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
                             <GlobalStatsIcon className="w-4 h-4 mr-1.5" />
                             Global Stats
@@ -514,8 +514,8 @@ const ExpandedMatchDetails = ({
                     </div>
                 </div>
 
-                <div className="bg-gray-700/40 p-2 rounded-lg border border-gray-600/50">
-                    <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-base">SKILL ORDER</h4>
+                <div className="bg-purple-200/5 p-1.5 rounded-lg border border-gray-600/50">
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm">SKILL ORDER</h4>
                     <div className="space-y-1"> 
                         {[1, 2, 3, 4].map(skillSlotKey => { 
                             const championInfo = championData && championData[currentPlayerForDisplay.championName];
@@ -523,9 +523,9 @@ const ExpandedMatchDetails = ({
                             const skillKeyBadgeText = SKILL_PLACEHOLDER_TEXT[skillSlotKey];
 
                             return (
-                                <div key={`skill-row-${skillSlotKey}`} className="flex items-center space-x-1.5"> 
+                                <div key={`skill-row-${skillSlotKey}`} className="flex items-center space-x-2.5"> 
                                     <div 
-                                        className="relative w-7 h-7 flex-shrink-0 bg-gray-800 rounded border border-gray-600 p-px" 
+                                        className="relative w-6.5 h-6.5 flex-shrink-0 bg-gray-800 rounded border border-gray-600 p-px" 
                                         title={`Skill ${skillKeyBadgeText}`}
                                     >
                                         <SkillIconDisplay
@@ -541,7 +541,7 @@ const ExpandedMatchDetails = ({
                                             {skillKeyBadgeText}
                                         </span>
                                     </div>
-                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-px flex-grow"> 
+                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-3 flex-grow"> 
                                         {Array.from({ length: 18 }).map((_, levelIndex) => { 
                                             const championLevel = levelIndex + 1; 
                                             const skillEventForThisBox = timelineToDisplay?.skillOrder?.find(
@@ -556,7 +556,7 @@ const ExpandedMatchDetails = ({
                                             return (
                                                 <div
                                                     key={`skill-${skillSlotKey}-lvl-${championLevel}`}
-                                                    className={`h-7 text-[10px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`} 
+                                                    className={`h-6.5 text-[10px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`} 
                                                     title={skillEventForThisBox
                                                         ? `Level ${championLevel}: Leveled ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} (Tier ${skillEventForThisBox.skillLevel})`
                                                         : (currentTotalPointsInThisSkillSlot ? `${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} Tier ${currentTotalPointsInThisSkillSlot}` : `Champ Lvl ${championLevel}`)
@@ -578,7 +578,7 @@ const ExpandedMatchDetails = ({
                     )}
                 </div>
 
-                <div className="bg-gray-700/40 p-2 rounded-lg border border-gray-600/50 flex flex-col justify-center">
+                <div className="bg-purple-200/5 p-2 rounded-lg border border-gray-600/50 flex flex-col justify-center">
                     <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base">BUILD ORDER</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
                         <div className="flex flex-wrap items-start gap-x-0.5 gap-y-1"> 
@@ -596,7 +596,7 @@ const ExpandedMatchDetails = ({
                                                             <img
                                                                 src={itemSrc}
                                                                 alt={`Item ${itemEvent.itemId}`}
-                                                                className={`w-5 h-5 rounded border ${isSold ? 'border-red-600/70 opacity-50' : 'border-gray-600'}`} 
+                                                                className={`w-6 h-6 rounded border ${isSold ? 'border-red-600/70 opacity-50' : 'border-gray-600'}`} 
                                                                 title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
                                                                 onError={(e) => { e.target.style.display = 'none'; }}
                                                             />
@@ -607,7 +607,7 @@ const ExpandedMatchDetails = ({
                                                     ) : null;
                                                 })}
                                             </div>
-                                            <span className="text-[8px] text-gray-300 mt-px">{minute} min</span> 
+                                            <span className="text-[8px] text-gray-300 p-2">{minute} min</span> 
                                         </div>
                                         {groupIndex < arr.length - 1 && ( 
                                             <div className="flex items-center justify-center h-5 mx-0.5"> 
@@ -620,7 +620,7 @@ const ExpandedMatchDetails = ({
                     ) : <p className="text-gray-500 text-xs italic">Missing build order data.</p>}
                 </div>
 
-                <div className="bg-gray-700/40 p-2 rounded-lg border border-gray-600/50">
+                <div className="bg-purple-200/5 p-2 rounded-lg border border-gray-600/50">
                     <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base">Runes</h4>
                     {currentPlayerForDisplay.perks && currentPlayerForDisplay.perks.styles && currentPlayerForDisplay.perks.styles.length > 0 ? (
                         <div className="flex flex-col space-y-1"> 
@@ -644,17 +644,15 @@ const ExpandedMatchDetails = ({
         );
     };
 
-    const expandedBgClass = 'bg-black-800/50 '
+    const expandedBgClass = 'bg-black-800/50'
     
     let tabBaseBg = 'bg-gray-800/25'; 
-    let tabActiveBg = 'bg-black-800/45'; 
+    let tabActiveBg = 'bg-black-800/40'; 
 
     if (isTrackedPlayerWin === true) { 
         tabBaseBg = 'bg-blue-900/20'; 
-        tabActiveBg = 'bg-black-800/40'; 
     } else if (isTrackedPlayerWin === false) { 
         tabBaseBg = 'bg-red-900/20';
-        tabActiveBg = 'bg-red-900/40';
     }
 
 
