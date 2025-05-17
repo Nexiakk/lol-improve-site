@@ -11,7 +11,7 @@ import {
 import statModsAdaptiveForceIcon from '../assets/shards/StatModsAdaptiveForceIcon.webp';
 import statModsAttackSpeedIcon from '../assets/shards/StatModsAttackSpeedIcon.webp';
 import statModsCDRScalingIcon from '../assets/shards/StatModsCDRScalingIcon.webp';
-import statModsHealthScalingIcon from '../assets/shards/StatModsHealthScalingIcon.webp';
+import statModsHealthFlatIcon from '../assets/shards/StatModsHealthFlatIcon.webp';
 import statModsMovementSpeedIcon from '../assets/shards/StatModsMovementSpeedIcon.webp';
 import statModsTenacityIcon from '../assets/shards/StatModsTenacityIcon.webp';
 import statModsHealthPlusIcon from '../assets/shards/StatModsHealthPlusIcon.webp';
@@ -141,7 +141,7 @@ const LOCAL_STAT_SHARD_ICONS = {
     StatModsAdaptiveForceIcon: statModsAdaptiveForceIcon,
     StatModsAttackSpeedIcon: statModsAttackSpeedIcon,
     StatModsCDRScalingIcon: statModsCDRScalingIcon,
-    StatModsHealthScalingIcon: statModsHealthScalingIcon,
+    StatModsHealthFlatIcon: statModsHealthFlatIcon,
     StatModsMovementSpeedIcon: statModsMovementSpeedIcon, // Added
     StatModsTenacityIcon: statModsTenacityIcon,           // Added
     StatModsHealthPlusIcon: statModsHealthPlusIcon,       // Added
@@ -163,10 +163,9 @@ const STAT_SHARD_ROWS = [
         { id: 5011, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon' }    // Example ID, check actual
     ],
     [ 
-        { id: 5001, name: 'Base Health', iconName: 'StatModsHealthScalingIcon' }, 
-        // ID 5002 was Armor, now Tenacity.
+        { id: 5011, name: 'Base Health', iconName: 'StatModsHealthFlatIcon' }, 
         { id: 5009, name: 'Tenacity and Slow Resist', iconName: 'StatModsTenacityIcon' }, // Example ID
-        { id: 5011, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon'} // Re-using Health Scaling, ensure correct ID
+        { id: 5001, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon'} // Re-using Health Scaling, ensure correct ID
     ]
 ];
 // Note: The IDs (5002, 5003, 5010, 5011, 5009) in STAT_SHARD_ROWS for the flex and defense rows

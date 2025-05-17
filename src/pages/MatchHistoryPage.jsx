@@ -31,7 +31,7 @@ const RIOT_API_KEY = import.meta.env.VITE_RIOT_API_KEY;
 
 const MATCH_COUNT_PER_FETCH = 20;
 const MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE = 10;
-const API_CALL_DELAY_MS = 1250; 
+const API_CALL_DELAY_MS = 1250;
 const MATCHES_PER_PAGE = 10;
 const ANIMATION_DURATION_MS = 500;
 
@@ -71,7 +71,7 @@ function MatchHistoryPage() {
     return TPages > 0 ? TPages : 1; 
   }, [allMatchesFromDb]);
 
-  // Fetch static DDragon data
+  // Fetch static DDragon data (runes, champions, summoner spells)
   useEffect(() => {
     if (!RIOT_API_KEY) setError("Configuration Error: Riot API Key is missing.");
     fetch('https://ddragon.leagueoflegends.com/api/versions.json')
@@ -95,13 +95,13 @@ function MatchHistoryPage() {
             const flatRunes = {};
             if (rawRunesData && Array.isArray(rawRunesData)) {
               rawRunesData.forEach(style => {
-                flatRunes[style.id] = { icon: style.icon, name: style.name, key: style.key }; // For the tree/style itself
+                flatRunes[style.id] = { icon: style.icon, name: style.name, key: style.key }; 
                 style.slots.forEach(slot => slot.runes.forEach(rune => flatRunes[rune.id] = { icon: rune.icon, name: rune.name, key: rune.key, styleId: style.id }));
               });
               setRunesDataFromDDragon(rawRunesData); 
             }
             setRunesMap(flatRunes); 
-            // console.log("Runes Map Populated:", flatRunes); 
+            // console.log("Runes Map Populated in useEffect:", flatRunes); 
 
             if (champData && champData.data) setChampionData(champData.data);
           }).catch(err => {
@@ -115,7 +115,7 @@ function MatchHistoryPage() {
       });
   }, []);
 
-  // Fetch tracked accounts
+  // Fetch tracked accounts from Dexie
   const fetchTrackedAccounts = useCallback(async () => {
     setIsLoadingAccounts(true);
     try {
@@ -130,7 +130,7 @@ function MatchHistoryPage() {
   }, []);
   useEffect(() => { fetchTrackedAccounts(); }, [fetchTrackedAccounts]);
 
-  // Fetch all matches from Dexie
+  // Fetch all matches from Dexie for the tracked accounts
   const fetchAllMatchesFromDb = useCallback(async () => {
     if (trackedAccounts.length === 0 && !isLoadingAccounts) {
       setAllMatchesFromDb([]);
@@ -167,12 +167,14 @@ function MatchHistoryPage() {
     }
   }, [trackedAccounts, isLoadingAccounts]);
 
+  // Effect to fetch matches when trackedAccounts changes or after accounts are initially loaded
   useEffect(() => {
     if (!isLoadingAccounts) { 
         fetchAllMatchesFromDb();
     }
   }, [isLoadingAccounts, fetchAllMatchesFromDb]); 
 
+  // Effect to adjust currentPage when totalPages changes or allMatchesFromDb changes
   useEffect(() => {
     if (totalPages === 1 && currentPage !== 1) { 
         setCurrentPage(1);
@@ -182,7 +184,7 @@ function MatchHistoryPage() {
   }, [totalPages, currentPage, allMatchesFromDb.length]);
 
 
-  // Group matches for current page
+  // Group matches by date for the current page
   useEffect(() => {
     if (allMatchesFromDb.length === 0) {
       setGroupedMatches({});
@@ -208,7 +210,7 @@ function MatchHistoryPage() {
     setGroupedMatches(groups);
   }, [currentPage, allMatchesFromDb]);
 
-  // Scroll to top on page change
+  // Scroll to top of match list on page change
   useEffect(() => {
     const pageActuallyChanged = prevPageRef.current !== currentPage;
     prevPageRef.current = currentPage;
@@ -221,7 +223,7 @@ function MatchHistoryPage() {
     }
   }, [currentPage, groupedMatches]);
 
-  // Effect to remove 'isNew' flag after animation
+  // Effect to remove 'isNew' flag after animation for newly fetched matches
   useEffect(() => {
     const matchesWithNewFlag = allMatchesFromDb.filter(m => m.isNew);
     if (matchesWithNewFlag.length > 0) {
@@ -234,6 +236,7 @@ function MatchHistoryPage() {
     }
   }, [allMatchesFromDb]);
 
+  // Function to fetch/update matches for all tracked accounts
   const handleUpdateAllMatches = async () => {
     if (!RIOT_API_KEY) { setError("Riot API Key is missing."); return; }
     if (trackedAccounts.length === 0) { setError("No tracked accounts to update."); return; }
@@ -335,7 +338,7 @@ function MatchHistoryPage() {
               item0: playerParticipant.item0, item1: playerParticipant.item1, item2: playerParticipant.item2,
               item3: playerParticipant.item3, item4: playerParticipant.item4, item5: playerParticipant.item5, item6: playerParticipant.item6,
               summoner1Id: playerParticipant.summoner1Id, summoner2Id: playerParticipant.summoner2Id,
-              perks: playerParticipant.perks, // Storing the full perks object
+              perks: playerParticipant.perks, 
               opponentChampionName: opponentParticipant ? opponentParticipant.championName : null,
               notes: existingMatch?.notes || "", goals: existingMatch?.goals || "", rating: existingMatch?.rating || null,
               allParticipants: matchDetail.info.participants.map(p => ({ puuid: p.puuid, summonerName: p.summonerName, riotIdGameName: p.riotIdGameName, riotIdTagline: p.riotIdTagline, championName: p.championName, champLevel: p.champLevel, teamId: p.teamId, teamPosition: p.teamPosition, kills: p.kills, deaths: p.deaths, assists: p.assists, totalMinionsKilled: p.totalMinionsKilled, neutralMinionsKilled: p.neutralMinionsKilled, goldEarned: p.goldEarned, totalDamageDealtToChampions: p.totalDamageDealtToChampions, visionScore: p.visionScore, wardsPlaced: p.wardsPlaced, wardsKilled: p.wardsKilled, visionWardsBoughtInGame: p.visionWardsBoughtInGame, item0: p.item0, item1: p.item1, item2: p.item2, item3: p.item3, item4: p.item4, item5: p.item5, item6: p.item6, summoner1Id: p.summoner1Id, summoner2Id: p.summoner2Id, perks: p.perks })),
@@ -403,6 +406,7 @@ function MatchHistoryPage() {
     setExpandedMatchId(null);
   };
 
+  // Helper functions to get DDragon image URLs
   const getChampionInfo = (championKeyApi) => {
     if (!championData || !championKeyApi) return { displayName: championKeyApi, imageName: championKeyApi + ".png", ddragonId: championKeyApi };
     let ddragonKeyToLookup = championKeyApi === "Fiddlesticks" ? "FiddleSticks" : championKeyApi;
@@ -415,15 +419,13 @@ function MatchHistoryPage() {
   const getSummonerSpellImage = (spellId) => !spellId || !ddragonVersion || !summonerSpellsMap[spellId] ? null : `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/spell/${summonerSpellsMap[spellId].image.full}`;
   
   const getRuneImage = (runeId) => {
-    // Enhanced logging for debugging rune image issues
-    if (!runeId) {
-        console.log("getRuneImage called with no runeId for a match summary.");
+    if (!runeId || !ddragonVersion || Object.keys(runesMap).length === 0) {
+        console.log("getRuneImage: Called with no runeId, or ddragonVersion/runesMap not ready.", { runeId, ddragonVersionReady: !!ddragonVersion, runesMapReady: Object.keys(runesMap).length > 0 });
         return null;
     }
     const runeInfo = runesMap[runeId];
     if (!runeInfo || !runeInfo.icon) {
         console.warn(`Rune data or icon missing in runesMap for ID: ${runeId}. RuneInfo from map:`, runeInfo);
-        // console.log("Current runesMap keys:", Object.keys(runesMap).slice(0, 20)); // Log some keys if map is huge
         return null;
     }
     return `https://ddragon.leagueoflegends.com/cdn/img/${runeInfo.icon}`;
@@ -455,7 +457,7 @@ function MatchHistoryPage() {
             <header className="mb-6 mt-4 px-4 sm:px-6 md:px-8 flex justify-end items-center">
                 <button
                 onClick={handleUpdateAllMatches}
-                disabled={isUpdatingAllMatches || isLoadingAccounts || trackedAccounts.length === 0 || !ddragonVersion || !championData}
+                disabled={isUpdatingAllMatches || isLoadingAccounts || trackedAccounts.length === 0 || !ddragonVersion || !championData || Object.keys(runesMap).length === 0}
                 className="bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed transition-opacity min-w-[150px]"
                 >
                 {isUpdatingAllMatches ? <Loader2 size={20} className="animate-spin mr-2" /> : <RefreshCw size={18} className="mr-2" />}
@@ -499,7 +501,6 @@ function MatchHistoryPage() {
                     </h2>
                     <div className="space-y-1">
                         {matchesOnDate.map(match => {
-                        // console.log(`Rendering match ${match.matchId}, perks:`, JSON.parse(JSON.stringify(match.perks || {}))); // Deep copy for logging
                         const participantData = match; 
                         const isWin = typeof match.win === 'boolean' ? match.win : null;
                         const kdaStringSpans = getKDAStringSpans(participantData);
@@ -521,35 +522,24 @@ function MatchHistoryPage() {
                         let primaryRuneImg = null;
                         let subStyleImgPath = null;
 
-                        if (match.perks && match.perks.styles && Array.isArray(match.perks.styles)) {
+                        // Guard against missing perk data or runesMap not being ready
+                        if (match.perks && match.perks.styles && Array.isArray(match.perks.styles) && Object.keys(runesMap).length > 0 && ddragonVersion) {
                             const primaryStyleInfo = match.perks.styles.find(s => s.description === 'primaryStyle');
                             const subStyleInfo = match.perks.styles.find(s => s.description === 'subStyle');
 
-                            // console.log(`Match ${match.matchId}: primaryStyleInfo:`, primaryStyleInfo, `subStyleInfo:`, subStyleInfo);
-
                             if (primaryStyleInfo && primaryStyleInfo.selections && Array.isArray(primaryStyleInfo.selections) && primaryStyleInfo.selections.length > 0) {
                                 primaryPerkId = primaryStyleInfo.selections[0].perk;
-                                // console.log(`Match ${match.matchId}: Derived primaryPerkId: ${primaryPerkId}`);
-                                if (primaryPerkId) { // Check if primaryPerkId is not null/undefined
+                                if (primaryPerkId) {
                                     primaryRuneImg = getRuneImage(primaryPerkId);
-                                    // if (!primaryRuneImg) console.warn(`Match ${match.matchId}: Primary rune image is null for ID ${primaryPerkId}. Check runesMap.`);
                                 }
-                            } else {
-                                // console.warn(`Match ${match.matchId}: Could not derive primaryPerkId. primaryStyleInfo:`, primaryStyleInfo);
                             }
 
                             if (subStyleInfo && subStyleInfo.style) {
                                 subStyleId = subStyleInfo.style;
-                                // console.log(`Match ${match.matchId}: Derived subStyleId: ${subStyleId}`);
-                                if (subStyleId) { // Check if subStyleId is not null/undefined
+                                if (subStyleId) {
                                    subStyleImgPath = getRuneImage(subStyleId);
-                                   // if (!subStyleImgPath) console.warn(`Match ${match.matchId}: Sub-style image is null for ID ${subStyleId}. Check runesMap.`);
                                 }
-                            } else {
-                                // console.warn(`Match ${match.matchId}: Could not derive subStyleId. subStyleInfo:`, subStyleInfo);
                             }
-                        } else {
-                        //    console.warn(`Match ${match.matchId} is missing perks.styles data or it's not an array. Perks data:`, match.perks);
                         }
 
 
@@ -596,26 +586,30 @@ function MatchHistoryPage() {
                                             {/* Spells & Runes Column */}
                                             <div className="flex space-x-1">
                                                 <div className="flex flex-col space-y-0.5">
-                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner1Img ? <img src={summoner1Img} alt="S1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
-                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner2Img ? <img src={summoner2Img} alt="S2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
+                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner1Img ? <img src={summoner1Img} alt="Summoner Spell 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
+                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner2Img ? <img src={summoner2Img} alt="Summoner Spell 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
                                                 </div>
-                                                <div className="flex flex-col space-y-0.5">
-                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px"> 
-                                                        {primaryRuneImg ? <img src={primaryRuneImg} alt="Primary Rune" className="w-5 h-5 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>} 
+                                                <div className="flex flex-col space-y-0.5"> {/* Rune images column */}
+                                                    <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50 p-0.5">
+                                                        {primaryRuneImg ? (
+                                                            <img src={primaryRuneImg} alt={runesMap[primaryPerkId]?.name || "Keystone"} className="w-full h-full object-contain" onError={(e) => { e.target.style.display = 'none'; const parent = e.target.parentNode; if(parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>'; }} />
+                                                        ) : <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>}
                                                     </div>
-                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50 p-px"> 
-                                                        {subStyleImgPath ? <img src={subStyleImgPath} alt="Secondary Style" className="w-4 h-4 rounded-sm" /> : <div className="w-4 h-4 rounded-sm bg-gray-700"></div>} 
+                                                    <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50 p-0.5">
+                                                        {subStyleImgPath ? (
+                                                            <img src={subStyleImgPath} alt={runesMap[subStyleId]?.name || "Secondary Tree"} className="w-full h-full object-contain" onError={(e) => { e.target.style.display = 'none'; const parent = e.target.parentNode; if(parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>'; }} />
+                                                        ) : <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>}
                                                     </div>
                                                 </div>
                                             </div>
                                             {/* Items Column */}
                                             <div className="flex flex-col space-y-0.5">
                                                 <div className="flex space-x-0.5">
-                                                    {itemsRow1.map((itemSrc, idx) => ( <div key={`item-r1-${idx}-${match.matchId}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {itemSrc ? <img src={itemSrc} alt={`I${idx+1}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div> ))}
-                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {trinketImg ? <img src={trinketImg} alt="T" className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div> } </div>
+                                                    {itemsRow1.map((itemSrc, idx) => ( <div key={`item-r1-${idx}-${match.matchId}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {itemSrc ? <img src={itemSrc} alt={`Item ${idx+1}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div> ))}
+                                                    <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {trinketImg ? <img src={trinketImg} alt="Trinket" className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div> } </div>
                                                 </div>
                                                 <div className="flex space-x-0.5">
-                                                    {itemsRow2.map((itemSrc, idx) => ( <div key={`item-r2-${idx}-${match.matchId}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {itemSrc ? <img src={itemSrc} alt={`I${idx+4}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div> ))}
+                                                    {itemsRow2.map((itemSrc, idx) => ( <div key={`item-r2-${idx}-${match.matchId}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {itemSrc ? <img src={itemSrc} alt={`Item ${idx+4}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div> ))}
                                                     <div className="w-6 h-6"></div> {/* Placeholder for alignment */}
                                                 </div>
                                             </div>
@@ -649,7 +643,7 @@ function MatchHistoryPage() {
                                         getChampionImage={getChampionImage}
                                         getSummonerSpellImage={getSummonerSpellImage}
                                         getItemImage={getItemImage}
-                                        getRuneImage={getRuneImage}
+                                        getRuneImage={getRuneImage} // Pass the corrected function
                                         getChampionDisplayName={getChampionDisplayName}
                                         isTrackedPlayerWin={isWin}
                                         roleIconMap={ROLE_ICON_MAP}
@@ -690,3 +684,4 @@ function MatchHistoryPage() {
 }
 
 export default MatchHistoryPage;
+
