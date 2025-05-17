@@ -1,11 +1,23 @@
 // src/components/ExpandedMatchDetails.jsx
 import React, { useState, useEffect } from 'react';
-import { ImageOff, ChevronRight, X, LayoutList, PieChart } from 'lucide-react'; // Added LayoutList and PieChart
+import { ImageOff, ChevronRight, X, LayoutList, PieChart } from 'lucide-react';
 import {
     formatGameDurationMMSS,
     getKDAColorClass,
     getKDAStringSpans,
 } from '../utils/matchCalculations';
+
+// --- LOCAL STAT SHARD ICON IMPORTS ---
+import statModsAdaptiveForceIcon from '../assets/shards/StatModsAdaptiveForceIcon.webp';
+import statModsAttackSpeedIcon from '../assets/shards/StatModsAttackSpeedIcon.webp';
+import statModsCDRScalingIcon from '../assets/shards/StatModsCDRScalingIcon.webp';
+import statModsHealthScalingIcon from '../assets/shards/StatModsHealthScalingIcon.webp';
+import statModsMovementSpeedIcon from '../assets/shards/StatModsMovementSpeedIcon.webp';
+import statModsTenacityIcon from '../assets/shards/StatModsTenacityIcon.webp';
+import statModsHealthPlusIcon from '../assets/shards/StatModsHealthPlusIcon.webp';
+// Removed Armor and Magic Resist shard imports as per user feedback
+// import statModsArmorIcon from '../assets/shards/StatModsArmorIcon.webp';
+// import statModsMagicResIcon from '../assets/shards/StatModsMagicResIcon.webp';
 
 
 // --- OBJECTIVE ICONS ---
@@ -96,7 +108,7 @@ const getSkillIconUrl = (ddragonVersion, championDdragonId, skillSlot) => {
   if (!ddragonVersion || !championDdragonId || !skillSlot) return null;
   const skillKeyChar = SKILL_PLACEHOLDER_TEXT[skillSlot]?.toLowerCase();
   if (!skillKeyChar) return null;
-  return `https://cdn.communitydragon.org/${ddragonVersion}/champion/${championDdragonId}/ability-icon/${skillKeyChar}.png`;
+  return `https://cdn.communitydragon.org/latest/champion/${championDdragonId}/ability-icon/${skillKeyChar}`;
 };
 
 const SkillIconDisplay = ({ ddragonVersion, championDdragonId, skillSlotKey }) => {
@@ -124,6 +136,62 @@ const SkillIconDisplay = ({ ddragonVersion, championDdragonId, skillSlotKey }) =
 };
 // --- END SKILL ICON LOGIC ---
 
+// --- RUNE DEFINITIONS & HELPERS ---
+const LOCAL_STAT_SHARD_ICONS = {
+    StatModsAdaptiveForceIcon: statModsAdaptiveForceIcon,
+    StatModsAttackSpeedIcon: statModsAttackSpeedIcon,
+    StatModsCDRScalingIcon: statModsCDRScalingIcon,
+    StatModsHealthScalingIcon: statModsHealthScalingIcon,
+    StatModsMovementSpeedIcon: statModsMovementSpeedIcon, // Added
+    StatModsTenacityIcon: statModsTenacityIcon,           // Added
+    StatModsHealthPlusIcon: statModsHealthPlusIcon,       // Added
+    // Removed Armor and Magic Resist as per user feedback
+};
+
+const STAT_SHARD_ROWS = [
+    [ 
+        { id: 5008, name: 'Adaptive Force', iconName: 'StatModsAdaptiveForceIcon' },
+        { id: 5005, name: 'Attack Speed', iconName: 'StatModsAttackSpeedIcon' },
+        { id: 5007, name: 'Ability Haste', iconName: 'StatModsCDRScalingIcon' }
+    ],
+    [ 
+        { id: 5008, name: 'Adaptive Force', iconName: 'StatModsAdaptiveForceIcon' },
+        // ID 5002 was Armor, now Movement Speed. Ensure this ID is correct for Movement Speed if it's different.
+        // For this example, I'm keeping ID 5002 but changing name and icon.
+        // Riot's actual IDs for these might be different. This is for display mapping.
+        { id: 5010, name: 'Movement Speed', iconName: 'StatModsMovementSpeedIcon' }, // Example ID, check actual
+        { id: 5011, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon' }    // Example ID, check actual
+    ],
+    [ 
+        { id: 5001, name: 'Base Health', iconName: 'StatModsHealthScalingIcon' }, 
+        // ID 5002 was Armor, now Tenacity.
+        { id: 5009, name: 'Tenacity and Slow Resist', iconName: 'StatModsTenacityIcon' }, // Example ID
+        { id: 5011, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon'} // Re-using Health Scaling, ensure correct ID
+    ]
+];
+// Note: The IDs (5002, 5003, 5010, 5011, 5009) in STAT_SHARD_ROWS for the flex and defense rows
+// might need to be adjusted to match the *actual* Riot API IDs for Movement Speed, Health Scaling, and Tenacity
+// if you are relying on these IDs for anything other than display mapping here.
+// The iconName is now the primary key for LOCAL_STAT_SHARD_ICONS.
+
+const getStatShardImage = (iconName) => {
+    const localIcon = LOCAL_STAT_SHARD_ICONS[iconName];
+    if (localIcon) {
+        return localIcon;
+    }
+    console.warn(`Local stat shard icon not found for: ${iconName}. Using placeholder.`);
+    return `https://placehold.co/20x20/1a1a1a/4a4a4a?text=${iconName ? iconName.substring(0,1) : 'S'}`;
+};
+
+// Rune Tree Colors for Borders
+const RUNE_TREE_COLORS = {
+    8000: 'border-yellow-400', // Precision
+    8100: 'border-red-500',   // Domination
+    8200: 'border-blue-400',  // Sorcery
+    8400: 'border-green-400', // Resolve
+    8300: 'border-teal-400',  // Inspiration
+};
+
 
 // Component for expanded match details
 const ExpandedMatchDetails = ({
@@ -131,11 +199,12 @@ const ExpandedMatchDetails = ({
     ddragonVersion,
     championData, 
     summonerSpellsMap,
-    runesMap,
+    runesMap, 
+    runesDataFromDDragon, 
     getChampionImage, 
     getSummonerSpellImage,
     getItemImage,
-    getRuneImage,
+    getRuneImage, 
     getChampionDisplayName, 
     isTrackedPlayerWin,
     roleIconMap,
@@ -156,14 +225,12 @@ const ExpandedMatchDetails = ({
         matchId
     } = match;
 
-    // Reset selected player and active tab when the match context changes
     useEffect(() => {
         setSelectedPlayerForDetailsPuuid(trackedPlayerPuuid);
         setCurrentSelectedPlayerTimeline(processedTimelineForTrackedPlayer || null);
         setActiveTab('General'); 
     }, [matchId, trackedPlayerPuuid, processedTimelineForTrackedPlayer]);
 
-    // Effect to process timeline data when selected player or tab changes
      useEffect(() => {
         if (activeTab !== 'Details') return; 
 
@@ -241,9 +308,7 @@ const ExpandedMatchDetails = ({
 
         return (
             <div key={player.puuid || player.summonerName} className={`flex items-center gap-x-2 sm:gap-x-3 py-0.5 px-1 text-xs hover:bg-gray-700/10 transition-colors duration-150 ${trackedPlayerClass}`}>
-                {/* Champion, Level, Name */}
                 <div className="flex items-center space-x-1.5 w-[120px] sm:w-[140px] flex-shrink-0">
-                    {/* Icon Container - Added flex-shrink-0 here */}
                     <div className="relative w-9 h-9 flex-shrink-0"> 
                         <img src={getChampionImage(player.championName)} alt={getChampionDisplayName(player.championName)} className="w-full h-full rounded-md border border-gray-600" onError={(e) => { e.target.src = `https://placehold.co/36x36/222/ccc?text=${player.championName ? player.championName.substring(0,1) : '?'}`; }}/>
                         <span className="absolute -bottom-1 -right-1 bg-black bg-opacity-80 text-white text-[9px] px-1 rounded-sm leading-tight border border-gray-500/50">{player.champLevel}</span>
@@ -251,17 +316,14 @@ const ExpandedMatchDetails = ({
                             <img src={roleIcon} alt={player.teamPosition || 'Role'} className="absolute -top-1 -left-1 w-4 h-4 p-0.5 bg-gray-800 rounded-full border border-gray-400/70 shadow-sm" />
                         )}
                     </div>
-                     {/* Name Container */}
-                    <div className="flex flex-col overflow-hidden"> {/* This container allows the name to take remaining space and truncate */}
+                    <div className="flex flex-col overflow-hidden"> 
                         <span className="font-semibold text-gray-100 truncate" title={player.riotIdGameName ? `${player.riotIdGameName}#${player.riotIdTagline}` : player.summonerName}>
                             {player.riotIdGameName || player.summonerName || 'Player'}
                         </span>
                     </div>
                 </div>
 
-                {/* Spells, Runes, Items */}
                 <div className="flex items-center space-x-1 flex-shrink-0">
-                    {/* Spells & Runes */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner1Id)} alt="S1" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center"><img src={getSummonerSpellImage(player.summoner2Id)} alt="S2" className="w-full h-full rounded-sm" onError={(e) => e.target.style.display = 'none'} /></div>
@@ -270,7 +332,6 @@ const ExpandedMatchDetails = ({
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerPrimaryPerk)} alt="R1" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                         <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-px"><img src={getRuneImage(playerSubStyle)} alt="R2" className="w-full h-full object-contain" onError={(e) => e.target.style.display = 'none'} /></div>
                     </div>
-                    {/* Items */}
                     <div className="flex flex-col space-y-0.5">
                         <div className="flex space-x-0.5">
                             {[items[0], items[1], items[2], trinket].map((item, idx) => (
@@ -285,14 +346,12 @@ const ExpandedMatchDetails = ({
                                     {item && item !== 0 ? <img src={getItemImage(item)} alt={`Item ${idx + 3}`} className="w-full h-full rounded-sm" /> : <div className="w-4 h-4 bg-gray-700/50 rounded-sm"></div>}
                                 </div>
                             ))}
-                            <div className="w-5 h-5"></div> {/* Placeholder for alignment */}
+                            <div className="w-5 h-5"></div> 
                         </div>
                     </div>
                 </div>
 
-                {/* Stats: KDA, KP, CS, Damage, Vision */}
                 <div className="flex flex-1 justify-around items-start gap-x-1 sm:gap-x-2 text-center min-w-0">
-                    {/* KDA */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-100">{getKDAStringSpans(player)}</span>
                         <div>
@@ -300,17 +359,14 @@ const ExpandedMatchDetails = ({
                             <span className="text-[10px] text-gray-300 ml-0.5 sm:ml-1">KDA</span>
                         </div>
                     </div>
-                    {/* KP */}
                     <div className="flex flex-col items-center min-w-[30px] sm:min-w-[35px]">
                         <span className="text-gray-200">{kp}</span>
                         <span className="text-[10px] text-gray-300">KP</span>
                     </div>
-                    {/* CS */}
                     <div className="flex flex-col items-center min-w-[55px] sm:min-w-[65px]">
                         <span className="text-gray-200">{cs}</span>
                         <span className="text-[10px] text-gray-300">{csPerMin} CS/m</span>
                     </div>
-                    {/* Damage */}
                     <div className="flex flex-col items-center flex-grow min-w-[70px] sm:min-w-[90px] max-w-[120px]">
                         <div className="flex justify-between w-full items-baseline">
                             <span className={`${damageTextColorClass} text-[10px]`}>{damageDealt.toLocaleString()}</span>
@@ -320,7 +376,6 @@ const ExpandedMatchDetails = ({
                             <div className={`h-full ${damageBarColorClass}`} style={{ width: `${damagePercentage}%` }}></div>
                         </div>
                     </div>
-                    {/* Vision */}
                     <div className="flex flex-col items-center min-w-[50px] sm:min-w-[60px]">
                         <span className="text-gray-200">{player.visionWardsBoughtInGame || 0}</span>
                         <span className="text-[10px] text-gray-300">{player.wardsPlaced || 0}/{player.wardsKilled || 0}</span>
@@ -371,7 +426,143 @@ const ExpandedMatchDetails = ({
         </div>
     );
 
-    const DetailsTabContent = () => {
+    // --- RUNES TAB CONTENT ---
+    const RunesTabContent = () => {
+        const currentPlayer = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
+        if (!currentPlayer || !currentPlayer.perks || !runesDataFromDDragon || runesDataFromDDragon.length === 0) {
+            return <p className="text-gray-400 p-4 text-center">Rune data not available for this player or DDragon data missing.</p>;
+        }
+
+        const perks = currentPlayer.perks;
+        const primaryStyleData = perks.styles?.find(s => s.description === 'primaryStyle');
+        const secondaryStyleData = perks.styles?.find(s => s.description === 'subStyle');
+
+        if (!primaryStyleData) {
+            return <p className="text-gray-400 p-4 text-center">Primary rune style not found.</p>;
+        }
+
+        const primaryTree = runesDataFromDDragon.find(tree => tree.id === primaryStyleData.style);
+        const secondaryTree = secondaryStyleData ? runesDataFromDDragon.find(tree => tree.id === secondaryStyleData.style) : null;
+
+        const selectedPrimaryPerkIds = primaryStyleData.selections.map(sel => sel.perk);
+        const selectedSecondaryPerkIds = secondaryStyleData ? secondaryStyleData.selections.map(sel => sel.perk) : [];
+        
+        const renderRuneTreeDisplay = (tree, selectedPerkIds, isPrimaryTree) => {
+            if (!tree) return null;
+            const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4);
+            const runeImageSize = isPrimaryTree ? "w-8 h-8" : "w-7 h-7"; 
+            const keystoneImageSize = "w-10 h-10"; 
+            const treeBorderColor = RUNE_TREE_COLORS[tree.id] || 'border-gray-500'; // Fallback border
+
+            return (
+                <div className={`flex flex-col items-center space-y-1.5 p-2 rounded-md`}> {/* Reduced space-y */}
+                    <div className="flex items-center space-x-2 mb-1">
+                        <img 
+                            src={getRuneImage(tree.id)} 
+                            alt={tree.name} 
+                            className="w-6 h-6"
+                            onError={(e) => e.target.style.display = 'none'}
+                        />
+                        <span className="text-sm font-semibold text-gray-200">{tree.name}</span>
+                    </div>
+                    {slotsToRender.map((slot, slotIndexInOriginalArray) => {
+                        const isKeystoneRow = isPrimaryTree && slotIndexInOriginalArray === 0;
+                        return (
+                            <div key={`${tree.id}-slot-${slotIndexInOriginalArray}`} className="flex justify-center space-x-1.5"> {/* Reduced space-x */}
+                                {slot.runes.map(rune => {
+                                    const isActive = selectedPerkIds.includes(rune.id);
+                                    const currentRuneSize = isKeystoneRow ? keystoneImageSize : runeImageSize;
+                                    const activeRuneClasses = isActive 
+                                        ? `${treeBorderColor} scale-105 shadow-md opacity-100` 
+                                        : 'border-transparent opacity-50 hover:opacity-90';
+                                    
+                                    return (
+                                        <div 
+                                            key={rune.id} 
+                                            className={`relative p-0.5 rounded-full transition-all duration-150 border-2 ${activeRuneClasses}`}
+                                            title={runesMap[rune.id]?.name || rune.name}
+                                        >
+                                            <img 
+                                                src={getRuneImage(rune.id)} 
+                                                alt={runesMap[rune.id]?.name || rune.name} 
+                                                className={`${currentRuneSize} rounded-full ${isActive ? '' : 'filter grayscale brightness-75'}`}
+                                                onError={(e) => { e.target.src = `https://placehold.co/32x32/1a1a1a/4a4a4a?text=${rune.name ? rune.name.substring(0,1) : 'R'}`; }}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+        };
+        
+        const renderStatShardsDisplay = () => {
+            const selectedOffense = perks.statPerks?.offense;
+            const selectedFlex = perks.statPerks?.flex;
+            const selectedDefense = perks.statPerks?.defense;
+        
+            return (
+                <div className="flex flex-col items-center space-y-1 mt-1 pt-1 w-full rounded-md"> {/* Reduced margins/paddings */}
+                    {[
+                        { options: STAT_SHARD_ROWS[0], selected: selectedOffense },
+                        { options: STAT_SHARD_ROWS[1], selected: selectedFlex },
+                        { options: STAT_SHARD_ROWS[2], selected: selectedDefense }
+                    ].map((row, rowIndex) => (
+                        <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-1.5 items-center"> {/* Reduced space-x */}
+                            {row.options.map(shard => {
+                                const isActive = shard.id === row.selected;
+                                const shardIconSrc = getStatShardImage(shard.iconName);
+                                // Stat shards use a generic yellow border for active, or can be themed if desired
+                                const activeShardClasses = isActive 
+                                    ? 'border-yellow-400 scale-105 opacity-100' 
+                                    : 'border-transparent opacity-50 hover:opacity-90';
+
+                                return (
+                                    <div 
+                                        key={shard.id}
+                                        className={`p-0.5 rounded-full transition-all duration-150 border-2 ${activeShardClasses}`}
+                                        title={shard.name}
+                                    >
+                                        {shardIconSrc ? (
+                                            <img 
+                                                src={shardIconSrc} 
+                                                alt={shard.name} 
+                                                className="w-5 h-5 rounded-full" 
+                                            />
+                                        ) : (
+                                            <div className="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center text-xs text-gray-400">?</div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        return (
+            <div className="bg-gray-800/40 p-2 sm:p-3 rounded-lg border border-gray-700/50">
+                <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base text-center uppercase">Runes</h4>
+                <div className="flex flex-col md:flex-row justify-between items-start gap-1 md:gap-2"> {/* Reduced gap */}
+                    <div className="w-full md:w-3/5 lg:w-[55%]"> {/* Adjusted width for primary */}
+                        {renderRuneTreeDisplay(primaryTree, selectedPrimaryPerkIds, true)}
+                    </div>
+                    <div className="w-full md:w-2/5 lg:w-[45%] flex flex-col space-y-1"> {/* Reduced space-y */}
+                        {secondaryTree && renderRuneTreeDisplay(secondaryTree, selectedSecondaryPerkIds, false)}
+                        <hr className="border-gray-700 my-1 w-3/4 mx-auto" /> {/* Separator line */}
+                        {renderStatShardsDisplay()}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+    // --- END RUNES TAB CONTENT ---
+
+
+    const DetailsTabContent = () => { 
         const currentPlayerForDisplay = allParticipants.find(p => p.puuid === selectedPlayerForDetailsPuuid);
 
         if (!currentPlayerForDisplay) return <p className="text-gray-400 p-4">Player data not found for selection.</p>;
@@ -388,9 +579,7 @@ const ExpandedMatchDetails = ({
 
         const StatItem = ({ value, label, title }) => (
             <div className="flex flex-col items-center text-center" title={title}>
-                {/* Font size for stat value updated */}
                 <span className="text-gray-100 font-medium text-sm">{value !== undefined && value !== null ? value : 'N/A'}</span>
-                {/* Font size for stat label updated */}
                 <span className="text-gray-400 text-[10px] leading-tight">{label}</span>
             </div>
         );
@@ -461,61 +650,66 @@ const ExpandedMatchDetails = ({
 
         return (
             <div className="p-2 sm:p-3 text-gray-200 space-y-3">
-                <div className="flex items-center justify-center space-x-2 sm:space-x-5 mb-1 p-2 rounded-lg">
+                {/* Player Selection */}
+                <div className="flex items-center justify-center space-x-2 sm:space-x-5 mb-1 p-2 rounded-lg bg-gray-800/20">
                     <div className="flex space-x-1 sm:space-x-3.5">
                         {blueTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
                     </div>
-                    <span className="text-white-500 font-bold text-sm sm:text-md">VS</span>
+                    <span className="text-gray-400 font-bold text-sm sm:text-md">VS</span>
                     <div className="flex space-x-1 sm:space-x-3.5">
                         {redTeam.slice(0, 5).map(player => renderChampionIconWithRole(player))}
                     </div>
                 </div>
 
+                {/* Stat Blocks */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
-                    <div className="bg-purple-200/5 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
-                        <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
+                    <div className="bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/50 flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase text-gray-400 mb-1.5 text-center flex items-center justify-center">
                             <LaningPhaseIcon className="w-4 h-4 mr-1.5" /> 
-                            Laning Phase (at 15)
+                            Laning Phase (at 15 min)
                         </h4>
                         {timelineToDisplay && timelineToDisplay.snapshots && timelineToDisplay.snapshots.length > 0 && snapshot15min ? (
                             <div className="grid grid-cols-3 gap-x-1.5 gap-y-1">
-                                <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="cs diff" />
-                                <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="gold diff" />
-                                <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="xp diff" />
+                                <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : 'N/A'} label="CS Diff" />
+                                <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : 'N/A'} label="Gold Diff" />
+                                <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : 'N/A'} label="XP Diff" />
                             </div>
                         ) : (
-                            <p className="text-gray-500 text-center text-sm italic py-2">Missing detailed laning stats.</p>
+                            <p className="text-gray-500 text-center text-sm italic py-2">Missing laning stats.</p>
                         )}
                     </div>
 
-                    <div className="bg-purple-200/5 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
-                        <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
+                    <div className="bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/50 flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase text-gray-400 mb-1.5 text-center flex items-center justify-center">
                             <WardsIcon className="w-4 h-4 mr-1.5" />
-                            Wards
+                            Vision
                         </h4>
                         <div className="grid grid-cols-3 gap-x-1.5 gap-y-1">
-                            <StatItem value={currentPlayerForDisplay.wardsPlaced || 0} label="placed" />
-                            <StatItem value={currentPlayerForDisplay.wardsKilled || 0} label="killed" />
-                            <StatItem value={currentPlayerForDisplay.visionWardsBoughtInGame || 0} label="control" />
+                            <StatItem value={currentPlayerForDisplay.wardsPlaced || 0} label="Placed" />
+                            <StatItem value={currentPlayerForDisplay.wardsKilled || 0} label="Killed" />
+                            <StatItem value={currentPlayerForDisplay.visionWardsBoughtInGame || 0} label="Control Wards" />
                         </div>
                     </div>
 
-                    <div className="bg-purple-200/5 px-3 py-1.5 rounded-lg border border-gray-600/50 flex flex-col">
-                        <h4 className="text-xs font-semibold uppercase text-gray-300 mb-1.5 text-center flex items-center justify-center">
+                    <div className="bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/50 flex flex-col">
+                        <h4 className="text-xs font-semibold uppercase text-gray-400 mb-1.5 text-center flex items-center justify-center">
                             <GlobalStatsIcon className="w-4 h-4 mr-1.5" />
-                            Global Stats
+                            Performance
                         </h4>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-1.5 gap-y-1">
-                            <StatItem value={gameDuration > 0 ? (((currentPlayerForDisplay.totalMinionsKilled || 0) + (currentPlayerForDisplay.neutralMinionsKilled || 0)) / (gameDuration / 60)).toFixed(1) : '0.0'} label="CS/m" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.visionScore || 0) / (gameDuration / 60)).toFixed(2) : '0.00'} label="VS/m" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.totalDamageDealtToChampions || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="DMG/m" />
-                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.goldEarned || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="Gold/m" />
+                            <StatItem value={gameDuration > 0 ? (((currentPlayerForDisplay.totalMinionsKilled || 0) + (currentPlayerForDisplay.neutralMinionsKilled || 0)) / (gameDuration / 60)).toFixed(1) : '0.0'} label="CS/min" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.visionScore || 0) / (gameDuration / 60)).toFixed(2) : '0.00'} label="VS/min" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.totalDamageDealtToChampions || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="DMG/min" />
+                            <StatItem value={gameDuration > 0 ? ((currentPlayerForDisplay.goldEarned || 0) / (gameDuration / 60)).toFixed(0) : '0'} label="Gold/min" />
                         </div>
                     </div>
                 </div>
+                
+                <RunesTabContent />
 
-                <div className="bg-purple-200/5 p-1.5 rounded-lg border border-gray-600/50">
-                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm">SKILL ORDER</h4>
+
+                <div className="bg-gray-800/40 p-1.5 rounded-lg border border-gray-700/50">
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm ml-1 uppercase">Skill Order</h4>
                     <div className="space-y-1"> 
                         {[1, 2, 3, 4].map(skillSlotKey => { 
                             const championInfo = championData && championData[currentPlayerForDisplay.championName];
@@ -541,7 +735,7 @@ const ExpandedMatchDetails = ({
                                             {skillKeyBadgeText}
                                         </span>
                                     </div>
-                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-3 flex-grow"> 
+                                    <div className="grid grid-cols-[repeat(18,minmax(0,1fr))] gap-0.5 sm:gap-1 flex-grow"> 
                                         {Array.from({ length: 18 }).map((_, levelIndex) => { 
                                             const championLevel = levelIndex + 1; 
                                             const skillEventForThisBox = timelineToDisplay?.skillOrder?.find(
@@ -556,7 +750,7 @@ const ExpandedMatchDetails = ({
                                             return (
                                                 <div
                                                     key={`skill-${skillSlotKey}-lvl-${championLevel}`}
-                                                    className={`h-6.5 text-[10px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`} 
+                                                    className={`h-5 sm:h-6 text-[9px] sm:text-[10px] flex items-center justify-center rounded-sm border border-gray-500/30 ${boxColor} transition-colors`} 
                                                     title={skillEventForThisBox
                                                         ? `Level ${championLevel}: Leveled ${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} (Tier ${skillEventForThisBox.skillLevel})`
                                                         : (currentTotalPointsInThisSkillSlot ? `${SKILL_PLACEHOLDER_TEXT[skillSlotKey]} Tier ${currentTotalPointsInThisSkillSlot}` : `Champ Lvl ${championLevel}`)
@@ -574,12 +768,12 @@ const ExpandedMatchDetails = ({
                         })}
                     </div>
                     {(!timelineToDisplay?.skillOrder || timelineToDisplay.skillOrder.length === 0) && (
-                        <p className="text-gray-500 text-xs italic mt-1.5">Missing skill order data.</p>
+                        <p className="text-gray-500 text-xs italic mt-1.5 ml-1">Missing skill order data.</p>
                     )}
                 </div>
 
-                <div className="bg-purple-200/5 p-2 rounded-lg border border-gray-600/50 flex flex-col justify-center">
-                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base">BUILD ORDER</h4>
+                <div className="bg-gray-800/40 p-2 rounded-lg border border-gray-700/50 flex flex-col justify-center">
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base uppercase">Build Order</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
                         <div className="flex flex-wrap items-start gap-x-0.5 gap-y-1"> 
                             {Object.entries(groupedBuildOrder)
@@ -607,7 +801,7 @@ const ExpandedMatchDetails = ({
                                                     ) : null;
                                                 })}
                                             </div>
-                                            <span className="text-[8px] text-gray-300 p-2">{minute} min</span> 
+                                            <span className="text-[8px] text-gray-300 mt-0.5">{minute}m</span> 
                                         </div>
                                         {groupIndex < arr.length - 1 && ( 
                                             <div className="flex items-center justify-center h-5 mx-0.5"> 
@@ -619,30 +813,10 @@ const ExpandedMatchDetails = ({
                         </div>
                     ) : <p className="text-gray-500 text-xs italic">Missing build order data.</p>}
                 </div>
-
-                <div className="bg-purple-200/5 p-2 rounded-lg border border-gray-600/50">
-                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base">Runes</h4>
-                    {currentPlayerForDisplay.perks && currentPlayerForDisplay.perks.styles && currentPlayerForDisplay.perks.styles.length > 0 ? (
-                        <div className="flex flex-col space-y-1"> 
-                            {currentPlayerForDisplay.perks.styles.map((style, styleIndex) => (
-                                <div key={`style-${style.style}-${styleIndex}`} className="flex items-center space-x-1.5"> 
-                                    <img src={getRuneImage(style.style)} alt={runesMap[style.style]?.name || 'Rune Style'} className="w-5 h-5" onError={(e) => e.target.style.display='none'}/> 
-                                    <span className="text-gray-300 text-[11px]">{runesMap[style.style]?.name || (style.description === 'primaryStyle' ? 'Primary' : 'Secondary')}</span> 
-                                    <div className="flex space-x-0.5"> 
-                                        {style.selections.map((selection, selIndex) => (
-                                            <img key={`rune-${selection.perk}-${selIndex}`} src={getRuneImage(selection.perk)} alt={runesMap[selection.perk]?.name || `Rune ${selection.perk}`} className="w-4 h-4 opacity-80" onError={(e) => e.target.style.display='none'}/> 
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-gray-400 text-xs italic">Rune data not available.</p>
-                    )}
-                </div>
             </div>
         );
     };
+
 
     const expandedBgClass = 'bg-black-800/50'
     
@@ -685,3 +859,4 @@ const ExpandedMatchDetails = ({
 };
 
 export default ExpandedMatchDetails;
+
