@@ -1,5 +1,5 @@
 // src/components/ExpandedMatchDetails.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ImageOff, ChevronRight, X, LayoutList, PieChart } from 'lucide-react';
 import {
     formatGameDurationMMSS,
@@ -269,17 +269,22 @@ const ExpandedMatchDetails = ({
     const maxDamageBlueTeam = Math.max(0, ...blueTeam.map(p => p.totalDamageDealtToChampions || 0));
     const maxDamageRedTeam = Math.max(0, ...redTeam.map(p => p.totalDamageDealtToChampions || 0));
 
-    // --- PATCH NUMBER ---
     const gamePatch = useMemo(() => {
-        if (!ddragonVersion) return 'N/A';
-        const parts = ddragonVersion.split('.');
-        if (parts.length >= 2) {
-            return `${parts[0]}.${parts[1]}`;
+        // Use the patch version stored with the match data if available
+        if (match.gamePatchVersion && match.gamePatchVersion !== 'N/A') {
+            return match.gamePatchVersion;
         }
-        return ddragonVersion; // Fallback if format is unexpected
-    }, [ddragonVersion]);
-    // --- END PATCH NUMBER ---
-
+        // Fallback for older matches or if ddragonVersion is the only source
+        // (This part can be simplified if ddragonVersion is purely for images now)
+        if (ddragonVersion) {
+            const parts = ddragonVersion.split('.');
+            if (parts.length >= 2) {
+                return `<span class="math-inline">\{parts\[0\]\}\.</span>{parts[1]}`;
+            }
+            return ddragonVersion; // Fallback if format is unusual
+        }
+        return 'N/A'; // Ultimate fallback
+    }, [match.gamePatchVersion, ddragonVersion]); // Dependencies
 
     const renderPlayerRow = (player, teamTotalKills, isTopDamageInTeam, isTrackedPlayerRow) => {
         const items = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5];
@@ -382,6 +387,7 @@ const ExpandedMatchDetails = ({
             </div>
         );
     };
+    
 
     const renderTeamSection = (team, teamData, teamName, teamMaxDamage) => {
         const totalKills = teamData?.objectives?.champion?.kills || 0;
@@ -408,7 +414,9 @@ const ExpandedMatchDetails = ({
                             <span title="Towers" className="flex items-center"><TowerIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.tower?.kills || 0}</span>
                         </div>
                     </div>
-                    <span className="text-xs text-gray-500 font-mono ml-auto pl-2">{gamePatch}</span> {/* Patch number added here */}
+                    {teamName === 'Blue Team' && (
+                    <span className="text-xs text-gray-500 ml-auto pl-2">v{gamePatch}</span> 
+                )}
                 </div>
                 {team.map(player => renderPlayerRow(
                     player,

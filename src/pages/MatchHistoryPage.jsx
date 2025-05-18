@@ -329,6 +329,18 @@ function MatchHistoryPage() {
           }
           const matchDetail = await detailResponse.json();
 
+          let gameSpecificPatch = 'N/A'; 
+          if (matchDetail.info && matchDetail.info.gameVersion) {
+              const versionString = matchDetail.info.gameVersion; 
+              const versionParts = versionString.split('.');     
+              
+              if (versionParts.length >= 2) {
+                  gameSpecificPatch = `${versionParts[0]}.${versionParts[1]}`; // Should be "14.9"
+              } else {
+                  gameSpecificPatch = versionString; 
+              }
+          }
+
           // Fetch timeline data if needed
           let currentRawTimelineFrames = existingMatch?.rawTimelineFrames || [];
           if (needsTimelineFetch) {
@@ -366,6 +378,7 @@ function MatchHistoryPage() {
               trackedAccountDocId: account.id, // Link to the tracked account's Dexie ID
               gameCreation: matchDetail.info.gameCreation, gameDuration: matchDetail.info.gameDuration,
               gameMode: matchDetail.info.gameMode, queueId: matchDetail.info.queueId,
+              gamePatchVersion: gameSpecificPatch,
               platformId: account.platformId, // Store platform for context
               puuid: account.puuid, // Store player's PUUID for reference
               // Player-specific stats
