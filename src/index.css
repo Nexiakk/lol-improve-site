@@ -18,42 +18,60 @@
   --color-black-0: rgb(0,0,0);
 }
 
-/* Importowanie bazowych stylów Tailwind, komponentów i narzędzi */
 @import "tailwindcss";
 
-/* Definicja niestandardowych właściwości (zmiennych CSS) dla kolorów i cieni neonowych */
-
 body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  /* other body styles */
 }
 
+/* CSS Variables for Winrate Chart (can be adjusted) */
+:root {
+--chart-wins-hsl: 200 98% 45%; /* Blueish for wins */
+--chart-losses-bg-hsl: 0 0% 13%;   /* Dark gray for the background part of the ring */
+/* You can define more chart colors if needed for other charts */
+/* --chart-1-hsl: 210 40% 96.1%;
+--chart-2-hsl: 142.1 70.6% 45.3%;
+--chart-3-hsl: 0 84.2% 60.2%;
+--chart-4-hsl: 47.9 95.8% 53.1%;
+--chart-5-hsl: 262.1 83.3% 57.8%; */
+}
 
+/* Utility class for champion image clipping */
+.clip-inset-8 {
+clip-path: inset(8%);
+}
+
+/* Your existing neon styles and animations */
 .neon-bg-blue {
-    background-color: var(--color-glow-blue);
-    box-shadow: var(--shadow-neon-blue);
+  background-color: hsl(var(--chart-wins-hsl)); /* Example usage */
+  box-shadow: 0 0 7px hsl(var(--chart-wins-hsl)),
+              0 0 12px hsl(var(--chart-wins-hsl)),
+              0 0 18px hsl(var(--chart-wins-hsl));
 }
 
 .neon-bg-red {
-    background-color: var(--color-glow-red);
-    box-shadow: var(--shadow-neon-red);
+  background-color: #ff007f; /* Example red */
+  box-shadow: 0 0 7px #ff007f,
+              0 0 12px #ff007f,
+              0 0 18px #ff007f;
 }
 
 .tracked-player-highlight {
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+background-image: linear-gradient(to right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
 }
 
-/* Animation for newly added match items */
 @keyframes fadeInSlideDown {
-  0% {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+0% {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.95);
+}
+100% {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
 }
 
 .match-item-enter-active {
-  animation: fadeInSlideDown 0.5s ease-out forwards;
+animation: fadeInSlideDown 0.5s ease-out forwards;
 }

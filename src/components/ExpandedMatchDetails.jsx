@@ -270,21 +270,18 @@ const ExpandedMatchDetails = ({
     const maxDamageRedTeam = Math.max(0, ...redTeam.map(p => p.totalDamageDealtToChampions || 0));
 
     const gamePatch = useMemo(() => {
-        // Use the patch version stored with the match data if available
         if (match.gamePatchVersion && match.gamePatchVersion !== 'N/A') {
             return match.gamePatchVersion;
         }
-        // Fallback for older matches or if ddragonVersion is the only source
-        // (This part can be simplified if ddragonVersion is purely for images now)
         if (ddragonVersion) {
             const parts = ddragonVersion.split('.');
             if (parts.length >= 2) {
-                return `<span class="math-inline">\{parts\[0\]\}\.</span>{parts[1]}`;
+                return `${parts[0]}.${parts[1]}`;
             }
-            return ddragonVersion; // Fallback if format is unusual
+            return ddragonVersion; 
         }
-        return 'N/A'; // Ultimate fallback
-    }, [match.gamePatchVersion, ddragonVersion]); // Dependencies
+        return 'N/A'; 
+    }, [match.gamePatchVersion, ddragonVersion]); 
 
     const renderPlayerRow = (player, teamTotalKills, isTopDamageInTeam, isTrackedPlayerRow) => {
         const items = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5];
@@ -397,8 +394,8 @@ const ExpandedMatchDetails = ({
 
         return (
             <div className="px-2 sm:px-3 py-2 mb-0 rounded-md">
-                <div className="flex items-center justify-between pb-1"> {/* Changed to justify-between */}
-                    <div className="flex items-center"> {/* Group for left side elements */}
+                <div className="flex items-center justify-between pb-1"> 
+                    <div className="flex items-center"> 
                         <h3 className={`text-md sm:text-lg font-semibold ${teamColorForText}`}>
                             {teamData.win ? 'Victory' : 'Defeat'}
                             <span className="text-xs sm:text-sm text-gray-400 font-normal ml-1.5 mr-2 sm:mr-3">
@@ -458,13 +455,13 @@ const ExpandedMatchDetails = ({
         
         const renderRuneTreeDisplay = (tree, selectedPerkIds, isPrimaryTree) => {
             if (!tree) return null;
-            const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4); // Secondary tree skips keystone slot for display
+            const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4); 
             const runeImageSize = isPrimaryTree ? "w-7 h-7" : "w-6 h-6"; 
             const keystoneImageSize = "w-9 h-9"; 
             const treeBorderColor = RUNE_TREE_COLORS[tree.id] || 'border-gray-500';
 
             return (
-                <div className={`flex flex-col items-center ${isPrimaryTree ? 'space-y-2.5' : 'space-y-1.5'} rounded-md`}> {/* Increased space-y for primary tree */}
+                <div className={`flex flex-col items-center ${isPrimaryTree ? 'space-y-2.5' : 'space-y-1.5'} rounded-md`}> 
                     <div className="flex items-center space-x-2 mb-2">
                         <img 
                             src={getRuneImage(tree.id)} 
@@ -483,29 +480,27 @@ const ExpandedMatchDetails = ({
                                     let currentRuneSize = isKeystoneRow ? keystoneImageSize : runeImageSize;
                                     currentRuneSize = slot.runes.length >= 4 ? "w-8 h-8" : currentRuneSize;
                                     
-                                    // Keystones (active) only get scaling and shadow, no border. Other active runes get border.
-                                    // Non-active runes get grayscale and brightness filter, but full opacity.
                                     let activeRuneClasses = '';
                                     if (isActive) {
                                         if (isKeystoneRow) {
-                                            activeRuneClasses = 'scale-105 shadow-md opacity-100'; // No border for active keystone
+                                            activeRuneClasses = 'scale-105 shadow-md opacity-100'; 
                                         } else {
-                                            activeRuneClasses = `${treeBorderColor} scale-105 shadow-md opacity-100 border-2`; // Border for other active runes
+                                            activeRuneClasses = `${treeBorderColor} scale-105 shadow-md opacity-100 border-2`; 
                                         }
                                     } else {
-                                        activeRuneClasses = 'border-transparent opacity-100 hover:opacity-100'; // Full opacity for non-active
+                                        activeRuneClasses = 'border-transparent opacity-100 hover:opacity-100'; 
                                     }
                                     
                                     return (
                                         <div 
                                             key={rune.id} 
-                                            className={`relative p-0 rounded-full transition-all duration-150 ${activeRuneClasses}`} // p-0 for direct border
+                                            className={`relative p-0 rounded-full transition-all duration-150 ${activeRuneClasses}`} 
                                             title={runesMap[rune.id]?.name || rune.name}
                                         >
                                             <img 
                                                 src={getRuneImage(rune.id)} 
                                                 alt={runesMap[rune.id]?.name || rune.name} 
-                                                className={`${currentRuneSize} rounded-full ${isActive ? '' : 'filter grayscale brightness-75'}`} // Grayscale for non-active
+                                                className={`${currentRuneSize} rounded-full ${isActive ? '' : 'filter grayscale brightness-75'}`} 
                                                 onError={(e) => { e.target.src = `https://placehold.co/32x32/1a1a1a/4a4a4a?text=${rune.name ? rune.name.substring(0,1) : 'R'}`; }}
                                             />
                                         </div>
@@ -535,20 +530,20 @@ const ExpandedMatchDetails = ({
                                 const isActive = shard.id === row.selected;
                                 const shardIconSrc = getStatShardImage(shard.iconName);
                                 const activeShardClasses = isActive 
-                                    ? 'border-yellow-400 scale-105 opacity-100 border-2' // Added border-2 here as well
-                                    : 'border-transparent opacity-100 hover:opacity-100 filter grayscale brightness-75'; // Full opacity for non-active
+                                    ? 'border-yellow-400 scale-105 opacity-100 border-2' 
+                                    : 'border-transparent opacity-100 hover:opacity-100 filter grayscale brightness-75'; 
 
                                 return (
                                     <div 
                                         key={shard.id}
-                                        className={`p-0 rounded-full transition-all duration-150 ${activeShardClasses}`} // p-0 for direct border
+                                        className={`p-0 rounded-full transition-all duration-150 ${activeShardClasses}`} 
                                         title={shard.name}
                                     >
                                         {shardIconSrc ? (
                                             <img 
                                                 src={shardIconSrc} 
                                                 alt={shard.name} 
-                                                className="w-4 h-4 rounded-full" // Grayscale for non-active shards
+                                                className="w-4 h-4 rounded-full" 
                                             />
                                         ) : (
                                             <div className="w-4 h-4 rounded-full bg-gray-600 flex items-center justify-center text-xs text-gray-400">?</div>
@@ -564,13 +559,11 @@ const ExpandedMatchDetails = ({
 
         return (
             <div className="bg-gray-800/40 p-2 sm:p-3 rounded-lg border border-gray-700/50">
-                <div className="flex flex-col md:flex-row justify-center items-start gap-0.5 md:gap-10"> {/* (1) justify-center, (3) adjust gap as desired (e.g., md:gap-4) */}
-                    {/* Primary Tree Container */}
-                    <div className="w-full md:w-auto"> {/* (2) Change width to allow shrinking */}
+                <div className="flex flex-col md:flex-row justify-center items-start gap-0.5 md:gap-10"> 
+                    <div className="w-full md:w-auto"> 
                         {renderRuneTreeDisplay(primaryTree, selectedPrimaryPerkIds, true)}
                     </div>
-                    {/* Secondary Tree and Stat Shards Container */}
-                    <div className="w-full md:w-auto flex flex-col space-y-1"> {/* (2) Change width to allow shrinking */}
+                    <div className="w-full md:w-auto flex flex-col space-y-1"> 
                         {secondaryTree && renderRuneTreeDisplay(secondaryTree, selectedSecondaryPerkIds, false)}
                         <hr className="border-gray-700 my-0.5 w-11/12 mx-auto" />
                         {renderStatShardsDisplay()}
@@ -631,15 +624,22 @@ const ExpandedMatchDetails = ({
                 </button>
             );
         };
-
+        
         const groupedBuildOrder = timelineToDisplay?.buildOrder?.reduce((acc, itemEvent) => {
-            const minute = Math.floor(itemEvent.timestamp / (1000 * 60)); 
-            if (!acc[minute]) {
-                acc[minute] = [];
+            const minuteKey = Math.floor(itemEvent.timestamp / (1000 * 60)); 
+            if (!acc[minuteKey]) {
+                acc[minuteKey] = { 
+                    items: [],
+                    firstTimestampMs: itemEvent.timestamp 
+                };
             }
-            acc[minute].push(itemEvent);
+            acc[minuteKey].items.push(itemEvent);
+            if (itemEvent.timestamp < acc[minuteKey].firstTimestampMs) {
+                 acc[minuteKey].firstTimestampMs = itemEvent.timestamp;
+            }
             return acc;
         }, {}) || {};
+
 
         const skillLevelsByAbility = { 1: [], 2: [], 3: [], 4: [] }; 
         const currentPointsInSkill = { 1: 0, 2: 0, 3: 0, 4: 0 }; 
@@ -666,6 +666,18 @@ const ExpandedMatchDetails = ({
                 }
             }
         }
+
+        // Prepare final build items, filtering out empty slots
+        const finalBuildItemsRaw = [
+            currentPlayerForDisplay.item0,
+            currentPlayerForDisplay.item1,
+            currentPlayerForDisplay.item2,
+            currentPlayerForDisplay.item3,
+            currentPlayerForDisplay.item4,
+            currentPlayerForDisplay.item5,
+        ];
+        const finalBuildItemsFiltered = finalBuildItemsRaw.filter(itemId => itemId && itemId !== 0);
+        const finalTrinketItem = currentPlayerForDisplay.item6;
 
 
         return (
@@ -726,20 +738,24 @@ const ExpandedMatchDetails = ({
                 </div>
 
                 <div className="bg-gray-800/40 p-2 rounded-lg border border-gray-700/50 flex flex-col justify-center">
-                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base uppercase">Build Order</h4>
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm uppercase">Build Order</h4>
                     {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
                         <div className="flex flex-wrap items-start gap-x-0.5 gap-y-1"> 
                             {Object.entries(groupedBuildOrder)
                                 .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB)) 
-                                .map(([minute, itemsInMinute], groupIndex, arr) => (
-                                    <React.Fragment key={`build-group-${minute}`}>
+                                .map(([minuteKey, groupData], groupIndex, arr) => {
+                                    const itemsInGroup = groupData.items;
+                                    const firstItemTimestampMs = groupData.firstTimestampMs;
+                                    const displayTime = formatGameDurationMMSS(firstItemTimestampMs / 1000);
+                                    return (
+                                    <React.Fragment key={`build-group-${minuteKey}`}>
                                         <div className="flex flex-col items-center">
                                             <div className="flex items-center gap-x-0.5 h-5"> 
-                                                {itemsInMinute.map((itemEvent, itemIndex) => {
+                                                {itemsInGroup.map((itemEvent, itemIndex) => {
                                                     const itemSrc = getItemImage(itemEvent.itemId);
                                                     const isSold = itemEvent.type === 'sold';
                                                     return itemSrc ? (
-                                                        <div key={`build-${minute}-${itemIndex}-${itemEvent.itemId}-${itemEvent.timestamp}`} className="relative">
+                                                        <div key={`build-${minuteKey}-${itemIndex}-${itemEvent.itemId}-${itemEvent.timestamp}`} className="relative">
                                                             <img
                                                                 src={itemSrc}
                                                                 alt={`Item ${itemEvent.itemId}`}
@@ -754,7 +770,7 @@ const ExpandedMatchDetails = ({
                                                     ) : null;
                                                 })}
                                             </div>
-                                            <span className="text-[8px] text-gray-300 mt-0.5">{minute}m</span> 
+                                            <span className="text-[8px] text-gray-300 mt-0.5">{displayTime}</span> 
                                         </div>
                                         {groupIndex < arr.length - 1 && ( 
                                             <div className="flex items-center justify-center h-5 mx-0.5"> 
@@ -762,13 +778,46 @@ const ExpandedMatchDetails = ({
                                             </div>
                                         )}
                                     </React.Fragment>
-                                ))}
+                                )})}
+                           
+                             <div className="flex items-center justify-center h-5 mx-0.5"> 
+                                <ChevronRight size={16} className="text-gray-400" /> 
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="flex items-center gap-x-0.5 h-5">
+                                    {finalBuildItemsFiltered.map((itemId, index) => {
+                                        const itemSrc = getItemImage(itemId);
+                                        return itemSrc ? (
+                                            <img
+                                                key={`final-item-${index}-${itemId}`}
+                                                src={itemSrc}
+                                                alt={`Final Item ${index + 1}`}
+                                                className="w-6 h-6 rounded border border-gray-500"
+                                                title={`Item ${itemId}`}
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        ) : null; // Should not happen due to filter, but good practice
+                                    })}
+                                    {/* Trinket */}
+                                    {finalTrinketItem && finalTrinketItem !== 0 && (
+                                        <img
+                                            key={`final-trinket-${finalTrinketItem}`}
+                                            src={getItemImage(finalTrinketItem)}
+                                            alt="Final Trinket"
+                                            className="w-6 h-6 rounded border border-yellow-500/50" // Different border for trinket
+                                            title={`Trinket ${finalTrinketItem}`}
+                                            onError={(e) => { e.target.style.display = 'none'; }}
+                                        />
+                                    )}
+                                </div>
+                                <span className="text-[8px] text-gray-300 mt-0.5">Final Build</span>
+                            </div>
                         </div>
                     ) : <p className="text-gray-500 text-xs italic">Missing build order data.</p>}
                 </div>
 
                 <div className="bg-gray-800/40 p-1.5 rounded-lg border border-gray-700/50">
-                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm ml-1 uppercase">Skill Order</h4>
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm uppercase">Skill Order</h4>
                     <div className="space-y-1"> 
                         {[1, 2, 3, 4].map(skillSlotKey => { 
                             const championInfo = championData && championData[currentPlayerForDisplay.championName];

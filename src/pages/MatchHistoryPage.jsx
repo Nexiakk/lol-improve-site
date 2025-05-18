@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { db } from '../dexieConfig';
 import {
-    Loader2, AlertTriangle, ListChecks, MessageSquare, RefreshCw, ImageOff, ChevronDown, ChevronUp, Edit,
-} from 'lucide-react';
+    Loader2, AlertTriangle, ListChecks, MessageSquare, Edit, ChevronDown, ChevronUp 
+} from 'lucide-react'; // Removed RefreshCw and Loader2 as they are in MatchHistoryHeader
 import MatchNotesPanel from '../components/MatchNotesPanel';
 import PaginationControls from '../components/PaginationControls';
 import ExpandedMatchDetails from '../components/ExpandedMatchDetails';
+import MatchHistoryHeader from '../components/MatchHistoryHeader'; // Import the new header component
 import {
     getContinentalRoute,
     delay,
@@ -31,91 +32,78 @@ const RIOT_API_KEY = import.meta.env.VITE_RIOT_API_KEY;
 
 const MATCH_COUNT_PER_FETCH = 20;
 const MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE = 10;
-const API_CALL_DELAY_MS = 1250; // Adjusted for Riot API rate limits (100 requests / 2 minutes)
+const API_CALL_DELAY_MS = 1250; 
 const MATCHES_PER_PAGE = 10;
-const ANIMATION_DURATION_MS = 500; // Duration for new match item animation
+const ANIMATION_DURATION_MS = 500; 
+const GAMES_FOR_SUMMARY_PROP = 20;
 
-// Mapping for role icons
 export const ROLE_ICON_MAP = {
     TOP: topIcon, JUNGLE: jungleIcon, MIDDLE: middleIcon,
     BOTTOM: bottomIcon, UTILITY: supportIcon
 };
-// Standard order for roles in scoreboard display
 export const ROLE_ORDER = ["TOP", "JUNGLE", "MIDDLE", "BOTTOM", "UTILITY"];
 
 function MatchHistoryPage() {
-  // State for tracked accounts and their matches
   const [trackedAccounts, setTrackedAccounts] = useState([]);
   const [allMatchesFromDb, setAllMatchesFromDb] = useState([]);
-  const [groupedMatches, setGroupedMatches] = useState({}); // Matches grouped by date for current page
-  const [selectedMatchForNotes, setSelectedMatchForNotes] = useState(null); // Match selected for notes panel
-  const [expandedMatchId, setExpandedMatchId] = useState(null); // ID of the currently expanded match
+  const [groupedMatches, setGroupedMatches] = useState({}); 
+  const [selectedMatchForNotes, setSelectedMatchForNotes] = useState(null); 
+  const [expandedMatchId, setExpandedMatchId] = useState(null); 
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Loading and error states
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
-  const [isUpdatingAllMatches, setIsUpdatingAllMatches] = useState(false);
+  const [isUpdatingAllMatches, setIsUpdatingAllMatches] = useState(false); // State remains here
   const [isSavingNotes, setIsSavingNotes] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState(''); // Progress message during match updates
+  const [updateProgress, setUpdateProgress] = useState(''); // State remains here for the header
 
-  const [error, setError] = useState(''); // General error messages
+  const [error, setError] = useState(''); 
 
-  // DDragon static data state
   const [ddragonVersion, setDdragonVersion] = useState('');
-  const [summonerSpellsMap, setSummonerSpellsMap] = useState({}); // Map of summoner spell data by ID
-  const [runesMap, setRunesMap] = useState({}); // Flattened map of all rune data by ID
-  const [championData, setChampionData] = useState(null); // Map of champion data by champion key
-  const [runesDataFromDDragon, setRunesDataFromDDragon] = useState([]); // Full structured rune data from DDragon
+  const [summonerSpellsMap, setSummonerSpellsMap] = useState({}); 
+  const [runesMap, setRunesMap] = useState({}); 
+  const [championData, setChampionData] = useState(null); 
+  const [runesDataFromDDragon, setRunesDataFromDDragon] = useState([]); 
 
-  // Refs for UI elements
-  const matchListContainerRef = useRef(null); // Ref for scrolling match list
-  const prevPageRef = useRef(currentPage); // Ref to track previous page for scroll behavior
+  const matchListContainerRef = useRef(null); 
+  const prevPageRef = useRef(currentPage); 
 
-  // Memoized calculation for total pages based on all matches and items per page
   const totalPages = useMemo(() => {
     const TPages = Math.ceil(allMatchesFromDb.length / MATCHES_PER_PAGE);
-    return TPages > 0 ? TPages : 1; // Ensure totalPages is at least 1
+    return TPages > 0 ? TPages : 1; 
   }, [allMatchesFromDb]);
 
-  // Fetch static DDragon data (runes, champions, summoner spells) on component mount
   useEffect(() => {
     if (!RIOT_API_KEY) setError("Configuration Error: Riot API Key is missing.");
-    // Corrected DDragon versions URL
     fetch('https://ddragon.leagueoflegends.com/api/versions.json')
       .then(res => res.json())
       .then(versions => {
         if (versions && versions.length > 0) {
           const latestVersion = versions[0];
           setDdragonVersion(latestVersion);
-          // Fetch summoner spell, rune, and champion data concurrently
           const staticDataFetches = [
             fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/summoner.json`).then(res => res.json()),
             fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/runesReforged.json`).then(res => res.json()),
             fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion.json`).then(res => res.json())
           ];
           Promise.all(staticDataFetches).then(([summonerData, rawRunesData, champData]) => {
-            // Process summoner spell data
             const spells = {};
             if (summonerData && summonerData.data) {
               for (const key in summonerData.data) spells[summonerData.data[key].key] = summonerData.data[key];
             }
             setSummonerSpellsMap(spells);
             
-            // Process rune data: create a flat map for easy lookup and store the raw structured data
             const flatRunes = {};
             if (rawRunesData && Array.isArray(rawRunesData)) {
               rawRunesData.forEach(style => {
-                flatRunes[style.id] = { icon: style.icon, name: style.name, key: style.key }; // Store style info
+                flatRunes[style.id] = { icon: style.icon, name: style.name, key: style.key }; 
                 style.slots.forEach(slot => slot.runes.forEach(rune => flatRunes[rune.id] = { icon: rune.icon, name: rune.name, key: rune.key, styleId: style.id }));
               });
-              setRunesDataFromDDragon(rawRunesData); // Store the full structured data for the Runes tab
+              setRunesDataFromDDragon(rawRunesData); 
             }
-            setRunesMap(flatRunes); // Store the flat map for quick lookups (e.g., for match list display)
+            setRunesMap(flatRunes); 
 
-            // Process champion data
             if (champData && champData.data) setChampionData(champData.data);
           }).catch(err => {
             console.error("Error fetching DDragon static data:", err);
@@ -126,14 +114,12 @@ function MatchHistoryPage() {
         console.error("Failed to fetch DDragon versions:", err);
         setError("Failed to load DDragon versions.");
       });
-  }, []); // Empty dependency array means this runs once on mount
+  }, []); 
 
-  // Fetch tracked accounts from Dexie
   const fetchTrackedAccounts = useCallback(async () => {
     setIsLoadingAccounts(true);
     try {
       const accountsFromDb = await db.trackedAccounts.toArray();
-      // Map accounts and add docId (which is the Dexie primary key 'id')
       setTrackedAccounts(accountsFromDb.map(acc => ({ ...acc, docId: acc.id })));
     } catch (err) {
       console.error("Error fetching tracked accounts from Dexie:", err);
@@ -141,18 +127,15 @@ function MatchHistoryPage() {
     } finally {
       setIsLoadingAccounts(false);
     }
-  }, []); // Empty dependency array, this function is stable
-  useEffect(() => { fetchTrackedAccounts(); }, [fetchTrackedAccounts]); // Call on mount
+  }, []); 
+  useEffect(() => { fetchTrackedAccounts(); }, [fetchTrackedAccounts]); 
 
-  // Fetch all matches from Dexie for the tracked accounts
   const fetchAllMatchesFromDb = useCallback(async () => {
-    // If no accounts are tracked and not currently loading them, clear matches
     if (trackedAccounts.length === 0 && !isLoadingAccounts) {
       setAllMatchesFromDb([]);
       setIsLoadingMatches(false);
       return;
     }
-    // If accounts are still loading, wait
     if (trackedAccounts.length === 0 && isLoadingAccounts) {
         return; 
     }
@@ -160,22 +143,19 @@ function MatchHistoryPage() {
     setIsLoadingMatches(true); setError('');
     try {
       let combinedMatches = [];
-      // Iterate over each tracked account to fetch its matches
       for (const account of trackedAccounts) {
         const accountMatches = await db.matches
-          .where('trackedAccountDocId').equals(account.id) // Dexie query by index
+          .where('trackedAccountDocId').equals(account.id) 
           .toArray();
         
-        // Augment match data with account info for display
         const matchesWithAccountInfo = accountMatches.map(match => ({
             ...match,
-            trackedAccountDocId: account.id, // Keep original docId for consistency
+            trackedAccountDocId: account.id, 
             trackedAccountName: `${account.name}#${account.tag}`,
             trackedAccountPlatform: account.platformId
         }));
         combinedMatches = [...combinedMatches, ...matchesWithAccountInfo];
       }
-      // Sort all combined matches by game creation time (most recent first)
       combinedMatches.sort((a, b) => (b.gameCreation || 0) - (a.gameCreation || 0));
       setAllMatchesFromDb(combinedMatches);
     } catch (err) {
@@ -184,71 +164,64 @@ function MatchHistoryPage() {
     } finally {
       setIsLoadingMatches(false);
     }
-  }, [trackedAccounts, isLoadingAccounts]); // Dependencies: re-fetch if accounts or their loading state changes
+  }, [trackedAccounts, isLoadingAccounts]); 
 
-  // Effect to fetch matches when trackedAccounts changes or after accounts are initially loaded
   useEffect(() => {
-    if (!isLoadingAccounts) { // Only fetch if accounts are done loading
+    if (!isLoadingAccounts) { 
         fetchAllMatchesFromDb();
     }
-  }, [isLoadingAccounts, fetchAllMatchesFromDb]); // fetchAllMatchesFromDb is a dependency
+  }, [isLoadingAccounts, fetchAllMatchesFromDb]); 
 
-  // Effect to adjust currentPage when totalPages changes (e.g., after fetching/deleting matches)
-  // or when allMatchesFromDb itself changes (which influences totalPages)
   useEffect(() => {
-    if (totalPages === 1 && currentPage !== 1) { // If only one page total, current should be 1
+    if (totalPages === 1 && currentPage !== 1) { 
         setCurrentPage(1);
-    } else if (currentPage > totalPages && totalPages > 0) { // If current page is out of bounds
+    } else if (currentPage > totalPages && totalPages > 0) { 
         setCurrentPage(totalPages);
     }
-    // If allMatchesFromDb.length becomes 0, totalPages becomes 1 (as per useMemo logic)
-    // and if currentPage is not 1, it will be set to 1.
   }, [totalPages, currentPage, allMatchesFromDb.length]);
 
 
-  // Group matches by date for the current page display
   useEffect(() => {
     if (allMatchesFromDb.length === 0) {
-      setGroupedMatches({}); // Clear groups if no matches
+      setGroupedMatches({}); 
       return;
     }
-    // Calculate slice of matches for the current page
     const startIndex = (currentPage - 1) * MATCHES_PER_PAGE;
     const endIndex = startIndex + MATCHES_PER_PAGE;
     const matchesForCurrentPage = allMatchesFromDb.slice(startIndex, endIndex);
 
-    // Group matches by date string ("Today", "Yesterday", or full date)
     const groups = matchesForCurrentPage.reduce((acc, match) => {
-      if (!match.gameCreation) return acc; // Skip if no game creation time
+      if (!match.gameCreation) return acc; 
       const dateObj = new Date(match.gameCreation);
       const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
-      let dateKey = dateObj.toDateString() === today.toDateString() ? "Today"
-                  : dateObj.toDateString() === yesterday.toDateString() ? "Yesterday"
-                  : dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      
+      const currentYear = today.getFullYear();
+      let dateKey;
+      if (dateObj.getFullYear() === currentYear) {
+        dateKey = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      } else {
+        dateKey = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      }
+
       if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push(match);
       return acc;
     }, {});
     setGroupedMatches(groups);
-  }, [currentPage, allMatchesFromDb]); // Re-group when page or match list changes
+  }, [currentPage, allMatchesFromDb]); 
 
-  // Scroll to top of match list on page change
   useEffect(() => {
     const pageActuallyChanged = prevPageRef.current !== currentPage;
-    prevPageRef.current = currentPage; // Update ref for next comparison
+    prevPageRef.current = currentPage; 
     if (pageActuallyChanged && matchListContainerRef.current) {
-        // Delay scroll slightly to ensure content is rendered
         setTimeout(() => {
             if (matchListContainerRef.current && matchListContainerRef.current.scrollHeight > matchListContainerRef.current.clientHeight) {
                 matchListContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }, 0);
     }
-  }, [currentPage, groupedMatches]); // Trigger on page or grouped matches change
+  }, [currentPage, groupedMatches]); 
 
-  // Effect to remove 'isNew' flag after animation for newly fetched matches
   useEffect(() => {
     const matchesWithNewFlag = allMatchesFromDb.filter(m => m.isNew);
     if (matchesWithNewFlag.length > 0) {
@@ -256,12 +229,11 @@ function MatchHistoryPage() {
             setAllMatchesFromDb(prevMatches =>
                 prevMatches.map(m => (m.isNew ? { ...m, isNew: false } : m))
             );
-        }, ANIMATION_DURATION_MS + 100); // Delay slightly longer than animation
-        return () => clearTimeout(timer); // Cleanup timer on unmount or if allMatchesFromDb changes
+        }, ANIMATION_DURATION_MS + 100); 
+        return () => clearTimeout(timer); 
     }
   }, [allMatchesFromDb]);
 
-  // Function to fetch/update matches for all tracked accounts from Riot API
   const handleUpdateAllMatches = async () => {
     if (!RIOT_API_KEY) { setError("Riot API Key is missing."); return; }
     if (trackedAccounts.length === 0) { setError("No tracked accounts to update."); return; }
@@ -269,12 +241,10 @@ function MatchHistoryPage() {
     setIsUpdatingAllMatches(true); setError('');
     setUpdateProgress(`Starting update for ${trackedAccounts.length} accounts...`);
     let totalNewMatchesActuallyStoredThisSession = 0;
-    // Fetch matches from the last two weeks for ranked solo queue
     const twoWeeksAgoEpochSeconds = Math.floor((Date.now() - 14 * 24 * 60 * 60 * 1000) / 1000);
 
     for (let i = 0; i < trackedAccounts.length; i++) {
       const account = trackedAccounts[i];
-      // Skip if account PUUID or platform is missing
       if (!account.puuid || !account.platformId) {
         setUpdateProgress(`Skipped ${account.name}#${account.tag} (missing PUUID/Platform). (${i + 1}/${trackedAccounts.length})`);
         continue;
@@ -282,50 +252,44 @@ function MatchHistoryPage() {
       setUpdateProgress(`Updating ${account.name}#${account.tag} (${i + 1}/${trackedAccounts.length})...`);
       try {
         const continentalRoute = getContinentalRoute(account.platformId);
-        // Fetch match IDs for the account
         const matchlistUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/by-puuid/${account.puuid}/ids?startTime=${twoWeeksAgoEpochSeconds}&queue=${QUEUE_IDS.RANKED_SOLO}&count=${MATCH_COUNT_PER_FETCH}&api_key=${RIOT_API_KEY}`;
-        await delay(API_CALL_DELAY_MS); // Respect API rate limits
+        await delay(API_CALL_DELAY_MS); 
         const response = await fetch(matchlistUrl);
 
         if (!response.ok) {
             const errData = await response.json().catch(() => ({ message: "Unknown Riot API error (fetching match IDs)" }));
             console.error(`Riot API error for ${account.name} (Match IDs): ${response.status}`, errData);
             setError(`Error for ${account.name} (IDs): ${errData.status?.message || response.statusText}`);
-            continue; // Move to next account on error
+            continue; 
         }
         const matchIdsFromApi = await response.json();
         if (matchIdsFromApi.length === 0) {
             setUpdateProgress(`No new API matches for ${account.name}#${account.tag}. (${i + 1}/${trackedAccounts.length})`);
             await db.trackedAccounts.update(account.id, { lastUpdated: new Date().getTime() });
-            continue; // No new matches for this account
+            continue; 
         }
 
         setUpdateProgress(`Found ${matchIdsFromApi.length} recent IDs for ${account.name}. Checking & fetching...`);
         let newMatchesProcessedForThisAccount = 0;
 
-        // Process each fetched match ID
         for (const matchId of matchIdsFromApi) {
-          // Limit the number of match details fetched per account in one update cycle
           if (newMatchesProcessedForThisAccount >= MATCH_DETAILS_TO_PROCESS_PER_ACCOUNT_UPDATE) break;
 
-          const existingMatch = await db.matches.get(matchId); // Check if match already in DB
-          // Determine if timeline data needs to be fetched (new match or existing match missing timeline)
+          const existingMatch = await db.matches.get(matchId); 
           const needsTimelineFetch = !existingMatch || !existingMatch.rawTimelineFrames || existingMatch.rawTimelineFrames.length === 0;
 
-          // Skip if match exists and has timeline data already
           if (existingMatch && !needsTimelineFetch) {
-            // console.log(`Match ${matchId} for ${account.name} already exists with timeline. Skipping detail fetch.`);
             continue;
           }
           
           setUpdateProgress(`Fetching details: ${matchId} for ${account.name}...`);
-          await delay(API_CALL_DELAY_MS); // Rate limit delay
+          await delay(API_CALL_DELAY_MS); 
           const matchDetailUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${RIOT_API_KEY}`;
           const detailResponse = await fetch(matchDetailUrl);
 
           if (!detailResponse.ok) {
             console.warn(`Failed to fetch details for ${matchId}. Status: ${detailResponse.status}`);
-            continue; // Skip this match on error
+            continue; 
           }
           const matchDetail = await detailResponse.json();
 
@@ -335,17 +299,16 @@ function MatchHistoryPage() {
               const versionParts = versionString.split('.');     
               
               if (versionParts.length >= 2) {
-                  gameSpecificPatch = `${versionParts[0]}.${versionParts[1]}`; // Should be "14.9"
+                  gameSpecificPatch = `${versionParts[0]}.${versionParts[1]}`; 
               } else {
                   gameSpecificPatch = versionString; 
               }
           }
 
-          // Fetch timeline data if needed
           let currentRawTimelineFrames = existingMatch?.rawTimelineFrames || [];
           if (needsTimelineFetch) {
             setUpdateProgress(`Fetching timeline: ${matchId}...`);
-            await delay(API_CALL_DELAY_MS); // Rate limit delay
+            await delay(API_CALL_DELAY_MS); 
             const timelineUrl = `https://${continentalRoute}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline?api_key=${RIOT_API_KEY}`;
             const timelineResponse = await fetch(timelineUrl);
             if (timelineResponse.ok) {
@@ -353,82 +316,68 @@ function MatchHistoryPage() {
               currentRawTimelineFrames = timelineJson.info?.frames || [];
             } else {
               console.warn(`Failed to fetch timeline for ${matchId}. Status: ${timelineResponse.status}`);
-              // Continue without timeline if fetch fails, but log it
             }
           }
 
-          // Find the participant data for the tracked player
           const playerParticipant = matchDetail.info.participants.find(p => p.puuid === account.puuid);
           if (playerParticipant) {
-            // Find opponent for laning phase comparison if applicable
             let opponentParticipant = null;
             let opponentParticipantIdForTimeline = null;
-            if (playerParticipant.teamPosition && playerParticipant.teamPosition !== '') { // Ensure role is defined
+            if (playerParticipant.teamPosition && playerParticipant.teamPosition !== '') { 
                 opponentParticipant = matchDetail.info.participants.find(p => p.teamId !== playerParticipant.teamId && p.teamPosition === playerParticipant.teamPosition);
             }
-            if (opponentParticipant) opponentParticipantIdForTimeline = matchDetail.info.participants.findIndex(p => p.puuid === opponentParticipant.puuid) + 1; // Participant IDs are 1-indexed for timeline
+            if (opponentParticipant) opponentParticipantIdForTimeline = matchDetail.info.participants.findIndex(p => p.puuid === opponentParticipant.puuid) + 1; 
             const playerParticipantIdForTimeline = matchDetail.info.participants.findIndex(p => p.puuid === playerParticipant.puuid) + 1;
 
-            // Process raw timeline data to extract meaningful stats
             const processedTimeline = processTimelineData(currentRawTimelineFrames, playerParticipantIdForTimeline, opponentParticipantIdForTimeline, matchDetail.info.gameDuration);
 
-            // Prepare match data for storage in Dexie
             const matchDataToStore = {
               matchId: matchDetail.metadata.matchId,
-              trackedAccountDocId: account.id, // Link to the tracked account's Dexie ID
+              trackedAccountDocId: account.id, 
               gameCreation: matchDetail.info.gameCreation, gameDuration: matchDetail.info.gameDuration,
               gameMode: matchDetail.info.gameMode, queueId: matchDetail.info.queueId,
               gamePatchVersion: gameSpecificPatch,
-              platformId: account.platformId, // Store platform for context
-              puuid: account.puuid, // Store player's PUUID for reference
-              // Player-specific stats
+              platformId: account.platformId, 
+              puuid: account.puuid, 
               win: playerParticipant.win, championName: playerParticipant.championName,
               championId: playerParticipant.championId, championLevel: playerParticipant.champLevel,
               teamPosition: playerParticipant.teamPosition,
               kills: playerParticipant.kills, deaths: playerParticipant.deaths, assists: playerParticipant.assists,
               totalMinionsKilled: playerParticipant.totalMinionsKilled, neutralMinionsKilled: playerParticipant.neutralMinionsKilled,
               goldEarned: playerParticipant.goldEarned,
-              // Items and spells
               item0: playerParticipant.item0, item1: playerParticipant.item1, item2: playerParticipant.item2,
               item3: playerParticipant.item3, item4: playerParticipant.item4, item5: playerParticipant.item5, item6: playerParticipant.item6,
               summoner1Id: playerParticipant.summoner1Id, summoner2Id: playerParticipant.summoner2Id,
-              perks: playerParticipant.perks, // Store the full perks object
-              // Opponent info
+              perks: playerParticipant.perks, 
               opponentChampionName: opponentParticipant ? opponentParticipant.championName : null,
-              // User-added notes and goals (preserve if match was already partially stored)
               notes: existingMatch?.notes || "", goals: existingMatch?.goals || "", rating: existingMatch?.rating || null,
-              // Full participant and team data for detailed view
               allParticipants: matchDetail.info.participants.map(p => ({ puuid: p.puuid, summonerName: p.summonerName, riotIdGameName: p.riotIdGameName, riotIdTagline: p.riotIdTagline, championName: p.championName, champLevel: p.champLevel, teamId: p.teamId, teamPosition: p.teamPosition, kills: p.kills, deaths: p.deaths, assists: p.assists, totalMinionsKilled: p.totalMinionsKilled, neutralMinionsKilled: p.neutralMinionsKilled, goldEarned: p.goldEarned, totalDamageDealtToChampions: p.totalDamageDealtToChampions, visionScore: p.visionScore, wardsPlaced: p.wardsPlaced, wardsKilled: p.wardsKilled, visionWardsBoughtInGame: p.visionWardsBoughtInGame, item0: p.item0, item1: p.item1, item2: p.item2, item3: p.item3, item4: p.item4, item5: p.item5, item6: p.item6, summoner1Id: p.summoner1Id, summoner2Id: p.summoner2Id, perks: p.perks })),
               teamObjectives: matchDetail.info.teams.map(t => ({ teamId: t.teamId, win: t.win, objectives: t.objectives })),
-              // Processed and raw timeline data
               processedTimelineForTrackedPlayer: processedTimeline,
               rawTimelineFrames: currentRawTimelineFrames,
             };
-            await db.matches.put(matchDataToStore); // Add or update match in Dexie
+            await db.matches.put(matchDataToStore); 
             
-            // Prepare match for immediate display in the UI
             const matchForDisplay = {
                 ...matchDataToStore,
                 trackedAccountName: `${account.name}#${account.tag}`,
                 trackedAccountPlatform: account.platformId,
-                isNew: true // Flag for animation
+                isNew: true 
             };
 
-            // Update local state with the new/updated match
             setAllMatchesFromDb(prevMatches => {
-                const newMatchesList = prevMatches.filter(m => m.matchId !== matchForDisplay.matchId); // Remove old version if exists
-                newMatchesList.push(matchForDisplay); // Add the new/updated match
-                newMatchesList.sort((a, b) => (b.gameCreation || 0) - (a.gameCreation || 0)); // Re-sort
+                const newMatchesList = prevMatches.filter(m => m.matchId !== matchForDisplay.matchId); 
+                newMatchesList.push(matchForDisplay); 
+                newMatchesList.sort((a, b) => (b.gameCreation || 0) - (a.gameCreation || 0)); 
                 return newMatchesList;
             });
 
-            if (!existingMatch || needsTimelineFetch) { // Count if it's genuinely new or updated with timeline
+            if (!existingMatch || needsTimelineFetch) { 
                 totalNewMatchesActuallyStoredThisSession++;
             }
             newMatchesProcessedForThisAccount++;
           }
         }
-        // Update lastUpdated timestamp for the account in Dexie
         await db.trackedAccounts.update(account.id, { lastUpdated: new Date().getTime() });
       } catch (err) {
         console.error(`Error processing account ${account.name}#${account.tag}:`, err);
@@ -440,11 +389,9 @@ function MatchHistoryPage() {
   };
 
 
-  // Handlers for notes panel
   const handleOpenNotes = (match) => { setSelectedMatchForNotes(match); };
   const handleCloseNotes = () => { setSelectedMatchForNotes(null); };
 
-  // Save notes and goals to Dexie and update local state
   const handleSaveNotes = async (matchIdToSave, newNotes, newGoals) => {
     if (!selectedMatchForNotes || !matchIdToSave) {
       setError("Error: Cannot save notes. Missing match data.");
@@ -453,11 +400,9 @@ function MatchHistoryPage() {
     setIsSavingNotes(true);
     try {
       await db.matches.update(matchIdToSave, { notes: newNotes, goals: newGoals });
-      // Update the match in the local state
       setAllMatchesFromDb(prevMatches => prevMatches.map(m =>
         m.matchId === matchIdToSave ? { ...m, notes: newNotes, goals: newGoals, isNew: false } : m
       ));
-      // Update the selected match if it's the one being edited
       setSelectedMatchForNotes(prev => prev && prev.matchId === matchIdToSave ? {...prev, notes: newNotes, goals: newGoals} : prev);
     } catch (err) {
       console.error("Error saving notes to Dexie:", err);
@@ -466,17 +411,13 @@ function MatchHistoryPage() {
     finally { setIsSavingNotes(false); }
   };
 
-  // Handler for page changes in pagination
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    setExpandedMatchId(null); // Collapse any expanded match when changing page
+    setExpandedMatchId(null); 
   };
 
-  // Helper functions to get DDragon image URLs
-  // Memoizing these could be beneficial if championData/ddragonVersion don't change often relative to re-renders
   const getChampionInfo = (championKeyApi) => {
     if (!championData || !championKeyApi) return { displayName: championKeyApi, imageName: championKeyApi + ".png", ddragonId: championKeyApi };
-    // Handle common DDragon naming inconsistencies (e.g., Fiddlesticks)
     let ddragonKeyToLookup = championKeyApi === "Fiddlesticks" ? "FiddleSticks" : championKeyApi;
     const championInfo = championData[ddragonKeyToLookup] || Object.values(championData).find(c => c.id.toLowerCase() === championKeyApi.toLowerCase());
     return championInfo ? { displayName: championInfo.name, imageName: championInfo.image.full, ddragonId: championInfo.id } : { displayName: championKeyApi, imageName: championKeyApi + ".png", ddragonId: championKeyApi };
@@ -486,29 +427,22 @@ function MatchHistoryPage() {
   const getItemImage = (itemId) => !itemId || !ddragonVersion || itemId === 0 ? null : `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/item/${itemId}.png`;
   const getSummonerSpellImage = (spellId) => !spellId || !ddragonVersion || !summonerSpellsMap[spellId] ? null : `https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/spell/${summonerSpellsMap[spellId].image.full}`;
   
-  // Get rune image URL from the flat runesMap
   const getRuneImage = (runeId) => {
-    // Ensure all necessary data is available before attempting to construct URL
     if (!runeId || !ddragonVersion || Object.keys(runesMap).length === 0) {
-        // console.log("getRuneImage: Called with no runeId, or ddragonVersion/runesMap not ready.", { runeId, ddragonVersionReady: !!ddragonVersion, runesMapReady: Object.keys(runesMap).length > 0 });
-        return null; // Return null if data is missing
+        return null; 
     }
-    const runeInfo = runesMap[runeId]; // Lookup rune by its ID in the flat map
+    const runeInfo = runesMap[runeId]; 
     if (!runeInfo || !runeInfo.icon) {
         console.warn(`Rune data or icon missing in runesMap for ID: ${runeId}. RuneInfo from map:`, runeInfo);
-        return null; // Return null if icon path is missing
+        return null; 
     }
     return `https://ddragon.leagueoflegends.com/cdn/img/${runeInfo.icon}`;
   };
 
-
-  // Toggle expanded state for a match item
   const toggleExpandMatch = (matchIdToToggle) => {
     setExpandedMatchId(prevId => (prevId === matchIdToToggle ? null : matchIdToToggle));
   };
 
-
-  // Render error if Riot API key is missing
   if (!RIOT_API_KEY && !error.includes("Configuration Error")) {
       return (
           <div className="p-4 sm:p-6 md:p-8 text-gray-100 flex flex-col items-center justify-center h-full">
@@ -519,40 +453,40 @@ function MatchHistoryPage() {
       );
   }
 
-  return (
-    <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]"> {/* Main container for match history and notes panel */}
-        {/* Match List Section */}
-        <div
-            ref={matchListContainerRef} // Ref for scrolling
-            className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto h-full
-                        ${selectedMatchForNotes ? 'w-full md:w-3/5 lg:w-2/3 xl:w-3/4' : 'w-full'}`} // Adjust width when notes panel is open
-        >
-            {/* Header with Update All button */}
-            <header className="mb-6 mt-4 px-4 sm:px-6 md:px-8 flex justify-end items-center">
-                <button
-                onClick={handleUpdateAllMatches}
-                // Disable button during updates, account loading, or if no accounts/DDragon data
-                disabled={isUpdatingAllMatches || isLoadingAccounts || trackedAccounts.length === 0 || !ddragonVersion || !championData || Object.keys(runesMap).length === 0}
-                className="bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed transition-opacity min-w-[150px]"
-                >
-                {isUpdatingAllMatches ? <Loader2 size={20} className="animate-spin mr-2" /> : <RefreshCw size={18} className="mr-2" />}
-                Update All
-                </button>
-            </header>
+  const matchesForSummary = useMemo(() => {
+    return allMatchesFromDb.slice(0, GAMES_FOR_SUMMARY_PROP);
+  }, [allMatchesFromDb]);
 
-            {/* Update progress and error messages */}
-            {isUpdatingAllMatches && updateProgress && (
-                <div className="mb-4 p-3 bg-sky-900/50 text-sky-300 border border-sky-700/50 rounded-md text-sm text-center max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
-                <p>{updateProgress}</p>
-                </div>
-            )}
-            {error && (
+  return (
+    <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]"> 
+        <div
+            ref={matchListContainerRef} 
+            className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto h-full
+                        ${selectedMatchForNotes ? 'w-full md:w-3/5 lg:w-2/3 xl:w-3/4' : 'w-full'}`} 
+        >
+            {/* Match History Header (Summary, Update Button, Filters placeholder) */}
+            <MatchHistoryHeader
+                matches={matchesForSummary}
+                championData={championData}
+                getChampionImage={getChampionImage}
+                getChampionDisplayName={getChampionDisplayName}
+                handleUpdateAllMatches={handleUpdateAllMatches}
+                isUpdatingAllMatches={isUpdatingAllMatches}
+                isLoadingAccounts={isLoadingAccounts}
+                trackedAccounts={trackedAccounts}
+                ddragonVersion={ddragonVersion}
+                runesMap={runesMap}
+                updateProgress={updateProgress}
+                gamesForSummaryCount={GAMES_FOR_SUMMARY_PROP}
+            />
+            
+            {/* Error messages specific to match list loading, not general update progress */}
+            {error && !isUpdatingAllMatches && ( // Only show general page error if not in update mode
                 <div className="mb-6 p-4 bg-red-900/30 text-red-300 border border-red-700/50 rounded-md max-w-4xl mx-auto px-4 sm:px-6 md:px-8">
                 <p><AlertTriangle size={18} className="inline mr-2" />Error: {error}</p>
                 </div>
             )}
 
-            {/* Loading state for matches */}
             {(isLoadingMatches && !isUpdatingAllMatches && allMatchesFromDb.length === 0) && (
                 <div className="flex flex-col items-center justify-center p-10 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-gray-700/50 max-w-4xl mx-auto mt-8">
                 <Loader2 size={40} className="text-orange-500 animate-spin" />
@@ -560,7 +494,6 @@ function MatchHistoryPage() {
                 </div>
             )}
 
-            {/* Empty state when no matches are found */}
             {!isLoadingMatches && Object.keys(groupedMatches).length === 0 && !error && !isUpdatingAllMatches && (
                 <div className="text-center py-10 px-6 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-dashed border-gray-700/50 max-w-4xl mx-auto mt-8">
                     <ListChecks size={48} className="text-gray-600 mx-auto mb-4" />
@@ -570,20 +503,17 @@ function MatchHistoryPage() {
                 </div>
             )}
 
-            {/* Display grouped matches if available */}
             {!isLoadingMatches && Object.keys(groupedMatches).length > 0 && (
               <div className="space-y-3 max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pb-8">
                 {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
                   <div key={dateKey}>
-                    {/* Date header */}
-                    <h2 className="text-lg font-semibold text-orange-400 mb-3 pb-1.5 border-b border-gray-700/80">
+                    <h2 className="text-lg font-semibold text-gray-100 pb-1.5">
                         {dateKey}
                     </h2>
-                    {/* List of matches for this date */}
                     <div className="space-y-1">
                         {matchesOnDate.map(match => {
-                        const participantData = match; // Use the main match object which contains player-specific stats for the tracked player
-                        const isWin = typeof match.win === 'boolean' ? match.win : null; // Handle cases where win status might be undefined
+                        const participantData = match; 
+                        const isWin = typeof match.win === 'boolean' ? match.win : null; 
                         const kdaStringSpans = getKDAStringSpans(participantData);
                         const kdaRatio = getKDARatio(participantData);
                         const kdaColorClass = getKDAColorClass(participantData.kills, participantData.deaths, participantData.assists);
@@ -591,12 +521,10 @@ function MatchHistoryPage() {
                         const gameModeDisplay = formatGameMode(match.gameMode, match.queueId);
                         const gameDurationFormatted = formatGameDurationMMSS(match.gameDuration);
 
-                        // Prepare item image URLs
                         const itemsRow1 = [match.item0, match.item1, match.item2].map(id => getItemImage(id));
                         const itemsRow2 = [match.item3, match.item4, match.item5].map(id => getItemImage(id));
                         const trinketImg = getItemImage(match.item6);
 
-                        // Prepare summoner spell and rune image URLs
                         const summoner1Img = getSummonerSpellImage(match.summoner1Id);
                         const summoner2Img = getSummonerSpellImage(match.summoner2Id);
                         
@@ -605,7 +533,6 @@ function MatchHistoryPage() {
                         let primaryRuneImg = null;
                         let subStyleImgPath = null;
 
-                        // Safely access perk data and rune images
                         if (match.perks && match.perks.styles && Array.isArray(match.perks.styles) && Object.keys(runesMap).length > 0 && ddragonVersion) {
                             const primaryStyleInfo = match.perks.styles.find(s => s.description === 'primaryStyle');
                             const subStyleInfo = match.perks.styles.find(s => s.description === 'subStyle');
@@ -618,9 +545,9 @@ function MatchHistoryPage() {
                             }
 
                             if (subStyleInfo && subStyleInfo.style) {
-                                subStyleId = subStyleInfo.style; // This is the ID of the secondary tree itself
+                                subStyleId = subStyleInfo.style; 
                                 if (subStyleId) {
-                                   subStyleImgPath = getRuneImage(subStyleId); // Get image for the tree
+                                   subStyleImgPath = getRuneImage(subStyleId); 
                                 }
                             }
                         }
@@ -629,18 +556,15 @@ function MatchHistoryPage() {
                         const playerRoleIcon = match.teamPosition ? ROLE_ICON_MAP[match.teamPosition.toUpperCase()] : null;
                         const hasNotesOrGoals = (match.notes && match.notes.trim() !== '') || (match.goals && match.goals.trim() !== '');
 
-                        // Dynamic styling based on match result
                         const resultBgOverlayClass = isWin === null ? 'bg-gray-800/25' : (isWin ? 'bg-blue-900/20' : 'bg-red-900/20');
                         const expandButtonBgClass = isWin === null ? 'bg-gray-700/60 hover:bg-gray-600/80' : (isWin ? 'bg-blue-900/25 hover:bg-[#304A80]' : 'bg-red-900/25 hover:bg-[#582C3A]');
                         const isExpanded = expandedMatchId === match.matchId;
-                        const animationClass = match.isNew ? 'match-item-enter-active' : ''; // Animation for new items
+                        const animationClass = match.isNew ? 'match-item-enter-active' : ''; 
 
                         return (
                               <div key={match.matchId} className={`rounded-lg shadow-lg overflow-hidden group ${resultBgOverlayClass} ${animationClass}`}>
                                 <div className={`flex items-stretch ${isExpanded ? 'rounded-t-lg' : 'rounded-lg'} ${resultBgOverlayClass}`}>
-                                    {/* Main content of the match item */}
                                     <div className="flex flex-1 items-stretch p-3 ml-1">
-                                        {/* Column 1: Game Info & Account */}
                                         <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5">
                                             <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p>
                                             <div className="flex justify-start items-baseline w-full text-xs">
@@ -652,7 +576,6 @@ function MatchHistoryPage() {
                                             </div>
                                         </div>
 
-                                        {/* Column 2: Champion & Opponent */}
                                         <div className="flex items-center justify-center space-x-1.5 flex-shrink-0 mx-1">
                                             <div className="relative">
                                                 <img src={getChampionImage(match.championName)} alt={getChampionDisplayName(match.championName)} className="w-12 h-12 rounded-md border-2 border-gray-600 shadow-md" onError={(e) => { (e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.championName ? match.championName.substring(0,1) : '?'}`); }} />
@@ -665,18 +588,14 @@ function MatchHistoryPage() {
                                                 ) : ( <div className="w-12 h-12 bg-gray-700/50 rounded-md flex items-center justify-center border border-gray-600 shadow-md"> <ImageOff size={20} className="text-gray-500" /> </div> )}
                                             </div>
                                         </div>
-                                        <div className="w-px bg-gray-700/60 self-stretch mx-3"></div> {/* Vertical separator */}
-                                        {/* Column 3: Spells, Runes, Items */}
+                                        <div className="w-px bg-gray-700/60 self-stretch mx-3"></div> 
                                         <div className="flex items-center space-x-2 bg-gray-900/70 p-2 rounded-lg shadow-inner border border-gray-700/50 flex-shrink-0">
-                                            {/* Spells & Runes Column */}
                                             <div className="flex space-x-1">
-                                                {/* Summoner Spells */}
                                                 <div className="flex flex-col space-y-0.5">
                                                     <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner1Img ? <img src={summoner1Img} alt="Summoner Spell 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
                                                     <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner2Img ? <img src={summoner2Img} alt="Summoner Spell 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
                                                 </div>
-                                                {/* Runes */}
-                                                <div className="flex flex-col space-y-0.5"> {/* Rune images column */}
+                                                <div className="flex flex-col space-y-0.5"> 
                                                     <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50 p-0.5">
                                                         {primaryRuneImg ? (
                                                             <img src={primaryRuneImg} alt={runesMap[primaryPerkId]?.name || "Keystone"} className="w-full h-full object-contain" onError={(e) => { e.target.style.display = 'none'; const parent = e.target.parentNode; if(parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>'; }} />
@@ -689,7 +608,6 @@ function MatchHistoryPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {/* Items Column */}
                                             <div className="flex flex-col space-y-0.5">
                                                 <div className="flex space-x-0.5">
                                                     {itemsRow1.map((itemSrc, idx) => ( <div key={`item-r1-${idx}-${match.matchId}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {itemSrc ? <img src={itemSrc} alt={`Item ${idx+1}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div> ))}
@@ -697,47 +615,43 @@ function MatchHistoryPage() {
                                                 </div>
                                                 <div className="flex space-x-0.5">
                                                     {itemsRow2.map((itemSrc, idx) => ( <div key={`item-r2-${idx}-${match.matchId}`} className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {itemSrc ? <img src={itemSrc} alt={`Item ${idx+4}`} className="w-5 h-5 rounded-sm"/> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div> ))}
-                                                    <div className="w-6 h-6"></div> {/* Placeholder for alignment */}
+                                                    <div className="w-6 h-6"></div> 
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="w-px bg-gray-700/60 self-stretch mx-3"></div> {/* Vertical separator */}
-                                        {/* Column 4: KDA & CS */}
+                                        <div className="w-px bg-gray-700/60 self-stretch mx-3"></div> 
                                         <div className="flex flex-col justify-center flex-grow min-w-[100px] space-y-0.5">
                                             <p className="text-sm">{kdaStringSpans}</p>
                                             <p><span className={`text-xs ${kdaColorClass}`}>{kdaRatio}</span> <span className="text-[10px] text-gray-400 ml-1">KDA</span></p>
                                             <p className="text-gray-300 text-xs mt-0.5">{csString}</p>
                                         </div>
-                                        {/* Column 5: Notes & Expand */}
                                         <div className="flex items-center ml-auto pl-0.5">
                                             <button onClick={() => handleOpenNotes(match)} className={`p-1.5 rounded-md transition-all duration-150 shadow-sm hover:shadow-md flex items-center justify-center mr-2.5 w-auto h-auto ${hasNotesOrGoals ? 'bg-sky-600 hover:bg-sky-500 text-white' : 'bg-orange-600 hover:bg-orange-500 text-white'}`} title={hasNotesOrGoals ? "View/Edit Notes" : "Add Notes"}>
                                                 {hasNotesOrGoals ? <MessageSquare size={18} /> : <Edit size={18} />}
                                             </button>
                                         </div>
                                     </div>
-                                    {/* Expand/Collapse Button */}
                                     <button className={`flex items-center justify-center ${expandButtonBgClass} transition-colors w-8 cursor-pointer ${isExpanded ? 'rounded-tr-lg' : 'rounded-r-lg'}`} title={isExpanded ? "Collapse Details" : "Expand Details"} onClick={() => toggleExpandMatch(match.matchId)}>
                                         {isExpanded ? <ChevronUp size={18} className="text-gray-300 group-hover:text-orange-300"/> : <ChevronDown size={18} className="text-gray-400"/>}
                                     </button>
                                 </div>
-                                {/* Expanded Details Section */}
                                 {isExpanded && (
                                     <ExpandedMatchDetails
                                         match={match}
                                         ddragonVersion={ddragonVersion}
                                         championData={championData}
                                         summonerSpellsMap={summonerSpellsMap}
-                                        runesMap={runesMap} // Pass the flat map for general use
-                                        runesDataFromDDragon={runesDataFromDDragon} // Pass the structured data for the Runes tab
+                                        runesMap={runesMap} 
+                                        runesDataFromDDragon={runesDataFromDDragon} 
                                         getChampionImage={getChampionImage}
                                         getSummonerSpellImage={getSummonerSpellImage}
                                         getItemImage={getItemImage}
-                                        getRuneImage={getRuneImage} // Pass the corrected function
+                                        getRuneImage={getRuneImage} 
                                         getChampionDisplayName={getChampionDisplayName}
                                         isTrackedPlayerWin={isWin}
                                         roleIconMap={ROLE_ICON_MAP}
                                         roleOrder={ROLE_ORDER}
-                                        processTimelineDataForPlayer={processTimelineData} // Pass the utility function
+                                        processTimelineDataForPlayer={processTimelineData} 
                                     />
                                 )}
                             </div>
@@ -749,7 +663,6 @@ function MatchHistoryPage() {
               </div>
             )}
 
-            {/* Pagination Controls */}
             {!isLoadingMatches && totalPages > 1 && (
                 <PaginationControls
                     currentPage={currentPage}
@@ -759,12 +672,11 @@ function MatchHistoryPage() {
             )}
         </div>
 
-        {/* Match Notes Panel (if a match is selected) */}
         {selectedMatchForNotes && (
             <MatchNotesPanel
                 match={selectedMatchForNotes}
-                championData={championData} // Pass championData for display name
-                ddragonVersion={ddragonVersion} // Pass ddragonVersion if needed by panel
+                championData={championData} 
+                ddragonVersion={ddragonVersion} 
                 onSave={handleSaveNotes}
                 onClose={handleCloseNotes}
                 isLoading={isSavingNotes}
