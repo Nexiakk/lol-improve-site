@@ -152,7 +152,7 @@ const STAT_SHARD_ROWS = [
     [ 
         { id: 5008, name: 'Adaptive Force', iconName: 'StatModsAdaptiveForceIcon' },
         { id: 5010, name: 'Movement Speed', iconName: 'StatModsMovementSpeedIcon' }, 
-        { id: 5011, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon' }    
+        { id: 5001, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon' }    
     ],
     [ 
         { id: 5011, name: 'Base Health', iconName: 'StatModsHealthFlatIcon' }, 
@@ -459,13 +459,13 @@ const ExpandedMatchDetails = ({
         const renderRuneTreeDisplay = (tree, selectedPerkIds, isPrimaryTree) => {
             if (!tree) return null;
             const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4); // Secondary tree skips keystone slot for display
-            const runeImageSize = isPrimaryTree ? "w-8 h-8" : "w-7 h-7"; 
-            const keystoneImageSize = "w-10 h-10"; 
+            const runeImageSize = isPrimaryTree ? "w-7 h-7" : "w-6 h-6"; 
+            const keystoneImageSize = "w-9 h-9"; 
             const treeBorderColor = RUNE_TREE_COLORS[tree.id] || 'border-gray-500';
 
             return (
-                <div className={`flex flex-col items-center ${isPrimaryTree ? 'space-y-2.5' : 'space-y-1.5'} p-2 rounded-md`}> {/* Increased space-y for primary tree */}
-                    <div className="flex items-center space-x-2 mb-1">
+                <div className={`flex flex-col items-center ${isPrimaryTree ? 'space-y-2.5' : 'space-y-1.5'} rounded-md`}> {/* Increased space-y for primary tree */}
+                    <div className="flex items-center space-x-2 mb-2">
                         <img 
                             src={getRuneImage(tree.id)} 
                             alt={tree.name} 
@@ -477,10 +477,11 @@ const ExpandedMatchDetails = ({
                     {slotsToRender.map((slot, slotIndexInOriginalArray) => {
                         const isKeystoneRow = isPrimaryTree && slotIndexInOriginalArray === 0;
                         return (
-                            <div key={`${tree.id}-slot-${slotIndexInOriginalArray}`} className="flex justify-center space-x-1.5">
+                            <div key={`${tree.id}-slot-${slotIndexInOriginalArray}`} className="flex justify-center space-x-1">
                                 {slot.runes.map(rune => {
                                     const isActive = selectedPerkIds.includes(rune.id);
-                                    const currentRuneSize = isKeystoneRow ? keystoneImageSize : runeImageSize;
+                                    let currentRuneSize = isKeystoneRow ? keystoneImageSize : runeImageSize;
+                                    currentRuneSize = slot.runes.length >= 4 ? "w-8 h-8" : currentRuneSize;
                                     
                                     // Keystones (active) only get scaling and shadow, no border. Other active runes get border.
                                     // Non-active runes get grayscale and brightness filter, but full opacity.
@@ -523,19 +524,19 @@ const ExpandedMatchDetails = ({
             const selectedDefense = perks.statPerks?.defense;
         
             return (
-                <div className="flex flex-col items-center space-y-1 mt-1 pt-1 w-full rounded-md">
+                <div className="flex flex-col items-center space-y-1 mt-0.5 pt-1 w-full rounded-md">
                     {[
                         { options: STAT_SHARD_ROWS[0], selected: selectedOffense },
                         { options: STAT_SHARD_ROWS[1], selected: selectedFlex },
                         { options: STAT_SHARD_ROWS[2], selected: selectedDefense }
                     ].map((row, rowIndex) => (
-                        <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-1.5 items-center">
+                        <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-2.5 items-center">
                             {row.options.map(shard => {
                                 const isActive = shard.id === row.selected;
                                 const shardIconSrc = getStatShardImage(shard.iconName);
                                 const activeShardClasses = isActive 
                                     ? 'border-yellow-400 scale-105 opacity-100 border-2' // Added border-2 here as well
-                                    : 'border-transparent opacity-100 hover:opacity-100'; // Full opacity for non-active
+                                    : 'border-transparent opacity-100 hover:opacity-100 filter grayscale brightness-75'; // Full opacity for non-active
 
                                 return (
                                     <div 
@@ -547,10 +548,10 @@ const ExpandedMatchDetails = ({
                                             <img 
                                                 src={shardIconSrc} 
                                                 alt={shard.name} 
-                                                className="w-5 h-5 rounded-full ${isActive ? '' : 'filter grayscale brightness-75'}" // Grayscale for non-active shards
+                                                className="w-4 h-4 rounded-full" // Grayscale for non-active shards
                                             />
                                         ) : (
-                                            <div className="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center text-xs text-gray-400">?</div>
+                                            <div className="w-4 h-4 rounded-full bg-gray-600 flex items-center justify-center text-xs text-gray-400">?</div>
                                         )}
                                     </div>
                                 );
@@ -563,14 +564,15 @@ const ExpandedMatchDetails = ({
 
         return (
             <div className="bg-gray-800/40 p-2 sm:p-3 rounded-lg border border-gray-700/50">
-                <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base text-center uppercase">Runes</h4>
-                <div className="flex flex-col md:flex-row justify-between items-start gap-0.5 md:gap-1"> {/* Reduced gap between trees */}
-                    <div className="w-full md:w-3/5 lg:w-[55%]"> 
+                <div className="flex flex-col md:flex-row justify-center items-start gap-0.5 md:gap-10"> {/* (1) justify-center, (3) adjust gap as desired (e.g., md:gap-4) */}
+                    {/* Primary Tree Container */}
+                    <div className="w-full md:w-auto"> {/* (2) Change width to allow shrinking */}
                         {renderRuneTreeDisplay(primaryTree, selectedPrimaryPerkIds, true)}
                     </div>
-                    <div className="w-full md:w-2/5 lg:w-[45%] flex flex-col space-y-1"> 
+                    {/* Secondary Tree and Stat Shards Container */}
+                    <div className="w-full md:w-auto flex flex-col space-y-1"> {/* (2) Change width to allow shrinking */}
                         {secondaryTree && renderRuneTreeDisplay(secondaryTree, selectedSecondaryPerkIds, false)}
-                        <hr className="border-gray-700 my-1 w-11/12 mx-auto" /> {/* Separator line width reduced to match content better */}
+                        <hr className="border-gray-700 my-0.5 w-11/12 mx-auto" />
                         {renderStatShardsDisplay()}
                     </div>
                 </div>
@@ -722,9 +724,48 @@ const ExpandedMatchDetails = ({
                         </div>
                     </div>
                 </div>
-                
-                <RunesTabContent />
 
+                <div className="bg-gray-800/40 p-2 rounded-lg border border-gray-700/50 flex flex-col justify-center">
+                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base uppercase">Build Order</h4>
+                    {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
+                        <div className="flex flex-wrap items-start gap-x-0.5 gap-y-1"> 
+                            {Object.entries(groupedBuildOrder)
+                                .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB)) 
+                                .map(([minute, itemsInMinute], groupIndex, arr) => (
+                                    <React.Fragment key={`build-group-${minute}`}>
+                                        <div className="flex flex-col items-center">
+                                            <div className="flex items-center gap-x-0.5 h-5"> 
+                                                {itemsInMinute.map((itemEvent, itemIndex) => {
+                                                    const itemSrc = getItemImage(itemEvent.itemId);
+                                                    const isSold = itemEvent.type === 'sold';
+                                                    return itemSrc ? (
+                                                        <div key={`build-${minute}-${itemIndex}-${itemEvent.itemId}-${itemEvent.timestamp}`} className="relative">
+                                                            <img
+                                                                src={itemSrc}
+                                                                alt={`Item ${itemEvent.itemId}`}
+                                                                className={`w-6 h-6 rounded border ${isSold ? 'border-red-600/70 opacity-50' : 'border-gray-600'}`} 
+                                                                title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
+                                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                                            />
+                                                            {isSold && (
+                                                                <X size={8} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-500 stroke-[2px]" /> 
+                                                            )}
+                                                        </div>
+                                                    ) : null;
+                                                })}
+                                            </div>
+                                            <span className="text-[8px] text-gray-300 mt-0.5">{minute}m</span> 
+                                        </div>
+                                        {groupIndex < arr.length - 1 && ( 
+                                            <div className="flex items-center justify-center h-5 mx-0.5"> 
+                                                <ChevronRight size={16} className="text-gray-400" /> 
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                        </div>
+                    ) : <p className="text-gray-500 text-xs italic">Missing build order data.</p>}
+                </div>
 
                 <div className="bg-gray-800/40 p-1.5 rounded-lg border border-gray-700/50">
                     <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm ml-1 uppercase">Skill Order</h4>
@@ -789,48 +830,9 @@ const ExpandedMatchDetails = ({
                         <p className="text-gray-500 text-xs italic mt-1.5 ml-1">Missing skill order data.</p>
                     )}
                 </div>
+                
+                <RunesTabContent />
 
-                <div className="bg-gray-800/40 p-2 rounded-lg border border-gray-700/50 flex flex-col justify-center">
-                    <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base uppercase">Build Order</h4>
-                    {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
-                        <div className="flex flex-wrap items-start gap-x-0.5 gap-y-1"> 
-                            {Object.entries(groupedBuildOrder)
-                                .sort(([minA], [minB]) => parseInt(minA) - parseInt(minB)) 
-                                .map(([minute, itemsInMinute], groupIndex, arr) => (
-                                    <React.Fragment key={`build-group-${minute}`}>
-                                        <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-x-0.5 h-5"> 
-                                                {itemsInMinute.map((itemEvent, itemIndex) => {
-                                                    const itemSrc = getItemImage(itemEvent.itemId);
-                                                    const isSold = itemEvent.type === 'sold';
-                                                    return itemSrc ? (
-                                                        <div key={`build-${minute}-${itemIndex}-${itemEvent.itemId}-${itemEvent.timestamp}`} className="relative">
-                                                            <img
-                                                                src={itemSrc}
-                                                                alt={`Item ${itemEvent.itemId}`}
-                                                                className={`w-6 h-6 rounded border ${isSold ? 'border-red-600/70 opacity-50' : 'border-gray-600'}`} 
-                                                                title={`@ ${formatGameDurationMMSS(itemEvent.timestamp / 1000)} (${itemEvent.type})`}
-                                                                onError={(e) => { e.target.style.display = 'none'; }}
-                                                            />
-                                                            {isSold && (
-                                                                <X size={8} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-red-500 stroke-[2px]" /> 
-                                                            )}
-                                                        </div>
-                                                    ) : null;
-                                                })}
-                                            </div>
-                                            <span className="text-[8px] text-gray-300 mt-0.5">{minute}m</span> 
-                                        </div>
-                                        {groupIndex < arr.length - 1 && ( 
-                                            <div className="flex items-center justify-center h-5 mx-0.5"> 
-                                                <ChevronRight size={16} className="text-gray-400" /> 
-                                            </div>
-                                        )}
-                                    </React.Fragment>
-                                ))}
-                        </div>
-                    ) : <p className="text-gray-500 text-xs italic">Missing build order data.</p>}
-                </div>
             </div>
         );
     };
