@@ -15,10 +15,6 @@ import statModsHealthFlatIcon from '../assets/shards/StatModsHealthFlatIcon.webp
 import statModsMovementSpeedIcon from '../assets/shards/StatModsMovementSpeedIcon.webp';
 import statModsTenacityIcon from '../assets/shards/StatModsTenacityIcon.webp';
 import statModsHealthPlusIcon from '../assets/shards/StatModsHealthPlusIcon.webp';
-// Removed Armor and Magic Resist shard imports as per user feedback
-// import statModsArmorIcon from '../assets/shards/StatModsArmorIcon.webp';
-// import statModsMagicResIcon from '../assets/shards/StatModsMagicResIcon.webp';
-
 
 // --- OBJECTIVE ICONS ---
 const GrubIcon = ({ className = "" }) => (
@@ -142,10 +138,9 @@ const LOCAL_STAT_SHARD_ICONS = {
     StatModsAttackSpeedIcon: statModsAttackSpeedIcon,
     StatModsCDRScalingIcon: statModsCDRScalingIcon,
     StatModsHealthFlatIcon: statModsHealthFlatIcon,
-    StatModsMovementSpeedIcon: statModsMovementSpeedIcon, // Added
-    StatModsTenacityIcon: statModsTenacityIcon,           // Added
-    StatModsHealthPlusIcon: statModsHealthPlusIcon,       // Added
-    // Removed Armor and Magic Resist as per user feedback
+    StatModsMovementSpeedIcon: statModsMovementSpeedIcon, 
+    StatModsTenacityIcon: statModsTenacityIcon,           
+    StatModsHealthPlusIcon: statModsHealthPlusIcon,       
 };
 
 const STAT_SHARD_ROWS = [
@@ -156,22 +151,15 @@ const STAT_SHARD_ROWS = [
     ],
     [ 
         { id: 5008, name: 'Adaptive Force', iconName: 'StatModsAdaptiveForceIcon' },
-        // ID 5002 was Armor, now Movement Speed. Ensure this ID is correct for Movement Speed if it's different.
-        // For this example, I'm keeping ID 5002 but changing name and icon.
-        // Riot's actual IDs for these might be different. This is for display mapping.
-        { id: 5010, name: 'Movement Speed', iconName: 'StatModsMovementSpeedIcon' }, // Example ID, check actual
-        { id: 5011, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon' }    // Example ID, check actual
+        { id: 5010, name: 'Movement Speed', iconName: 'StatModsMovementSpeedIcon' }, 
+        { id: 5011, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon' }    
     ],
     [ 
         { id: 5011, name: 'Base Health', iconName: 'StatModsHealthFlatIcon' }, 
-        { id: 5009, name: 'Tenacity and Slow Resist', iconName: 'StatModsTenacityIcon' }, // Example ID
-        { id: 5001, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon'} // Re-using Health Scaling, ensure correct ID
+        { id: 5009, name: 'Tenacity and Slow Resist', iconName: 'StatModsTenacityIcon' }, 
+        { id: 5001, name: 'Health Scaling', iconName: 'StatModsHealthPlusIcon'} 
     ]
 ];
-// Note: The IDs (5002, 5003, 5010, 5011, 5009) in STAT_SHARD_ROWS for the flex and defense rows
-// might need to be adjusted to match the *actual* Riot API IDs for Movement Speed, Health Scaling, and Tenacity
-// if you are relying on these IDs for anything other than display mapping here.
-// The iconName is now the primary key for LOCAL_STAT_SHARD_ICONS.
 
 const getStatShardImage = (iconName) => {
     const localIcon = LOCAL_STAT_SHARD_ICONS[iconName];
@@ -182,7 +170,6 @@ const getStatShardImage = (iconName) => {
     return `https://placehold.co/20x20/1a1a1a/4a4a4a?text=${iconName ? iconName.substring(0,1) : 'S'}`;
 };
 
-// Rune Tree Colors for Borders
 const RUNE_TREE_COLORS = {
     8000: 'border-yellow-400', // Precision
     8100: 'border-red-500',   // Domination
@@ -281,6 +268,18 @@ const ExpandedMatchDetails = ({
     const maxDamageInGame = Math.max(...allParticipants.map(p => p.totalDamageDealtToChampions || 0), 0);
     const maxDamageBlueTeam = Math.max(0, ...blueTeam.map(p => p.totalDamageDealtToChampions || 0));
     const maxDamageRedTeam = Math.max(0, ...redTeam.map(p => p.totalDamageDealtToChampions || 0));
+
+    // --- PATCH NUMBER ---
+    const gamePatch = useMemo(() => {
+        if (!ddragonVersion) return 'N/A';
+        const parts = ddragonVersion.split('.');
+        if (parts.length >= 2) {
+            return `${parts[0]}.${parts[1]}`;
+        }
+        return ddragonVersion; // Fallback if format is unexpected
+    }, [ddragonVersion]);
+    // --- END PATCH NUMBER ---
+
 
     const renderPlayerRow = (player, teamTotalKills, isTopDamageInTeam, isTrackedPlayerRow) => {
         const items = [player.item0, player.item1, player.item2, player.item3, player.item4, player.item5];
@@ -392,21 +391,24 @@ const ExpandedMatchDetails = ({
 
         return (
             <div className="px-2 sm:px-3 py-2 mb-0 rounded-md">
-                <div className="flex items-center pb-1">
-                    <h3 className={`text-md sm:text-lg font-semibold ${teamColorForText}`}>
-                        {teamData.win ? 'Victory' : 'Defeat'}
-                        <span className="text-xs sm:text-sm text-gray-400 font-normal ml-1.5 mr-2 sm:mr-3">
-                            ({teamSide})
-                        </span>
-                    </h3>
-                    <div className="flex space-x-1.5 sm:space-x-2 items-center text-xs">
-                        <span title="Voidgrubs" className="flex items-center"><GrubIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.horde?.kills || 0}</span>
-                        <span title="Dragons" className="flex items-center"><DragonIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.dragon?.kills || 0}</span>
-                        <span title="Barons" className="flex items-center"><BaronIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.baron?.kills || 0}</span>
-                        <span title="Heralds" className="flex items-center"><HeraldIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.riftHerald?.kills || 0}</span>
-                        {teamData.objectives?.elderDragon?.kills > 0 && <span title="Elder Dragons" className="flex items-center"><ElderDragonIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives.elderDragon.kills || 0}</span>}
-                        <span title="Towers" className="flex items-center"><TowerIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.tower?.kills || 0}</span>
+                <div className="flex items-center justify-between pb-1"> {/* Changed to justify-between */}
+                    <div className="flex items-center"> {/* Group for left side elements */}
+                        <h3 className={`text-md sm:text-lg font-semibold ${teamColorForText}`}>
+                            {teamData.win ? 'Victory' : 'Defeat'}
+                            <span className="text-xs sm:text-sm text-gray-400 font-normal ml-1.5 mr-2 sm:mr-3">
+                                ({teamSide})
+                            </span>
+                        </h3>
+                        <div className="flex space-x-1.5 sm:space-x-2 items-center text-xs">
+                            <span title="Voidgrubs" className="flex items-center"><GrubIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.horde?.kills || 0}</span>
+                            <span title="Dragons" className="flex items-center"><DragonIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.dragon?.kills || 0}</span>
+                            <span title="Barons" className="flex items-center"><BaronIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.baron?.kills || 0}</span>
+                            <span title="Heralds" className="flex items-center"><HeraldIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.riftHerald?.kills || 0}</span>
+                            {teamData.objectives?.elderDragon?.kills > 0 && <span title="Elder Dragons" className="flex items-center"><ElderDragonIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives.elderDragon.kills || 0}</span>}
+                            <span title="Towers" className="flex items-center"><TowerIcon className={`${objectiveIconSize} mr-0.5`} /> {teamData.objectives?.tower?.kills || 0}</span>
+                        </div>
                     </div>
+                    <span className="text-xs text-gray-500 font-mono ml-auto pl-2">{gamePatch}</span> {/* Patch number added here */}
                 </div>
                 {team.map(player => renderPlayerRow(
                     player,
@@ -448,13 +450,13 @@ const ExpandedMatchDetails = ({
         
         const renderRuneTreeDisplay = (tree, selectedPerkIds, isPrimaryTree) => {
             if (!tree) return null;
-            const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4);
+            const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4); // Secondary tree skips keystone slot for display
             const runeImageSize = isPrimaryTree ? "w-8 h-8" : "w-7 h-7"; 
             const keystoneImageSize = "w-10 h-10"; 
-            const treeBorderColor = RUNE_TREE_COLORS[tree.id] || 'border-gray-500'; // Fallback border
+            const treeBorderColor = RUNE_TREE_COLORS[tree.id] || 'border-gray-500';
 
             return (
-                <div className={`flex flex-col items-center space-y-1.5 p-2 rounded-md`}> {/* Reduced space-y */}
+                <div className={`flex flex-col items-center ${isPrimaryTree ? 'space-y-2.5' : 'space-y-1.5'} p-2 rounded-md`}> {/* Increased space-y for primary tree */}
                     <div className="flex items-center space-x-2 mb-1">
                         <img 
                             src={getRuneImage(tree.id)} 
@@ -467,24 +469,34 @@ const ExpandedMatchDetails = ({
                     {slotsToRender.map((slot, slotIndexInOriginalArray) => {
                         const isKeystoneRow = isPrimaryTree && slotIndexInOriginalArray === 0;
                         return (
-                            <div key={`${tree.id}-slot-${slotIndexInOriginalArray}`} className="flex justify-center space-x-1.5"> {/* Reduced space-x */}
+                            <div key={`${tree.id}-slot-${slotIndexInOriginalArray}`} className="flex justify-center space-x-1.5">
                                 {slot.runes.map(rune => {
                                     const isActive = selectedPerkIds.includes(rune.id);
                                     const currentRuneSize = isKeystoneRow ? keystoneImageSize : runeImageSize;
-                                    const activeRuneClasses = isActive 
-                                        ? `${treeBorderColor} scale-105 shadow-md opacity-100` 
-                                        : 'border-transparent opacity-50 hover:opacity-90';
+                                    
+                                    // Keystones (active) only get scaling and shadow, no border. Other active runes get border.
+                                    // Non-active runes get grayscale and brightness filter, but full opacity.
+                                    let activeRuneClasses = '';
+                                    if (isActive) {
+                                        if (isKeystoneRow) {
+                                            activeRuneClasses = 'scale-105 shadow-md opacity-100'; // No border for active keystone
+                                        } else {
+                                            activeRuneClasses = `${treeBorderColor} scale-105 shadow-md opacity-100 border-2`; // Border for other active runes
+                                        }
+                                    } else {
+                                        activeRuneClasses = 'border-transparent opacity-100 hover:opacity-100'; // Full opacity for non-active
+                                    }
                                     
                                     return (
                                         <div 
                                             key={rune.id} 
-                                            className={`relative p-0.5 rounded-full transition-all duration-150 border-2 ${activeRuneClasses}`}
+                                            className={`relative p-0 rounded-full transition-all duration-150 ${activeRuneClasses}`} // p-0 for direct border
                                             title={runesMap[rune.id]?.name || rune.name}
                                         >
                                             <img 
                                                 src={getRuneImage(rune.id)} 
                                                 alt={runesMap[rune.id]?.name || rune.name} 
-                                                className={`${currentRuneSize} rounded-full ${isActive ? '' : 'filter grayscale brightness-75'}`}
+                                                className={`${currentRuneSize} rounded-full ${isActive ? '' : 'filter grayscale brightness-75'}`} // Grayscale for non-active
                                                 onError={(e) => { e.target.src = `https://placehold.co/32x32/1a1a1a/4a4a4a?text=${rune.name ? rune.name.substring(0,1) : 'R'}`; }}
                                             />
                                         </div>
@@ -503,32 +515,31 @@ const ExpandedMatchDetails = ({
             const selectedDefense = perks.statPerks?.defense;
         
             return (
-                <div className="flex flex-col items-center space-y-1 mt-1 pt-1 w-full rounded-md"> {/* Reduced margins/paddings */}
+                <div className="flex flex-col items-center space-y-1 mt-1 pt-1 w-full rounded-md">
                     {[
                         { options: STAT_SHARD_ROWS[0], selected: selectedOffense },
                         { options: STAT_SHARD_ROWS[1], selected: selectedFlex },
                         { options: STAT_SHARD_ROWS[2], selected: selectedDefense }
                     ].map((row, rowIndex) => (
-                        <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-1.5 items-center"> {/* Reduced space-x */}
+                        <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-1.5 items-center">
                             {row.options.map(shard => {
                                 const isActive = shard.id === row.selected;
                                 const shardIconSrc = getStatShardImage(shard.iconName);
-                                // Stat shards use a generic yellow border for active, or can be themed if desired
                                 const activeShardClasses = isActive 
-                                    ? 'border-yellow-400 scale-105 opacity-100' 
-                                    : 'border-transparent opacity-50 hover:opacity-90';
+                                    ? 'border-yellow-400 scale-105 opacity-100 border-2' // Added border-2 here as well
+                                    : 'border-transparent opacity-100 hover:opacity-100'; // Full opacity for non-active
 
                                 return (
                                     <div 
                                         key={shard.id}
-                                        className={`p-0.5 rounded-full transition-all duration-150 border-2 ${activeShardClasses}`}
+                                        className={`p-0 rounded-full transition-all duration-150 ${activeShardClasses}`} // p-0 for direct border
                                         title={shard.name}
                                     >
                                         {shardIconSrc ? (
                                             <img 
                                                 src={shardIconSrc} 
                                                 alt={shard.name} 
-                                                className="w-5 h-5 rounded-full" 
+                                                className="w-5 h-5 rounded-full ${isActive ? '' : 'filter grayscale brightness-75'}" // Grayscale for non-active shards
                                             />
                                         ) : (
                                             <div className="w-5 h-5 rounded-full bg-gray-600 flex items-center justify-center text-xs text-gray-400">?</div>
@@ -545,13 +556,13 @@ const ExpandedMatchDetails = ({
         return (
             <div className="bg-gray-800/40 p-2 sm:p-3 rounded-lg border border-gray-700/50">
                 <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-base text-center uppercase">Runes</h4>
-                <div className="flex flex-col md:flex-row justify-between items-start gap-1 md:gap-2"> {/* Reduced gap */}
-                    <div className="w-full md:w-3/5 lg:w-[55%]"> {/* Adjusted width for primary */}
+                <div className="flex flex-col md:flex-row justify-between items-start gap-0.5 md:gap-1"> {/* Reduced gap between trees */}
+                    <div className="w-full md:w-3/5 lg:w-[55%]"> 
                         {renderRuneTreeDisplay(primaryTree, selectedPrimaryPerkIds, true)}
                     </div>
-                    <div className="w-full md:w-2/5 lg:w-[45%] flex flex-col space-y-1"> {/* Reduced space-y */}
+                    <div className="w-full md:w-2/5 lg:w-[45%] flex flex-col space-y-1"> 
                         {secondaryTree && renderRuneTreeDisplay(secondaryTree, selectedSecondaryPerkIds, false)}
-                        <hr className="border-gray-700 my-1 w-3/4 mx-auto" /> {/* Separator line */}
+                        <hr className="border-gray-700 my-1 w-11/12 mx-auto" /> {/* Separator line width reduced to match content better */}
                         {renderStatShardsDisplay()}
                     </div>
                 </div>
@@ -858,4 +869,3 @@ const ExpandedMatchDetails = ({
 };
 
 export default ExpandedMatchDetails;
-
