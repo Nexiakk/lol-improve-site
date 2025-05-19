@@ -136,7 +136,7 @@ function MatchHistoryPage() {
 
     // Render
     if (!RIOT_API_KEY && !error.includes("Configuration Error")) { return ( <div className="p-4 sm:p-6 md:p-8 text-gray-100 flex flex-col items-center justify-center h-full"> <AlertTriangle size={48} className="text-red-500 mb-4" /> <h2 className="text-2xl font-semibold text-red-400 mb-2">Configuration Error</h2> <p className="text-gray-300 text-center max-w-md"> Riot API Key is missing. </p> </div> ); }
-    const summaryMatches = useMemo(() => { return filteredMatches.slice(0, GAMES_FOR_SUMMARY_PROP); }, [filteredMatches]);
+    const summaryMatches = useMemo(() => { return filteredMatches; }, [filteredMatches]);
 
     return (
         <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]">
@@ -178,7 +178,22 @@ function MatchHistoryPage() {
                 </div>
 
                 {(isLoadingMatches && !isUpdatingAllMatches && allMatchesFromDb.length === 0) && ( <div className="flex flex-col items-center justify-center p-10 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-gray-700/50 max-w-4xl mx-auto mt-8"> <Loader2 size={40} className="text-orange-500 animate-spin" /> <p className="text-gray-300 mt-4 text-lg">Loading matches...</p> </div> )}
-                {!isLoadingMatches && Object.keys(groupedMatches).length === 0 && !error && !isUpdatingAllMatches && ( <div className="text-center py-10 px-6 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-dashed border-gray-700/50 max-w-4xl mx-auto mt-8 min-h-[180px] flex flex-col items-center justify-center"> <ListChecks size={48} className="text-gray-600 mx-auto mb-4" /> <p className="text-gray-400 text-lg"> {allMatchesFromDb.length > 0 && filteredMatches.length === 0 ? "No matches found for the current filters." : "No matches found."} </p> {allMatchesFromDb.length > 0 && filteredMatches.length === 0 && <p className="text-gray-500 text-sm">Try adjusting or clearing the filters.</p> } {allMatchesFromDb.length === 0 && <p className="text-gray-500 text-sm">Click "Update Matches" to fetch recent games, or add accounts on the 'Accounts' page.</p> } </div> )}
+                {!isLoadingMatches && Object.keys(groupedMatches).length === 0 && !error && !isUpdatingAllMatches && (
+                    <div className="max-w-4xl mx-auto w-full mt-8 px-4 sm:px-6 md:px-8"> {/* Outer wrapper for width, centering, and padding */}
+                        <div className="text-center py-10 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-dashed border-gray-700/50 min-h-[180px] flex flex-col items-center justify-center"> {/* Inner div for styling and content layout */}
+                            <ListChecks size={48} className="text-gray-600 mx-auto mb-4" />
+                            <p className="text-gray-400 text-lg">
+                                {allMatchesFromDb.length > 0 && filteredMatches.length === 0 ? "No matches found for the current filters." : "No matches found."}
+                            </p>
+                            {allMatchesFromDb.length > 0 && filteredMatches.length === 0 && (
+                                <p className="text-gray-500 text-sm">Try adjusting or clearing the filters.</p>
+                            )}
+                            {allMatchesFromDb.length === 0 && (
+                                <p className="text-gray-500 text-sm">Click "Update Matches" to fetch recent games, or add accounts on the 'Accounts' page.</p>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {!isLoadingMatches && Object.keys(groupedMatches).length > 0 && (
                     <div className="space-y-3 max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pb-8">

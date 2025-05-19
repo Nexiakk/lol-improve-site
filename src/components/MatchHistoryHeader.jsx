@@ -268,7 +268,81 @@ function MatchHistoryHeader({
   }, [showPreGameGoalSetter]);
 
   const calculateSingleGameKDA = (kills, deaths, assists) => { if (deaths === 0) return (kills > 0 || assists > 0) ? (kills + assists) * 2 : 0; return (kills + assists) / deaths; };
-  const summaryData = useMemo(() => { if (!filteredMatches || filteredMatches.length === 0) return { totalGames: 0, wins: 0, losses: 0, winrate: 0, avgKills: 0, avgDeaths: 0, avgAssists: 0, avgKDA: 0, topChampions: [] }; const recentMatches = filteredMatches.slice(0, gamesForSummaryCount); const totalGames = recentMatches.length; let wins = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0; const championStats = {}; recentMatches.forEach(match => { const player = match; if (player.win) wins++; totalKills += player.kills || 0; totalDeaths += player.deaths || 0; totalAssists += player.assists || 0; if (player.championName) { if (!championStats[player.championName]) championStats[player.championName] = { name: player.championName, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 }; championStats[player.championName].games++; if (player.win) championStats[player.championName].wins++; championStats[player.championName].kills += player.kills || 0; championStats[player.championName].deaths += player.deaths || 0; championStats[player.championName].assists += player.assists || 0; } }); const losses = totalGames - wins; const winrate = totalGames > 0 ? (wins / totalGames) * 100 : 0; const avgKills = totalGames > 0 ? totalKills / totalGames : 0; const avgDeaths = totalGames > 0 ? totalDeaths / totalGames : 0; const avgAssists = totalGames > 0 ? totalAssists / totalGames : 0; const avgKDA = calculateSingleGameKDA(avgKills, avgDeaths, avgAssists); const sortedChampions = Object.values(championStats).sort((a, b) => b.games - a.games).slice(0, 3).map(champ => ({ ...champ, winrate: champ.games > 0 ? (champ.wins / champ.games) * 100 : 0, kda: calculateSingleGameKDA(champ.kills / champ.games, champ.deaths / champ.games, champ.assists / champ.games) })); return { totalGames, wins, losses, winrate, avgKills, avgDeaths, avgAssists, avgKDA: typeof avgKDA === 'number' ? avgKDA.toFixed(1) : avgKDA, topChampions: sortedChampions }; }, [filteredMatches, gamesForSummaryCount, getChampionDisplayName, calculateSingleGameKDA]);
+  const summaryData = useMemo(() => {
+    if (!filteredMatches || filteredMatches.length === 0) { /* ... initial state ... */ }
+  
+    const isDateFilterActive = filters.dateRange && (filters.dateRange.startDate || filters.dateRange.endDate);
+    const matchesForSummaryCalc = isDateFilterActive ? filteredMatches : filteredMatches.slice(0, gamesForSummaryCount);
+  
+    const totalGames = matchesForSummaryCalc.length;
+    // ... rest of the calculation using matchesForSummaryCalc instead of recentMatches
+    // Ensure all variables like wins, totalKills, championStats, etc., are based on matchesForSummaryCalc
+  
+    // Example for totalGames:
+    // const totalGames = matchesForSummaryCalc.length; // Use this instead of recentMatches.length
+  
+    // ... (previous calculations for wins, totalKills, totalDeaths, totalAssists, championStats using matchesForSummaryCalc) ...
+  
+    let wins = 0, totalKills = 0, totalDeaths = 0, totalAssists = 0;
+    const championStats = {};
+    matchesForSummaryCalc.forEach(match => { // Use matchesForSummaryCalc here
+      const player = match; // Assuming match object directly contains player stats
+      if (player.win) wins++;
+      totalKills += player.kills || 0;
+      totalDeaths += player.deaths || 0;
+      totalAssists += player.assists || 0;
+      if (player.championName) {
+        if (!championStats[player.championName]) {
+          championStats[player.championName] = {
+            name: player.championName,
+            games: 0,
+            wins: 0,
+            kills: 0,
+            deaths: 0,
+            assists: 0
+          };
+        }
+        championStats[player.championName].games++;
+        if (player.win) championStats[player.championName].wins++;
+        championStats[player.championName].kills += player.kills || 0;
+        championStats[player.championName].deaths += player.deaths || 0;
+        championStats[player.championName].assists += player.assists || 0;
+      }
+    });
+  
+    const losses = totalGames - wins;
+    const winrate = totalGames > 0 ? (wins / totalGames) * 100 : 0;
+    const avgKills = totalGames > 0 ? totalKills / totalGames : 0;
+    const avgDeaths = totalGames > 0 ? totalDeaths / totalGames : 0;
+    const avgAssists = totalGames > 0 ? totalAssists / totalGames : 0;
+    const avgKDAValue = calculateSingleGameKDA(avgKills, avgDeaths, avgAssists); // calculateSingleGameKDA might need to be imported or defined
+    const avgKDA = typeof avgKDAValue === 'number' ? avgKDAValue.toFixed(1) : avgKDAValue;
+  
+    const sortedChampions = Object.values(championStats)
+      .sort((a, b) => b.games - a.games)
+      .slice(0, 3)
+      .map(champ => ({
+        ...champ,
+        winrate: champ.games > 0 ? (champ.wins / champ.games) * 100 : 0,
+        kda: calculateSingleGameKDA(
+               champ.games > 0 ? champ.kills / champ.games : 0,
+               champ.games > 0 ? champ.deaths / champ.games : 0,
+               champ.games > 0 ? champ.assists / champ.games : 0
+             )
+      }));
+  
+    return {
+      totalGames,
+      wins,
+      losses,
+      winrate,
+      avgKills,
+      avgDeaths,
+      avgAssists,
+      avgKDA,
+      topChampions: sortedChampions
+    };
+  }, [filteredMatches, gamesForSummaryCount, getChampionDisplayName, filters.dateRange]); // Add filters.dateRange to dependency array
   const getWinrateColor = (wr) => { if (wr >= 60) return 'text-green-400'; if (wr >= 50) return 'text-blue-400'; if (wr >= 40) return 'text-yellow-400'; return 'text-red-400'; };
   const getKDAColor = (kda) => { if (typeof kda === 'string' && kda.toLowerCase() === 'perfect') return 'text-yellow-400'; const kdaValue = parseFloat(kda); if (kdaValue >= 5) return 'text-green-400'; if (kdaValue >= 3) return 'text-blue-400'; if (kdaValue >= 1.5) return 'text-sky-400'; return 'text-gray-400'; };
   const updateButtonDisabled = isUpdatingAllMatches || isLoadingAccounts || (trackedAccounts && trackedAccounts.length === 0) || !ddragonVersion || !championData || !runesMap || Object.keys(runesMap).length === 0;
@@ -352,10 +426,12 @@ function MatchHistoryHeader({
         )}
       </div>
 
+
       {/* Summary Section */}
-      {summaryData.totalGames > 0 && ( <div className="max-w-4xl mx-auto bg-gray-800/60 backdrop-blur-md border border-gray-700/50 pt-3 pb-3 h-fit rounded-lg flex flex-col items-center justify-center gap-y-2 text-xs font-light text-gray-300 text-center shadow-xl mb-2 min-h-[180px]"> <div className="flex items-center gap-2 mx-auto"> <TrendingUp size={15} className="text-gray-400" /> <span className="text-xs text-gray-200 font-semibold"> {isAnyFilterActive ? `Filtered Performance (${summaryData.totalGames} Game${summaryData.totalGames === 1 ? '' : 's'})` : `Last ${summaryData.totalGames > gamesForSummaryCount ? gamesForSummaryCount : summaryData.totalGames} Games`} </span> </div> <div className="flex flex-col md:flex-row items-center justify-around w-full px-3 md:px-6 gap-5 md:gap-8"> <div className="relative min-h-[80px] min-w-[100px]"> <WinrateHalfRadialChart winrate={summaryData.winrate} wins={summaryData.wins} losses={summaryData.losses} radius={50} strokeWidth={10} /> </div> <div className="flex flex-col items-center md:items-start justify-center gap-2"> {summaryData.topChampions.map(champ => ( <div key={champ.name} className="flex gap-2.5 items-center text-sm font-semibold text-center w-full md:w-auto"> <img alt={getChampionDisplayName(champ.name)} loading="lazy" width="32" height="32" decoding="async" src={getChampionImage(champ.name)} className="w-8 h-8 scale-100 rounded-md object-cover border-2 border-gray-600 shadow-md" style={{ color: 'transparent' }} /> <div className="flex flex-col items-start opacity-90"> <div className="flex items-center gap-2"> <span className={`min-w-[32px] text-start font-bold text-xs ${getWinrateColor(champ.winrate)}`}>{champ.winrate.toFixed(0)}%</span> <span className="text-gray-400 text-xs">{champ.wins}W-{champ.games - champ.wins}L</span> </div> <span className="flex gap-1.5 items-center text-xs font-normal"> <span className={getKDAColor(champ.kda)}>{typeof champ.kda === 'number' ? champ.kda.toFixed(1) : champ.kda}</span> <span className="text-gray-400">KDA</span> </span> </div> </div> ))} </div> <div className="hidden lg:flex flex-col items-center justify-center h-full gap-2.5 min-w-[100px]"> <div className="flex flex-col font-semibold text-gray-300 text-sm items-center gap-1">Overall KDA <span className={`font-bold text-2xl ${getKDAColor(summaryData.avgKDA)}`}>{summaryData.avgKDA}</span></div> <div className="flex items-center gap-1.5 text-xs"> <span className="text-gray-100">{summaryData.avgKills.toFixed(1)}</span><span className="text-gray-500 font-light">/</span> <span className="text-red-400">{summaryData.avgDeaths.toFixed(1)}</span><span className="text-gray-500 font-light">/</span> <span className="text-gray-100">{summaryData.avgAssists.toFixed(1)}</span> </div> </div> </div> </div> )}
-      {summaryData.totalGames === 0 && filteredMatches && filteredMatches.length === 0 && allMatches && allMatches.length > 0 && ( <div className="max-w-4xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 h-fit rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-4 min-h-[180px] flex items-center justify-center">  No matches found for the current filters. Try adjusting or clearing them. </div> )}
-      {allMatches && allMatches.length === 0 && !isLoadingAccounts && ( <div className="max-w-4xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-4 min-h-[180px] flex items-center justify-center"> No matches found. Add accounts or click "Update Matches". </div> )}
+      {summaryData.totalGames > 0 && ( <div className="max-w-4xl mx-auto bg-gray-800/60 backdrop-blur-md border border-gray-700/50 pt-3 pb-3 h-[160px] rounded-lg flex flex-col items-center justify-center gap-y-2 text-xs font-light text-gray-300 text-center shadow-xl mb-2 min-h-[160px]"> <div className="flex items-center gap-2 mx-auto"> <TrendingUp size={15} className="text-gray-400" /> 
+      <span className="text-xs text-gray-200 font-semibold"> {isAnyFilterActive ? `Filtered Performance (${summaryData.totalGames} Game${summaryData.totalGames === 1 ? '' : 's'})` : `Last ${summaryData.totalGames > gamesForSummaryCount ? gamesForSummaryCount : summaryData.totalGames} Games Performance`} </span> </div> <div className="flex flex-col md:flex-row items-center justify-around w-full px-3 md:px-6 gap-5 md:gap-8"> <div className="relative min-h-[80px] min-w-[100px]"> <WinrateHalfRadialChart winrate={summaryData.winrate} wins={summaryData.wins} losses={summaryData.losses} radius={50} strokeWidth={10} /> </div> <div className="flex flex-col items-center md:items-start justify-center gap-2"> {summaryData.topChampions.map(champ => ( <div key={champ.name} className="flex gap-2.5 items-center text-sm font-semibold text-center w-full md:w-auto"> <img alt={getChampionDisplayName(champ.name)} loading="lazy" width="32" height="32" decoding="async" src={getChampionImage(champ.name)} className="w-8 h-8 scale-100 rounded-md object-cover border-2 border-gray-600 shadow-md" style={{ color: 'transparent' }} /> <div className="flex flex-col items-start opacity-90"> <div className="flex items-center gap-2"> <span className={`min-w-[32px] text-start font-bold text-xs ${getWinrateColor(champ.winrate)}`}>{champ.winrate.toFixed(0)}%</span> <span className="text-gray-400 text-xs">{champ.wins}W-{champ.games - champ.wins}L</span> </div> <span className="flex gap-1.5 items-center text-xs font-normal"> <span className={getKDAColor(champ.kda)}>{typeof champ.kda === 'number' ? champ.kda.toFixed(1) : champ.kda}</span> <span className="text-gray-400">KDA</span> </span> </div> </div> ))} </div> <div className="hidden lg:flex flex-col items-center justify-center h-full gap-2.5 min-w-[100px]"> <div className="flex flex-col font-semibold text-gray-300 text-sm items-center gap-1">Overall KDA <span className={`font-bold text-2xl ${getKDAColor(summaryData.avgKDA)}`}>{summaryData.avgKDA}</span></div> <div className="flex items-center gap-1.5 text-xs"> <span className="text-gray-100">{summaryData.avgKills.toFixed(1)}</span><span className="text-gray-500 font-light">/</span> <span className="text-red-400">{summaryData.avgDeaths.toFixed(1)}</span><span className="text-gray-500 font-light">/</span> <span className="text-gray-100">{summaryData.avgAssists.toFixed(1)}</span> </div> </div> </div> </div> )}
+      {summaryData.totalGames === 0 && filteredMatches && filteredMatches.length === 0 && allMatches && allMatches.length > 0 && ( <div className="max-w-4xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-2 h-[160px] flex items-center justify-center">  No matches found for the current filters. Try adjusting or clearing them. </div> )}
+      {allMatches && allMatches.length === 0 && !isLoadingAccounts && ( <div className="max-w-4xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg h-[160px] text-sm font-light text-gray-400 text-center shadow-lg mb-4 min-h-[160px] flex items-center justify-center"> No matches found. Add accounts or click "Update Matches". </div> )}
 
       {/* Top control bar */}
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 mb-1"> <div className="flex items-stretch relative"> <button onClick={() => handleUpdateAllMatches(updateFetchDates.startDate, updateFetchDates.endDate)} disabled={updateButtonDisabled} className={`bg-orange-600 hover:bg-orange-500 text-white font-semibold py-0 px-3 sm:px-4 rounded-l-lg shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed transition-opacity text-xs sm:text-sm ${controlElementHeightClass}`} style={{ minWidth: '100px' }} > {isUpdatingAllMatches ? <Loader2 size={18} className="animate-spin mr-1 sm:mr-2" /> : <RefreshCw size={16} className="mr-1 sm:mr-2" />} Update </button> <button id="advanced-update-toggle" onClick={() => setShowAdvancedUpdateOptions(prev => !prev)} className={`p-1.5 bg-orange-700 hover:bg-orange-800 rounded-r-lg text-gray-200 hover:text-white transition-colors flex items-center justify-center w-[34px] sm:w-[38px] flex-shrink-0 border-l border-orange-800/50 ${controlElementHeightClass}`} title={showAdvancedUpdateOptions ? "Hide Update Date Range" : "Show Update Date Range"} > {showAdvancedUpdateOptions ? <ChevronUp size={18} /> : <ChevronDown size={18} />} </button> {showAdvancedUpdateOptions && ( <div ref={advancedUpdateOptionsRef} className="absolute top-full left-0 mt-1 z-20 bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-700 w-auto min-w-[280px]"> <label htmlFor="updateDateRange" className="block text-xs text-gray-400 mb-1">Fetch Specific Date Range:</label> <DatePicker selectsRange startDate={updateFetchDates.startDate ? new Date(updateFetchDates.startDate) : null} endDate={updateFetchDates.endDate ? new Date(updateFetchDates.endDate) : null} onChange={handleUpdateFetchDateRangeChange} isClearable placeholderText="Select range for update..." dateFormat="yyyy/MM/dd" className={`${commonInputClass} w-full ${controlElementHeightClass}`} wrapperClassName="w-full" calendarClassName="react-datepicker-dark" popperPlacement="bottom-start" disabled={isUpdatingAllMatches} /> </div> )} </div> <div className="flex items-stretch rounded-lg shadow-sm"> <div className={`${controlElementHeightClass}`}> <RoleFilter selectedRole={filters.role} onRoleChange={handleRoleFilterChange} commonInputClass={commonInputClass} ROLE_ICON_MAP={ROLE_ICON_MAP} ROLE_ORDER={ROLE_ORDER} /> </div> <div className={`flex-grow w-[150px] sm:w-[180px] ${controlElementHeightClass}`}> <ChampionFilterWithSuggestions value={filters.champion} onChange={onFilterChange} availableChampions={availableChampions} getChampionDisplayName={getChampionDisplayName} getChampionImage={getChampionImage} commonInputClass={`${commonInputClass} rounded-none border-x-0`} /> </div> <button onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} className={`p-1.5 bg-gray-700/80 hover:bg-gray-600/80 rounded-r-lg text-gray-300 hover:text-orange-300 transition-colors flex items-center justify-center w-[34px] sm:w-[38px] flex-shrink-0 border border-gray-600 border-l-0 ${controlElementHeightClass}`} title={showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"} > <ListFilter size={18} /> </button> </div> </div>
