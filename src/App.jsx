@@ -3,11 +3,10 @@ import TopNavbar, { VIEWS } from './components/TopNavbar'; // Import VIEWS from 
 import AccountsPage from './components/AccountsPage';
 import MatchHistoryPage from './pages/MatchHistoryPage';
 import NotesGoalsCommandCenterPage from './pages/NotesGoalsCommandCenterPage'; // Import the new page
-import StatsPage from './pages/StatsPage';
 
 // Placeholder pages
 const DashboardPage = () => <div className="p-10 text-3xl text-white bg-gray-800 rounded-lg m-4">Dashboard Page Content</div>;
-// const StatsPage = () => <div className="p-10 text-3xl text-white bg-gray-800 rounded-lg m-4">Stats Page Content</div>;
+const StatsPage = () => <div className="p-10 text-3xl text-white bg-gray-800 rounded-lg m-4">Stats Page Content</div>;
 const VodReviewPage = () => <div className="p-10 text-3xl text-white bg-gray-800 rounded-lg m-4">VOD Review Page Content</div>;
 
 
