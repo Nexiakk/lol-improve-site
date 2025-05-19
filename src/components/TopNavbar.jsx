@@ -1,7 +1,6 @@
 // src/components/TopNavbar.jsx
 import React from 'react';
-import { History, Users, LayoutDashboard } from 'lucide-react'; // Adjusted icons
-// import { BarChart3, Clapperboard } from 'lucide-react'; // For future items
+import { History, Users, LayoutDashboard, NotebookText } from 'lucide-react'; // Added NotebookText
 
 // VIEWS constant should be imported from a shared location or defined here if not.
 // For now, let's assume App.jsx will pass the VIEWS object or handle it.
@@ -12,6 +11,7 @@ export const VIEWS = {
   STATS: 'STATS',
   VOD_REVIEW: 'VOD_REVIEW',
   MANAGE_ACCOUNTS: 'MANAGE_ACCOUNTS',
+  NOTES_GOALS_COMMAND_CENTER: 'NOTES_GOALS_COMMAND_CENTER', // New View
 };
 
 const NavItem = ({ icon: Icon, label, isActive, onClick }) => (
@@ -32,9 +32,10 @@ function TopNavbar({ currentView, setCurrentView }) {
   const navItems = [
     // { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: VIEWS.MATCH_HISTORY, label: 'Match History', icon: History },
+    { id: VIEWS.NOTES_GOALS_COMMAND_CENTER, label: 'Goals Hub', icon: NotebookText }, // New Nav Item
     // { id: VIEWS.STATS, label: 'Stats', icon: BarChart3 },
     // { id: VIEWS.VOD_REVIEW, label: 'VOD Review', icon: Clapperboard }, // Placeholder
-    { id: VIEWS.MANAGE_ACCOUNTS, label: 'Accounts', icon: Users }, // Shortened label for top nav
+    { id: VIEWS.MANAGE_ACCOUNTS, label: 'Accounts', icon: Users },
   ];
 
   const handleNavClick = (viewId) => {

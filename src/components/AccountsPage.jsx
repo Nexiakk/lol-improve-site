@@ -235,10 +235,6 @@ function AccountsPage() {
       style={backgroundStyle}
     >
       <div className="w-full max-w-2xl">
-        <header className="mb-12 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-orange-500 tracking-tight">Manage Accounts</h1>
-          <p className="text-gray-500 mt-3 text-lg">Add your League of Legends accounts to start tracking locally.</p>
-        </header>
 
         <section className="mb-8 bg-black/30 backdrop-blur-md p-6 sm:p-8 rounded-xl shadow-2xl border border-gray-700/50 max-w-md mx-auto">
           <h2 className="text-2xl sm:text-3xl font-semibold text-orange-400 mb-6 text-center sm:text-left">Add Account</h2>
