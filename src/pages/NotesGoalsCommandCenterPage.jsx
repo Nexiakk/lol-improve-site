@@ -10,8 +10,6 @@ const initialStats = {
   overallGoalAchievementRate: 0,
   averageGameRating: 0,
   averageMentalRating: 0,
-  commonPositiveTags: [],
-  commonMistakeTags: [],
   totalGamesWithGoalsSet: 0,
   totalGamesWithGameRating: 0,
   totalGamesWithMentalRating: 0,
@@ -81,7 +79,6 @@ function NotesGoalsCommandCenterPage() {
   const [pageError, setPageError] = useState(''); 
 
   const [stats, setStats] = useState(initialStats);
-  const [insights, setInsights] = useState([]); 
   const [nudges, setNudges] = useState([]);   
   const [isLoadingData, setIsLoadingData] = useState(true);
 
@@ -105,26 +102,21 @@ function NotesGoalsCommandCenterPage() {
   const isMatchReviewed = (match) => {
     return (
       (match.mainGoal && match.mainGoal.trim() !== '') ||
-      (match.actionableTakeaway && match.actionableTakeaway.trim() !== '') ||
-      (match.positiveMoment && match.positiveMoment.trim() !== '') ||
-      (match.keyMistake && match.keyMistake.trim() !== '') ||
       (match.generalNotes && match.generalNotes.trim() !== '') ||
       (match.gameRating !== null && match.gameRating > 0) || 
       (match.mentalRating !== null && match.mentalRating > 0)
     );
   };
 
-  const fetchDataAndInsightsAndNudges = useCallback(async () => {
+  const fetchDataAndNudges = useCallback(async () => {
     setIsLoadingData(true);
     setPageError('');
     try {
       const matches = await db.matches.orderBy('gameCreation').reverse().toArray();
-      const newInsights = [];
       const newNudges = [];
       
       if (matches.length === 0) {
         setStats(initialStats);
-        setInsights([]);
         setNudges([]);
         setIsLoadingData(false);
         return;
@@ -136,14 +128,6 @@ function NotesGoalsCommandCenterPage() {
       let countGameRating = 0;
       let sumMentalRating = 0;
       let countMentalRating = 0;
-      const positiveMomentsKeywords = {};
-      const keyMistakesKeywords = {};
-      const commonWordsToIgnore = new Set([
-        "the", "a", "an", "is", "was", "were", "be", "to", "of", "and", "in", "on", "at", "it", "my", "i", 
-        "that", "this", "for", "with", "not", "very", "good", "bad", "try", "like", "game", "play", "player",
-        "more", "less", "out", "up", "down", "all", "just", "too", "had", "have", "did", "do", "got", "get",
-        "well", "really", "felt", "make", "made", "next", "time", "one", "key", "main", "focus", "goal", "should", "could", "would"
-      ]);
       let currentNotesStreak = 0;
       let reviewedInLastY = 0;
       const lastYGamesCount = Math.min(matches.length, 20);
@@ -199,9 +183,6 @@ function NotesGoalsCommandCenterPage() {
                     .forEach(word => keywordMap[word] = (keywordMap[word] || 0) + 1);
             }
         };
-        extractKeywords(match.positiveMoment, positiveMomentsKeywords);
-        extractKeywords(match.keyMistake, keyMistakesKeywords);
-        extractKeywords(match.actionableTakeaway, keyMistakesKeywords);
       });
       
       const getTopKeywords = (keywordsObj, count = 1) => {
@@ -214,8 +195,6 @@ function NotesGoalsCommandCenterPage() {
         overallGoalAchievementRate: totalGoalsSetCount > 0 ? Math.round((achievedGoalsCount / totalGoalsSetCount) * 100) : 0,
         averageGameRating: countGameRating > 0 ? (sumGameRating / countGameRating) : 0,
         averageMentalRating: countMentalRating > 0 ? (sumMentalRating / countMentalRating) : 0,
-        commonPositiveTags: getTopKeywords(positiveMomentsKeywords, 3),
-        commonMistakeTags: getTopKeywords(keyMistakesKeywords, 3),
         totalGamesWithGoalsSet: totalGoalsSetCount,
         totalGamesWithGameRating: countGameRating,
         totalGamesWithMentalRating: countMentalRating,
@@ -225,24 +204,6 @@ function NotesGoalsCommandCenterPage() {
         reviewConsistencyData: dailyReviewCounts, 
       };
       setStats(calculatedStats);
-
-      // --- Generate Insights ---
-      if (countGameRatingHighMental > 2) {
-        const avgGameRatingWithHighMental = sumGameRatingHighMental / countGameRatingHighMental;
-        newInsights.push({text: `Your average game rating is ${avgGameRatingWithHighMental.toFixed(1)}/5 when your mental state is rated ${mentalThreshold} or higher.`, type: 'info'});
-      }
-      const sortedAchievedGoals = Object.entries(achievedGoalTitles).sort(([,a],[,b]) => b-a);
-      if (sortedAchievedGoals.length > 0 && sortedAchievedGoals[0][1] > 1) {
-        newInsights.push({text: `You most frequently achieve goals titled: "${sortedAchievedGoals[0][0]}".`, type: 'success'});
-      }
-      const topMistakeKeywords = getTopKeywords(keyMistakesKeywords, 1);
-      if (topMistakeKeywords.length > 0) {
-        newInsights.push({text: `A common learning point from your notes appears to be related to: "${topMistakeKeywords[0]}".`, type: 'warning'});
-      }
-      if (newInsights.length === 0 && matches.length > 5) {
-        newInsights.push({text: "Keep reviewing your games to unlock more personalized insights!", type: 'neutral'});
-      }
-      setInsights(newInsights);
 
       // --- Generate Nudges ---
       const unreviewedLastY = calculatedStats.lastYGamesTotal - calculatedStats.reviewedLastYGamesCount;
@@ -266,10 +227,9 @@ function NotesGoalsCommandCenterPage() {
 
 
     } catch (err) {
-      console.error("Error fetching/calculating data, insights & nudges:", err);
+      console.error("Error fetching/calculating data:", err);
       setPageError("Failed to calculate data. Please try refreshing.");
       setStats(initialStats);
-      setInsights([]);
       setNudges([]);
     } finally {
       setIsLoadingData(false);
@@ -277,8 +237,8 @@ function NotesGoalsCommandCenterPage() {
   }, []);
 
   useEffect(() => {
-    fetchDataAndInsightsAndNudges();
-  }, [fetchDataAndInsightsAndNudges]);
+    fetchDataAndNudges();
+  }, [fetchDataAndNudges]);
 
 
   const handleAddTemplate = async (templateData) => {
@@ -432,50 +392,7 @@ function NotesGoalsCommandCenterPage() {
                         <p className="text-2xl font-bold text-purple-400">{stats.averageMentalRating.toFixed(1)} / 5</p>
                         <p className="text-xs text-gray-400">({stats.totalGamesWithMentalRating} games rated)</p>
                     </div>
-                    <div className="bg-gray-700/30 p-3 rounded-md sm:col-span-1 xl:col-span-1">
-                        <h4 className="font-semibold text-orange-300 mb-1">Common Positives:</h4>
-                        {stats.commonPositiveTags.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {stats.commonPositiveTags.map(tag => <span key={tag} className="bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full text-xs">{tag}</span>)}
-                            </div>
-                        ) : <p className="text-xs text-gray-500 italic">Not enough data for tags.</p>}
-                    </div>
-                    <div className="bg-gray-700/30 p-3 rounded-md sm:col-span-2 xl:col-span-2">
-                        <h4 className="font-semibold text-orange-300 mb-1">Common Mistakes/Learnings:</h4>
-                        {stats.commonMistakeTags.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {stats.commonMistakeTags.map(tag => <span key={tag} className="bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full text-xs">{tag}</span>)}
-                            </div>
-                        ) : <p className="text-xs text-gray-500 italic">Not enough data for tags.</p>}
-                    </div>
                 </div>
-            </Section>
-
-            <Section title="Insight Summaries" icon={Lightbulb} isLoading={isLoadingData} error={pageError.includes("insights") ? pageError : ""}>
-                {insights.length > 0 ? (
-                <ul className="list-disc list-inside space-y-2">
-                    {insights.map((insight, index) => (
-                        <li key={index} 
-                            className={`p-2.5 rounded-md text-sm flex items-start
-                                ${insight.type === 'success' ? 'bg-green-800/30 text-green-300 border border-green-700/50' :
-                                insight.type === 'warning' ? 'bg-yellow-800/30 text-yellow-300 border border-yellow-700/50' :
-                                insight.type === 'info' ? 'bg-sky-800/30 text-sky-300 border border-sky-700/50' :
-                                'bg-gray-700/40 text-gray-300 border border-gray-600/50'}`}
-                        >
-                            <Lightbulb size={18} className={`mr-2.5 mt-0.5 flex-shrink-0 ${
-                                insight.type === 'success' ? 'text-green-400' :
-                                insight.type === 'warning' ? 'text-yellow-400' :
-                                insight.type === 'info' ? 'text-sky-400' : 'text-gray-400'
-                            }`} />
-                            {insight.text}
-                        </li>)
-                    )}
-                </ul>
-                ) : (
-                <p className="text-gray-500 text-sm italic">
-                    {isLoadingData ? "Generating insights..." : "Not enough data for insights yet. Keep reviewing your games!"}
-                </p>
-                )}
             </Section>
 
             <Section title="Gentle Nudges" icon={Zap} isLoading={isLoadingData} error={""}>
