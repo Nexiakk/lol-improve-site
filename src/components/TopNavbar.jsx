@@ -33,7 +33,7 @@ function TopNavbar({ currentView, setCurrentView }) {
     // { id: VIEWS.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: VIEWS.MATCH_HISTORY, label: 'Match History', icon: History },
     { id: VIEWS.NOTES_GOALS_COMMAND_CENTER, label: 'Goals Hub', icon: NotebookText }, // New Nav Item
-    // { id: VIEWS.STATS, label: 'Stats', icon: BarChart3 },
+    { id: VIEWS.STATS, label: 'Stats', icon: NotebookText },
     // { id: VIEWS.VOD_REVIEW, label: 'VOD Review', icon: Clapperboard }, // Placeholder
     { id: VIEWS.MANAGE_ACCOUNTS, label: 'Accounts', icon: Users },
   ];

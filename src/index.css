@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
 
 @theme {
   /* Kolory neonowe */
@@ -6,31 +6,27 @@
   --color-glow-red: #ff007f;
 
   /* Cienie neonowe */
-  --shadow-neon-blue: 0 0 7px var(--color-glow-blue),
-                      0 0 12px var(--color-glow-blue),
-                      0 0 18px var(--color-glow-blue);
+  --shadow-neon-blue: 0 0 7px var(--color-glow-blue), 0 0 12px var(--color-glow-blue), 0 0 18px var(--color-glow-blue);
 
-  --shadow-neon-red: 0 0 7px var(--color-glow-red),
-                     0 0 12px var(--color-glow-red),
-                     0 0 18px var(--color-glow-red);
+  --shadow-neon-red: 0 0 7px var(--color-glow-red), 0 0 12px var(--color-glow-red), 0 0 18px var(--color-glow-red);
 
-  --color-black-800: rgb(13,15,16);
-  --color-black-0: rgb(0,0,0);
+  --color-black-800: rgb(13, 15, 16);
+  --color-black-0: rgb(0, 0, 0);
 }
 
 @import "tailwindcss";
 
 body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   /* other body styles */
 }
 
 /* CSS Variables for Winrate Chart (can be adjusted) */
 :root {
---chart-wins-hsl: 200 98% 45%; /* Blueish for wins */
---chart-losses-bg-hsl: 0 0% 13%;   /* Dark gray for the background part of the ring */
-/* You can define more chart colors if needed for other charts */
-/* --chart-1-hsl: 210 40% 96.1%;
+  --chart-wins-hsl: 200 98% 45%; /* Blueish for wins */
+  --chart-losses-bg-hsl: 0 0% 13%; /* Dark gray for the background part of the ring */
+  /* You can define more chart colors if needed for other charts */
+  /* --chart-1-hsl: 210 40% 96.1%;
 --chart-2-hsl: 142.1 70.6% 45.3%;
 --chart-3-hsl: 0 84.2% 60.2%;
 --chart-4-hsl: 47.9 95.8% 53.1%;
@@ -39,39 +35,63 @@ body {
 
 /* Utility class for champion image clipping */
 .clip-inset-8 {
-clip-path: inset(8%);
+  clip-path: inset(8%);
 }
 
 /* Your existing neon styles and animations */
 .neon-bg-blue {
   background-color: hsl(var(--chart-wins-hsl)); /* Example usage */
-  box-shadow: 0 0 7px hsl(var(--chart-wins-hsl)),
-              0 0 12px hsl(var(--chart-wins-hsl)),
-              0 0 18px hsl(var(--chart-wins-hsl));
+  box-shadow: 0 0 7px hsl(var(--chart-wins-hsl)), 0 0 12px hsl(var(--chart-wins-hsl)), 0 0 18px hsl(var(--chart-wins-hsl));
 }
 
 .neon-bg-red {
   background-color: #ff007f; /* Example red */
-  box-shadow: 0 0 7px #ff007f,
-              0 0 12px #ff007f,
-              0 0 18px #ff007f;
+  box-shadow: 0 0 7px #ff007f, 0 0 12px #ff007f, 0 0 18px #ff007f;
 }
 
 .tracked-player-highlight {
-background-image: linear-gradient(to right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
 }
 
 @keyframes fadeInSlideDown {
-0% {
-  opacity: 0;
-  transform: translateY(-20px) scale(0.95);
-}
-100% {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .match-item-enter-active {
-animation: fadeInSlideDown 0.5s ease-out forwards;
+  animation: fadeInSlideDown 0.5s ease-out forwards;
+}
+
+/* scrollbar custom */
+
+/* For WebKit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px; /* Width of the entire scrollbar */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1f2937; /* Same as bg-gray-800. This is the track behind the thumb. */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #4b5563; /* A medium gray (gray-600). This is the draggable part. */
+  border-radius: 10px;
+  border: 2px solid #1f2937; /* Creates padding around the thumb */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #f97316; /* Orange-500 on hover, matching your active state color. */
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #1f2937; /* thumb-color track-color */
 }
