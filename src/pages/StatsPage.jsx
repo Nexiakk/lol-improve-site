@@ -12,6 +12,103 @@ import { ROLE_ICON_MAP, ROLE_ORDER } from "../pages/MatchHistoryPage";
 import "react-datepicker/dist/react-datepicker.css";
 // import './react-datepicker-dark.css';
 
+const getSkillPriority = (skillOrderString) => {
+  if (!skillOrderString) return [];
+  const skillCounts = { Q: 0, W: 0, E: 0 };
+  const skills = skillOrderString.split(",").slice(0, 9);
+  for (const skill of skills) {
+    if (skill !== "R") {
+      skillCounts[skill]++;
+    }
+  }
+  return Object.entries(skillCounts)
+    .sort(([, countA], [, countB]) => countB - countA)
+    .map(([skill]) => skill);
+};
+
+const SkillIcon = ({ ddragonVersion, championSpells, skillKey }) => {
+  const skillImage = useMemo(() => {
+    if (!championSpells || !skillKey) return null;
+
+    const spellIndex = ["Q", "W", "E", "R"].indexOf(skillKey);
+    const spell = championSpells[spellIndex];
+
+    return spell ? spell.image.full : null;
+  }, [championSpells, skillKey]);
+
+  if (!skillImage) {
+    return (
+      <div className="relative">
+        <div className="w-8 h-8 bg-gray-700 rounded-md flex items-center justify-center">
+          <span className="text-white font-bold">{skillKey}</span>
+        </div>
+        <span className="absolute -bottom-1 -right-1 text-xs bg-gray-900 px-1.5 py-0.5 rounded-sm font-mono border border-gray-600">{skillKey}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <img src={`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/spell/${skillImage}`} alt={skillKey} className="w-8 h-8 rounded-md" />
+      <span className="absolute -bottom-1 -right-1 text-xs bg-gray-900 px-1.5 py-0.5 rounded-sm font-mono border border-gray-600">{skillKey}</span>
+    </div>
+  );
+};
+
+const SkillPathPanel = ({ details, ddragonVersion, championInfo }) => {
+  if (!details) {
+    return (
+      <div className="bg-gray-800/50 rounded-md p-2 mt-4">
+        <div className="bg-gray-900/40 p-3 rounded-md text-center">
+          <p className="text-gray-500 text-sm italic">No skill path data available.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { key, games, winRate } = details;
+  const skillPriority = getSkillPriority(key);
+  const fullSkillOrder = key.split(",").slice(0, 11);
+  const championSpells = championInfo ? championInfo.spells : null;
+
+  return (
+    <div className="bg-gray-800/50 rounded-md p-2">
+      <div className="flex justify-between items-center text-gray-400 text-xs font-semibold px-2 pb-1">
+        <span>Skill Path</span>
+        <div className="flex">
+          <span className="w-20 text-center">Games</span>
+          <span className="w-20 text-center">Win Rate</span>
+        </div>
+      </div>
+      <div className="bg-gray-900/40 p-2 rounded-md flex items-center justify-between">
+        <div className="flex-1 flex items-center gap-x-6">
+          <div className="flex items-center gap-x-2">
+            {skillPriority.map((skill, index) => (
+              <React.Fragment key={index}>
+                <SkillIcon ddragonVersion={ddragonVersion} championSpells={championSpells} skillKey={skill} />
+                {index < skillPriority.length - 1 && <span className="text-gray-500 font-semibold">&gt;</span>}
+              </React.Fragment>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-x-1">
+            {fullSkillOrder.map((skill, index) => (
+              <div key={index} className="w-5 h-5 bg-gray-800/80 rounded-sm flex items-center justify-center text-green-400 text-[10px] font-mono">
+                {skill}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex text-sm">
+          <p className="w-20 text-center text-gray-200">{games.toLocaleString()}</p>
+          <p className={`w-20 text-center font-bold ${winRate >= 50 ? "text-green-400" : "text-red-400"}`}>{winRate.toFixed(1)}%</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // region: --- Filter Components ---
 const RoleFilter = ({ selectedRole, onRoleChange, ROLE_ICON_MAP, ROLE_ORDER }) => (
   <div className="flex items-center bg-gray-700/80 border border-gray-600 rounded-l-md shadow-sm h-9 px-1.5">
@@ -266,7 +363,7 @@ const STATS_COLUMNS = [
     },
   },
   { header: "KP%", width: "w-[7%]", getValue: (s) => [{ value: `${formatNumber(s.killParticipation || 0)}%` }, { value: `<span class="text-gray-400 text-[10px]">${formatDiff(s.avgKpDiff || 0)}</span>` }] },
-  { header: "DMG/DPM", width: "w-[11%]", getValue: (s) => [{ value: `${((s.avgDamageDealt || 0) / 1000).toFixed(1)}k <span class="ml-0.5 text-gray-400 text-[10px] font-normal">(${formatNumber(s.damagePercentOfTeam || 0)}%)</span>` }, { value: `<span class="text-gray-400 text-[10px]">${Math.round(s.damagePerMin || 0)}</span>` }] },
+  { header: "DMG/DPM", width: "w-[11%]", getValue: (s) => [{ value: `${((s.avgDamageDealt || 0) / 1000).toFixed(1)}k <span class="ml-0.5 text-gray-400 text-[10px] font-normal">(${formatNumber(s.damagePercentOfTeam || 0)}%)</span>` }, { value: `<span class="text-gray-400 text-[10px]">${Math.round(s.damagePerMin || 0)}/min</span>` }] },
   { header: "DPMD@15", width: "w-[6%]", getValue: (s) => [{ value: formatDiff(s.damageDiff15 || 0) }] },
   { header: "TD", width: "w-[6%]", getValue: (s) => [{ value: Math.round(s.avgDmgToTowers || 0).toLocaleString() }] },
   { header: "DMG/G", width: "w-[6%]", getValue: (s) => [{ value: (s.damagePerGold || 0).toFixed(2) }] },
@@ -401,9 +498,15 @@ const MatchupListItem = ({ matchupData, getChampionImage, getChampionDisplayName
     </div>
   );
 };
-const ChampionDetailView = ({ champion, getChampionImage, getChampionDisplayName, ddragonVersion, itemData, runesMap }) => {
+
+const ChampionDetailView = ({ champion, getChampionImage, getChampionDisplayName, ddragonVersion, itemData, runesMap, ddragonChampions }) => {
   const [selectedRuneCoreKey, setSelectedRuneCoreKey] = useState("summary");
   const [selectedItemBuildTab, setSelectedItemBuildTab] = useState(3);
+
+  const championInfo = useMemo(() => {
+    if (!ddragonChampions || !champion?.championName) return null;
+    return Object.values(ddragonChampions).find((c) => c.name === champion.championName) || ddragonChampions[champion.championName];
+  }, [champion, ddragonChampions]);
 
   const getRuneImage = useCallback(
     (runeId) => {
@@ -426,31 +529,19 @@ const ChampionDetailView = ({ champion, getChampionImage, getChampionDisplayName
       return null;
     }
 
-    // --- THIS IS THE FIX: A new, simplified, and robust function to find the core item ---
-    const getCoreItem = (match) => {
-      const finalItems = [match.item0, match.item1, match.item2, match.item3, match.item4, match.item5].filter(Boolean);
-      if (finalItems.length === 0) return null;
-
+    const getFirstLegendaryItem = (match) => {
+      const buildOrder = match.processedTimelineForTrackedPlayer?.buildOrder;
+      if (!buildOrder || !itemData) return null;
       const BOOT_IDS = new Set(Object.keys(itemData).filter((id) => itemData[id].tags?.includes("Boots")));
-
-      // Identify all completed legendary-tier items in the final build.
-      const coreItems = finalItems.filter((id) => {
-        const item = itemData[id];
-        return (
-          item &&
-          item.gold.total >= 2200 && // Is it an expensive legendary?
-          !BOOT_IDS.has(String(id)) && // Is it not boots?
-          !item.tags?.includes("Trinket") &&
-          !item.tags?.includes("Consumable")
-        );
-      });
-
-      if (coreItems.length === 0) return null; // No legendary items were completed.
-
-      // Sort by cost, descending, and return the most expensive item as the "core" item.
-      coreItems.sort((a, b) => (itemData[b]?.gold.total || 0) - (itemData[a]?.gold.total || 0));
-
-      return coreItems[0];
+      for (const event of buildOrder) {
+        if (event.type === "purchased") {
+          const item = itemData[event.itemId];
+          if (item && item.gold.total >= 2200 && !BOOT_IDS.has(String(event.itemId)) && !item.tags?.includes("Trinket") && !item.tags?.includes("Consumable")) {
+            return event.itemId;
+          }
+        }
+      }
+      return null;
     };
 
     const groupAndCalcStats = (collection, keyFunc, dpmFunc = null) => {
@@ -485,23 +576,23 @@ const ChampionDetailView = ({ champion, getChampionImage, getChampionDisplayName
       const primaryStyle = match.perks.styles?.find((s) => s.description === "primaryStyle");
       if (!primaryStyle) return null;
       const keystoneId = primaryStyle.selections[0]?.perk;
-      const coreItem = getCoreItem(match); // Use the new function
-      if (!keystoneId || !coreItem) return null;
-      return `${keystoneId}|${coreItem}`;
+      const firstLegendary = getFirstLegendaryItem(match);
+      if (!keystoneId || !firstLegendary) return null;
+      return `${keystoneId}|${firstLegendary}`;
     });
 
-    const filteredMatches =
+    const selectedMatches =
       selectedRuneCoreKey === "summary"
         ? champion.matches
         : champion.matches.filter((match) => {
             const primaryStyle = match.perks.styles?.find((s) => s.description === "primaryStyle");
             if (!primaryStyle) return false;
             const keystoneId = primaryStyle.selections[0]?.perk;
-            const coreItem = getCoreItem(match);
-            return `${keystoneId}|${coreItem}` === selectedRuneCoreKey;
+            const firstLegendary = getFirstLegendaryItem(match);
+            return `${keystoneId}|${firstLegendary}` === selectedRuneCoreKey;
           });
 
-    if (filteredMatches.length === 0) return { runeCores, filteredDetails: null };
+    if (selectedMatches.length === 0) return { runeCores, filteredDetails: null };
 
     const calcFilteredDetails = (matches) => {
       const fullRunes = groupAndCalcStats(matches, (m) => {
@@ -515,9 +606,9 @@ const ChampionDetailView = ({ champion, getChampionImage, getChampionDisplayName
         matches,
         (m) =>
           (m.processedTimelineForTrackedPlayer?.buildOrder || [])
-            .filter((e) => e.type === "ITEM_PURCHASED" && e.timestamp < 95000)
+            .filter((e) => e.type === "purchased" && e.timestamp < 95000)
             .map((e) => e.itemId)
-            .filter((id) => itemData[id] && !itemData[id].inStore === false && !itemData[id].consumed)
+            .filter((id) => itemData[id] && itemData[id].inStore !== false && !itemData[id].consumed)
             .sort()
             .join(",") || null
       );
@@ -530,34 +621,47 @@ const ChampionDetailView = ({ champion, getChampionImage, getChampionDisplayName
         matches,
         (m) =>
           (m.processedTimelineForTrackedPlayer?.skillOrder || [])
-            .slice(0, 12)
+            .slice(0, 11)
             .map((s) => "QWER"[s.skillSlot - 1])
             .join(",") || null
       );
+
+      const getCoreItemsInOrder = (match) => {
+        const buildOrder = match.processedTimelineForTrackedPlayer?.buildOrder;
+        if (!buildOrder || !itemData) return [];
+        const coreItems = [];
+        const itemSet = new Set();
+        for (const event of buildOrder) {
+          if (event.type === "purchased") {
+            const itemId = String(event.itemId);
+            const item = itemData[itemId];
+            if (item && item.gold.total >= 2200 && !BOOT_IDS.has(itemId) && !item.tags?.includes("Trinket") && !item.tags?.includes("Consumable") && !itemSet.has(itemId)) {
+              coreItems.push(itemId);
+              itemSet.add(itemId);
+            }
+          }
+        }
+        return coreItems;
+      };
+
       const itemBuilds = {};
       for (let i = 2; i <= 5; i++) {
         itemBuilds[i] = groupAndCalcStats(
           matches,
           (m) => {
-            const finalItems = [m.item0, m.item1, m.item2, m.item3, m.item4, m.item5].filter(Boolean);
-            const coreItems = finalItems.filter((id) => {
-              const item = itemData[id];
-              return item && item.gold.total >= 2200 && !BOOT_IDS.has(String(id)) && !item.tags?.includes("Trinket") && !item.tags?.includes("Consumable");
-            });
-            if (coreItems.length < i) return null;
-            return coreItems
-              .sort((a, b) => (itemData[b]?.tags.includes("Mythic") ? 1 : 0) - (itemData[a]?.tags.includes("Mythic") ? 1 : 0))
-              .slice(0, i)
-              .sort()
-              .join(",");
+            const orderedCoreItems = getCoreItemsInOrder(m);
+            if (orderedCoreItems.length < i) return null;
+            const build = orderedCoreItems.slice(0, i);
+            return build.join(",");
           },
           true
         );
       }
+
       return { fullRunes: fullRunes[0], primaryKeystoneSummary, secondaryTreeSummary, spells: spells.slice(0, 2), startingItems: startingItems.slice(0, 2), boots: boots.slice(0, 2), skillPaths: skillPaths.slice(0, 1), itemBuilds, totalGames: matches.length };
     };
 
-    return { runeCores, filteredDetails: calcFilteredDetails(filteredMatches) };
+    return { runeCores, filteredDetails: calcFilteredDetails(selectedMatches) };
   }, [champion, selectedRuneCoreKey, itemData, runesMap]);
 
   if (!champion) {
@@ -596,19 +700,23 @@ const ChampionDetailView = ({ champion, getChampionImage, getChampionDisplayName
             <p className="text-gray-500">No data for this rune combination.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-1 space-y-4">{selectedRuneCoreKey === "summary" ? <RunesSummaryPanel details={details.filteredDetails} getRuneImage={getRuneImage} runesMap={runesMap} /> : <RunesFullPagePanel details={details.filteredDetails.fullRunes} totalGames={details.filteredDetails.totalGames} getRuneImage={getRuneImage} runesMap={runesMap} />}</div>
-            <div className="col-span-1 space-y-4">
-              <SpellsPanel details={details.filteredDetails.spells} />
-              <StartingItemsPanel details={details.filteredDetails.startingItems} getItemImage={getItemImage} />
-              <BootsPanel details={details.filteredDetails.boots} getItemImage={getItemImage} />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-1 space-y-4">{selectedRuneCoreKey === "summary" ? <RunesSummaryPanel details={details.filteredDetails} getRuneImage={getRuneImage} runesMap={runesMap} /> : <RunesFullPagePanel details={details.filteredDetails.fullRunes} totalGames={details.filteredDetails.totalGames} getRuneImage={getRuneImage} runesMap={runesMap} />}</div>
+              <div className="col-span-1 space-y-4">
+                <SpellsPanel details={details.filteredDetails.spells} />
+                <StartingItemsPanel details={details.filteredDetails.startingItems} getItemImage={getItemImage} />
+                <BootsPanel details={details.filteredDetails.boots} getItemImage={getItemImage} />
+              </div>
             </div>
-            <div className="col-span-2">
-              <SkillPathPanel details={details.filteredDetails.skillPaths[0]} />
-            </div>
-            <div className="col-span-2">
-              <ItemBuildsPanel details={details.filteredDetails.itemBuilds} selectedTab={selectedItemBuildTab} onTabClick={setSelectedItemBuildTab} getItemImage={getItemImage} />
-            </div>
+
+            <SkillPathPanel
+              details={details.filteredDetails.skillPaths[0]}
+              ddragonVersion={ddragonVersion}
+              championInfo={championInfo} // Pass the full, correct champion object here
+            />
+
+            <ItemBuildsPanel details={details.filteredDetails.itemBuilds} selectedTab={selectedItemBuildTab} onTabClick={setSelectedItemBuildTab} getItemImage={getItemImage} />
           </div>
         )}
       </div>
@@ -788,29 +896,6 @@ const BootsPanel = ({ details, getItemImage }) => (
     )}
   </Panel>
 );
-
-const SkillPathPanel = ({ details }) => {
-  if (!details)
-    return (
-      <Panel title="Skill Path">
-        <p className="text-xs text-gray-500 text-center p-2">No data</p>
-      </Panel>
-    );
-  const skills = details.key.split(",");
-  return (
-    <Panel title="Skill Path" headers={["Games", "Win Rate"]}>
-      <StatRow games={details.games} winRate={details.winRate}>
-        <div className="flex items-center space-x-1">
-          {skills.map((s, i) => (
-            <div key={i} className={`w-5 h-5 bg-gray-900 rounded text-white font-bold text-xs flex items-center justify-center border-b-2 ${s === "Q" ? "border-green-500" : s === "W" ? "border-blue-500" : s === "E" ? "border-orange-500" : "border-yellow-500"}`}>
-              {s}
-            </div>
-          ))}
-        </div>
-      </StatRow>
-    </Panel>
-  );
-};
 
 const ItemBuildsPanel = ({ details, selectedTab, onTabClick, getItemImage }) => {
   const TABS = [2, 3, 4, 5];

@@ -754,7 +754,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
           </div>
         </div>
 
-        <div className="bg-gray-800/40 p-2 rounded-lg border border-gray-700/50 flex flex-col justify-center">
+        <div className="bg-gray-800/40 px-2 py-1 rounded-lg border border-gray-700/50 flex flex-col justify-center">
           <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm uppercase">Build Order</h4>
           {timelineToDisplay && timelineToDisplay.buildOrder && timelineToDisplay.buildOrder.length > 0 ? (
             <div className="flex flex-wrap items-start gap-x-0.5 gap-y-1">
@@ -840,8 +840,8 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
           )}
         </div>
 
-        <div className="bg-gray-800/40 p-1.5 rounded-lg border border-gray-700/50">
-          <h4 className="font-semibold text-gray-300 mb-1.5 text-sm sm:text-sm uppercase">Skill Order</h4>
+        <div className="bg-gray-800/40 px-1.5 py-1 rounded-lg border border-gray-700/50">
+          <h4 className="font-semibold text-gray-300 mb-1 text-sm sm:text-sm uppercase">Skill Order</h4>
           <div className="space-y-1">
             {[1, 2, 3, 4].map((skillSlotKey) => {
               const championInfo = championData && championData[currentPlayerForDisplay.championName];
