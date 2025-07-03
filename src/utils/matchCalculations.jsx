@@ -145,7 +145,7 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
 
   if (!timelineFrames || timelineFrames.length === 0 || !targetParticipantId) return processedData;
 
-  const snapshotMinutes = [5, 10, 15];
+  const snapshotMinutes = [5, 10, 14];
   const snapshotTimestampsMs = snapshotMinutes.map((min) => min * 60 * 1000);
 
   let collectedItemEventsWithOriginalIndex = []; // Stores ITEM_PURCHASED, ITEM_SOLD, ITEM_UNDO with an original index
@@ -297,10 +297,10 @@ export const processTimelineData = (timelineFrames, targetParticipantId, opponen
  * @typedef {object} SummaryStats
  * @property {number} winRate
  * @property {number} csPerMin
- * @property {number} csDiff15
+ * @property {number} csDiff14
  * @property {number} goldPerMin
- * @property {number} goldDiff15
- * @property {number} damageDiff15 - *** NEW ***
+ * @property {number} goldDiff14
+ * @property {number} damageDiff14 - *** NEW ***
  * @property {number} goldPercentOfTeam
  * @property {number} damagePerMin
  * @property {number} damagePercentOfTeam
@@ -334,9 +334,9 @@ export const calculateSummaryStatsForPeriod = (matches, startDate, endDate) => {
       goldPerMin: 0,
       avgGold: 0,
       avgControlWardsBought: 0,
-      csDiff15: 0,
-      goldDiff15: 0,
-      damageDiff15: 0,
+      csDiff14: 0,
+      goldDiff14: 0,
+      damageDiff14: 0,
       avgDmgToTowers: 0,
       avgWardsPlaced: 0,
       avgWardsKilled: 0,
@@ -360,9 +360,9 @@ export const calculateSummaryStatsForPeriod = (matches, startDate, endDate) => {
     totalCS: 0,
     playerGold: 0,
     controlWardsBought: 0,
-    csDiff15: 0,
-    goldDiff15: 0,
-    damageDiff15: 0,
+    csDiff14: 0,
+    goldDiff14: 0,
+    damageDiff14: 0,
     gamesWithTimeline: 0,
     damageToTowers: 0,
     wardsPlaced: 0,
@@ -410,11 +410,11 @@ export const calculateSummaryStatsForPeriod = (matches, startDate, endDate) => {
     acc.totalTeamKills += teamKills;
     acc.damageToTowers += player.damageDealtToTurrets || 0;
 
-    const snapshot15 = match.processedTimelineForTrackedPlayer?.snapshots?.find((s) => s.minute === 15);
-    if (snapshot15?.diff) {
-      acc.csDiff15 += snapshot15.diff.cs || 0;
-      acc.goldDiff15 += snapshot15.diff.gold || 0;
-      acc.damageDiff15 += snapshot15.diff.damage || 0;
+    const snapshot14 = match.processedTimelineForTrackedPlayer?.snapshots?.find((s) => s.minute === 14);
+    if (snapshot14?.diff) {
+      acc.csDiff14 += snapshot14.diff.cs || 0;
+      acc.goldDiff14 += snapshot14.diff.gold || 0;
+      acc.damageDiff14 += snapshot14.diff.damage || 0;
       acc.gamesWithTimeline += 1;
     }
 
@@ -447,9 +447,9 @@ export const calculateSummaryStatsForPeriod = (matches, startDate, endDate) => {
     goldPerMin: totalMinutes > 0 ? totals.playerGold / totalMinutes : 0,
     avgGold: totals.playerGold / totalGames,
     avgControlWardsBought: totals.controlWardsBought / totalGames,
-    csDiff15: totals.gamesWithTimeline > 0 ? totals.csDiff15 / totals.gamesWithTimeline : 0,
-    goldDiff15: totals.gamesWithTimeline > 0 ? totals.goldDiff15 / totals.gamesWithTimeline : 0,
-    damageDiff15: totals.gamesWithTimeline > 0 ? totals.damageDiff15 / totals.gamesWithTimeline : 0,
+    csDiff14: totals.gamesWithTimeline > 0 ? totals.csDiff14 / totals.gamesWithTimeline : 0,
+    goldDiff14: totals.gamesWithTimeline > 0 ? totals.goldDiff14 / totals.gamesWithTimeline : 0,
+    damageDiff14: totals.gamesWithTimeline > 0 ? totals.damageDiff14 / totals.gamesWithTimeline : 0,
     avgDmgToTowers: totals.damageToTowers / totalGames,
     avgWardsPlaced: totals.wardsPlaced / totalGames,
     avgWardsKilled: totals.wardsKilled / totalGames,

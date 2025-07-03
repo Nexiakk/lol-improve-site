@@ -1,0 +1,20 @@
+- przestrukturowac sposob dzialania buildow - przewidywac z duzym prawdopodobienstwem "undone" event ktory nie istnieje
+- dodac funkcjonalnosc tworzenia kont/profili - logowania sie
+- podpiac wszystkie api requesty pod jedna globalna funkcje i kontrolowac rate limit
+
+- Match History Page
+ : stworzyc boczny pasek/panel po lewej stronie i przerzucic tam "active focus"
+ : zupdatowac active focus pod uzywanie ustawianie wielu celi jednoczesnie
+
+- dokonczyc Live Game feature
+ : naprawic fakt ze triggeruje sprawdzenie kont 2 razy
+ [...]
+
+
+
+<UI>
+- dodac tooltipy i popovery na wszystkich stronach
+- stworzyc globalna funkcje layoutu strony na runy, by ujednolicić wyglad wszystkich stron na runy dostepnych w aplikacji
+- dodac trzeci "popoverotooltip" na usuwanie kont miedzy innymi
+- dodac pasek ladowania na samej gorze
+- zmniejszyc wysokosc navbar - more compact

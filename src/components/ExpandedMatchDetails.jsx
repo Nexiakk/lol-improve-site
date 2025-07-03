@@ -618,7 +618,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
     }
 
     const timelineToDisplay = currentSelectedPlayerTimeline;
-    const snapshot15min = timelineToDisplay?.snapshots?.find((s) => s.minute === 15);
+    const snapshot14min = timelineToDisplay?.snapshots?.find((s) => s.minute === 14);
 
     const StatItem = ({ value, label, title }) => (
       <div className="flex flex-col items-center text-center" title={title}>
@@ -712,14 +712,14 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
           <div className="bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/50 flex flex-col md:col-span-3">
             <h4 className="text-xs font-semibold uppercase text-gray-400 mb-1.5 text-center flex items-center justify-center">
               <LaningPhaseIcon className="w-4 h-4 mr-1.5" />
-              Laning Phase (at 15 min)
+              Laning Phase (at 14 min)
             </h4>
-            {timelineToDisplay && timelineToDisplay.snapshots && timelineToDisplay.snapshots.length > 0 && snapshot15min ? (
+            {timelineToDisplay && timelineToDisplay.snapshots && timelineToDisplay.snapshots.length > 0 && snapshot14min ? (
               <div className="grid grid-cols-4 gap-x-2 sm:gap-x-2.5 gap-y-1">
-                <StatItem value={snapshot15min?.diff?.cs !== undefined ? (snapshot15min.diff.cs > 0 ? `+${snapshot15min.diff.cs}` : snapshot15min.diff.cs) : "N/A"} label="CS Diff" />
-                <StatItem value={snapshot15min?.diff?.gold !== undefined ? (snapshot15min.diff.gold > 0 ? `+${snapshot15min.diff.gold.toLocaleString()}` : snapshot15min.diff.gold.toLocaleString()) : "N/A"} label="Gold Diff" />
-                <StatItem value={snapshot15min?.diff?.xp !== undefined ? (snapshot15min.diff.xp > 0 ? `+${snapshot15min.diff.xp.toLocaleString()}` : snapshot15min.diff.xp.toLocaleString()) : "N/A"} label="XP Diff" />
-                <StatItem value={snapshot15min?.diff?.damage !== undefined ? (snapshot15min.diff.damage > 0 ? `+${snapshot15min.diff.damage.toLocaleString()}` : snapshot15min.diff.damage.toLocaleString()) : "N/A"} label="Dmg Diff" />
+                <StatItem value={snapshot14min?.diff?.cs !== undefined ? (snapshot14min.diff.cs > 0 ? `+${snapshot14min.diff.cs}` : snapshot14min.diff.cs) : "N/A"} label="CS Diff" />
+                <StatItem value={snapshot14min?.diff?.gold !== undefined ? (snapshot14min.diff.gold > 0 ? `+${snapshot14min.diff.gold.toLocaleString()}` : snapshot14min.diff.gold.toLocaleString()) : "N/A"} label="Gold Diff" />
+                <StatItem value={snapshot14min?.diff?.xp !== undefined ? (snapshot14min.diff.xp > 0 ? `+${snapshot14min.diff.xp.toLocaleString()}` : snapshot14min.diff.xp.toLocaleString()) : "N/A"} label="XP Diff" />
+                <StatItem value={snapshot14min?.diff?.damage !== undefined ? (snapshot14min.diff.damage > 0 ? `+${snapshot14min.diff.damage.toLocaleString()}` : snapshot14min.diff.damage.toLocaleString()) : "N/A"} label="Dmg Diff" />
               </div>
             ) : (
               <p className="text-gray-500 text-center text-sm italic py-2">Missing laning stats.</p>

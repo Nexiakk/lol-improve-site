@@ -1,6 +1,6 @@
 // src/components/MatchHistoryHeader.jsx
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, RefreshCw, Loader2, CalendarDays, Users, ShieldCheck, Search, X, ChevronDown, ChevronUp, ListFilter, Edit, CheckCircle, Pin, PinOff, Target as TargetIcon } from "lucide-react"; // Added TargetIcon
+import { TrendingUp, RefreshCw, Loader2, CalendarDays, Users, ShieldCheck, User, Swords, Search, X, ChevronDown, ChevronUp, ListFilter, Edit, CheckCircle, Pin, PinOff, Target as TargetIcon } from "lucide-react"; // Added TargetIcon
 import DatePicker from "react-datepicker";
 import Select from "react-select"; // Assuming react-select is installed for patch filter
 import "react-datepicker/dist/react-datepicker.css";
@@ -18,52 +18,75 @@ const normalizeText = (str) => {
 };
 
 // Champion Filter with Autocomplete Suggestions
-const ChampionFilterWithSuggestions = ({ value, onChange, availableChampions, getChampionDisplayName, getChampionImage, commonInputClass }) => {
+const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, availableChampions, getChampionDisplayName, getChampionImage, commonInputClass }) => {
   const [inputText, setInputText] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const wrapperRef = useRef(null);
 
+  // NEW: Add a ref to hold the debounce timer
+  const debounceTimeout = useRef(null);
+
   useEffect(() => {
     if (value === "") setInputText("");
     else setInputText(getChampionDisplayName(value) || value);
   }, [value, getChampionDisplayName]);
 
+  // This cleanup effect will clear any pending timer if the component unmounts
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
+    };
+  }, []);
+
   const handleInputChange = (e) => {
     const newText = e.target.value;
-    setInputText(newText);
+    setInputText(newText); // Update the input text immediately
     setActiveSuggestionIndex(-1);
+
+    // Clear any existing timer to reset the debounce period
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    // If input is cleared, update the filter immediately
     if (newText.trim() === "") {
       setSuggestions([]);
       setShowSuggestions(false);
-      onChange({ target: { name: "champion", value: "" } });
+      onChange({ target: { name: name, value: "" } });
       return;
     }
-    const normalizedInput = normalizeText(newText);
-    const filteredSuggestions = availableChampions
-      .map((apiName) => ({
-        apiName,
-        displayName: getChampionDisplayName(apiName) || apiName,
-        normalizedDisplayName: normalizeText(getChampionDisplayName(apiName) || apiName),
-        normalizedApiName: normalizeText(apiName),
-      }))
-      .filter((champ) => champ.normalizedDisplayName.includes(normalizedInput) || champ.normalizedApiName.includes(normalizedInput))
-      .slice(0, 7);
-    setSuggestions(filteredSuggestions);
-    setShowSuggestions(filteredSuggestions.length > 0);
+
+    // Set a new timer to perform the search after a short delay
+    debounceTimeout.current = setTimeout(() => {
+      const normalizedInput = normalizeText(newText);
+      const filteredSuggestions = availableChampions
+        .map((apiName) => ({
+          apiName,
+          displayName: getChampionDisplayName(apiName) || apiName,
+          normalizedDisplayName: normalizeText(getChampionDisplayName(apiName) || apiName),
+          normalizedApiName: normalizeText(apiName),
+        }))
+        .filter((champ) => champ.normalizedDisplayName.includes(normalizedInput) || champ.normalizedApiName.includes(normalizedInput))
+        .slice(0, 7);
+      setSuggestions(filteredSuggestions);
+      setShowSuggestions(filteredSuggestions.length > 0);
+    }, 250); // 250ms delay
   };
 
   const handleSuggestionClick = (championApiName) => {
     setInputText(getChampionDisplayName(championApiName) || championApiName);
-    onChange({ target: { name: "champion", value: championApiName } });
+    onChange({ target: { name: name, value: championApiName } });
     setShowSuggestions(false);
     setSuggestions([]);
   };
 
   const attemptDirectMatchAndSelect = () => {
     if (inputText.trim() === "") {
-      onChange({ target: { name: "champion", value: "" } });
+      onChange({ target: { name: name, value: "" } });
       return;
     }
     const normalizedInput = normalizeText(inputText);
@@ -76,6 +99,10 @@ const ChampionFilterWithSuggestions = ({ value, onChange, availableChampions, ge
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      // Clear any pending search so it doesn't pop up after selecting
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current);
+      }
       if (showSuggestions && activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
         handleSuggestionClick(suggestions[activeSuggestionIndex].apiName);
       } else {
@@ -106,8 +133,6 @@ const ChampionFilterWithSuggestions = ({ value, onChange, availableChampions, ge
 
   return (
     <div className="relative h-9" ref={wrapperRef}>
-      {" "}
-      {/* Ensure parent has h-9 */}
       <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
       <input
         type="text"
@@ -118,8 +143,8 @@ const ChampionFilterWithSuggestions = ({ value, onChange, availableChampions, ge
         onFocus={() => {
           if (inputText.trim() && suggestions.length > 0) setShowSuggestions(true);
         }}
-        placeholder="Champion..."
-        className={`${commonInputClass} pl-8 pr-2 w-full h-full`} // Use h-full
+        placeholder={placeholder || "Champion..."}
+        className={`${commonInputClass} pl-8 pr-2 w-full h-full`}
         autoComplete="off"
       />
       {showSuggestions && suggestions.length > 0 && (
@@ -265,6 +290,7 @@ function MatchHistoryHeader({
   updateFetchDates,
   onClearFilters,
   availableChampions,
+  availableOpponentChampions, // <-- Destructure the new prop
   availablePatches,
   ROLE_ICON_MAP,
   ROLE_ORDER,
@@ -279,6 +305,14 @@ function MatchHistoryHeader({
   const [customPreGameGoalText, setCustomPreGameGoalText] = useState("");
   const [selectedPreGameTemplateId, setSelectedPreGameTemplateId] = useState("");
   const preGameGoalSetterRef = useRef(null);
+
+  const [championFilterMode, setChampionFilterMode] = useState("player"); // 'player' or 'opponent'
+
+  const handleFilterModeToggle = () => {
+    const filterToClear = championFilterMode === "player" ? "champion" : "opponentChampion";
+    onFilterChange({ target: { name: filterToClear, value: "" } });
+    setChampionFilterMode((prev) => (prev === "player" ? "opponent" : "player"));
+  };
 
   useEffect(() => {
     try {
@@ -468,7 +502,7 @@ function MatchHistoryHeader({
   }, [showAdvancedUpdateOptions]);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 mt-4 mb-2">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mt-4 mb-2">
       {/* Pre-Game Focus Section */}
       <div className="mb-3 relative" ref={preGameGoalSetterRef}>
         <div className="flex items-center justify-between bg-gray-800/50 p-2 rounded-lg border border-gray-700/50">
@@ -537,7 +571,7 @@ function MatchHistoryHeader({
 
       {/* Summary Section */}
       {summaryData.totalGames > 0 && (
-        <div className="max-w-4xl mx-auto bg-gray-800/60 backdrop-blur-md border border-gray-700/50 pt-3 pb-3 h-[160px] rounded-lg flex flex-col items-center justify-center gap-y-2 text-xs font-light text-gray-300 text-center shadow-xl mb-2 min-h-[160px]">
+        <div className="max-w-5xl mx-auto bg-gray-800/60 backdrop-blur-md border border-gray-700/50 pt-3 pb-3 h-[160px] rounded-lg flex flex-col items-center justify-center gap-y-2 text-xs font-light text-gray-300 text-center shadow-xl mb-2 min-h-[160px]">
           {" "}
           <div className="flex items-center gap-2 mx-auto">
             {" "}
@@ -588,11 +622,11 @@ function MatchHistoryHeader({
           </div>{" "}
         </div>
       )}
-      {summaryData.totalGames === 0 && filteredMatches && filteredMatches.length === 0 && allMatches && allMatches.length > 0 && <div className="max-w-4xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-2 h-[160px] flex items-center justify-center"> No matches found for the current filters. Try adjusting or clearing them. </div>}
-      {allMatches && allMatches.length === 0 && !isLoadingAccounts && <div className="max-w-4xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg h-[160px] text-sm font-light text-gray-400 text-center shadow-lg mb-4 min-h-[160px] flex items-center justify-center"> No matches found. Add accounts or click "Update Matches". </div>}
+      {summaryData.totalGames === 0 && filteredMatches && filteredMatches.length === 0 && allMatches && allMatches.length > 0 && <div className="max-w-5xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-2 h-[160px] flex items-center justify-center"> No matches found for the current filters. Try adjusting or clearing them. </div>}
+      {allMatches && allMatches.length === 0 && !isLoadingAccounts && <div className="max-w-5xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg h-[160px] text-sm font-light text-gray-400 text-center shadow-lg mb-4 min-h-[160px] flex items-center justify-center"> No matches found. Add accounts or click "Update Matches". </div>}
 
       {/* Top control bar */}
-      <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 mb-1">
+      <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 mb-1">
         {" "}
         <div className="flex items-stretch relative">
           {" "}
@@ -638,17 +672,23 @@ function MatchHistoryHeader({
             {" "}
             <RoleFilter selectedRole={filters.role} onRoleChange={handleRoleFilterChange} commonInputClass={commonInputClass} ROLE_ICON_MAP={ROLE_ICON_MAP} ROLE_ORDER={ROLE_ORDER} />{" "}
           </div>{" "}
+          <button onClick={handleFilterModeToggle} title={championFilterMode === "player" ? "Switch to Opponent filter" : "Switch to Player filter"} className={`p-1.5 bg-gray-700/80 hover:bg-gray-600/80 text-gray-300 hover:text-orange-300 transition-colors flex items-center justify-center w-[34px] sm:w-[38px] flex-shrink-0 border-y border-gray-600 ${controlElementHeightClass}`}>
+            {championFilterMode === "player" ? <User size={18} /> : <Swords size={18} />}
+          </button>
           <div className={`flex-grow w-[150px] sm:w-[180px] ${controlElementHeightClass}`}>
-            {" "}
-            <ChampionFilterWithSuggestions value={filters.champion} onChange={onFilterChange} availableChampions={availableChampions} getChampionDisplayName={getChampionDisplayName} getChampionImage={getChampionImage} commonInputClass={`${commonInputClass} rounded-none border-x-0`} />{" "}
-          </div>{" "}
+            {championFilterMode === "player" ? (
+              <ChampionFilterWithSuggestions name="champion" value={filters.champion} placeholder="Your Champion..." onChange={onFilterChange} availableChampions={availableChampions} getChampionDisplayName={getChampionDisplayName} getChampionImage={getChampionImage} commonInputClass={`${commonInputClass} rounded-none border-x-0`} />
+            ) : (
+              <ChampionFilterWithSuggestions name="opponentChampion" value={filters.opponentChampion} placeholder="Opponent..." onChange={onFilterChange} availableChampions={availableOpponentChampions} getChampionDisplayName={getChampionDisplayName} getChampionImage={getChampionImage} commonInputClass={`${commonInputClass} rounded-none border-x-0`} />
+            )}
+          </div>
           <button onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} className={`p-1.5 bg-gray-700/80 hover:bg-gray-600/80 rounded-r-lg text-gray-300 hover:text-orange-300 transition-colors flex items-center justify-center w-[34px] sm:w-[38px] flex-shrink-0 border border-gray-600 border-l-0 ${controlElementHeightClass}`} title={showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}>
             {" "}
             <ListFilter size={18} />{" "}
           </button>{" "}
         </div>{" "}
       </div>
-      <div className="max-w-4xl mx-auto w-full mb-2 flex items-center justify-center">
+      <div className="max-w-5xl mx-auto w-full mb-2 flex items-center justify-center">
         {" "}
         {isUpdatingAllMatches && updateProgress && (
           <div className="w-full p-2.5 bg-sky-900/50 text-sky-300 border border-gray-700/50 rounded-md text-sm text-center">
@@ -658,7 +698,7 @@ function MatchHistoryHeader({
         )}{" "}
       </div>
       {showAdvancedFilters && (
-        <div className="max-w-4xl mx-auto bg-gray-800/40 backdrop-blur-sm border border-gray-700/30 p-3 rounded-lg shadow-md mb-3 space-y-3">
+        <div className="relative z-10 max-w-5xl mx-auto bg-gray-800/40 backdrop-blur-sm border border-gray-700/30 p-3 rounded-lg shadow-md mb-3 space-y-3">
           {" "}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-end">
             {" "}
