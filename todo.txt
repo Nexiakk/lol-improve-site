@@ -1,3 +1,6 @@
+- dodać panel kontrolny/panel start, strona na której zaczynasz dzień i wykonujesz listę kroków by przygotować się do gry (ustawienie celi, przeczytanie checklisty 
+mentalnej itd.)
+
 - przestrukturowac sposob dzialania buildow - przewidywac z duzym prawdopodobienstwem "undone" event ktory nie istnieje
 - dodac funkcjonalnosc tworzenia kont/profili - logowania sie
 - podpiac wszystkie api requesty pod jedna globalna funkcje i kontrolowac rate limit
@@ -16,5 +19,6 @@
 - dodac tooltipy i popovery na wszystkich stronach
 - stworzyc globalna funkcje layoutu strony na runy, by ujednolicić wyglad wszystkich stron na runy dostepnych w aplikacji
 - dodac trzeci "popoverotooltip" na usuwanie kont miedzy innymi
+- zmniejszyć navbar
 - dodac pasek ladowania na samej gorze
 - zmniejszyc wysokosc navbar - more compact

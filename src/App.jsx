@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
-import TopNavbar, { VIEWS } from "./components/TopNavbar"; // Import VIEWS from TopNavbar
+import TopNavbar, { VIEWS } from "./components/TopNavbar";
 import AccountsPage from "./components/AccountsPage";
 import MatchHistoryPage from "./pages/MatchHistoryPage";
-import NotesGoalsCommandCenterPage from "./pages/NotesGoalsCommandCenterPage"; // Import the new page
+import NotesGoalsCommandCenterPage from "./pages/NotesGoalsCommandCenterPage";
 import StatsPage from "./pages/StatsPage";
+import LoadingBar from "./components/common/LoadingBar";
+import { useLoading } from "./contexts/LoadingContext"; // Import the hook
 
 // Placeholder pages
 const DashboardPage = () => <div className="p-10 text-3xl text-white bg-gray-800 rounded-lg m-4">Dashboard Page Content</div>;
@@ -11,6 +13,7 @@ const VodReviewPage = () => <div className="p-10 text-3xl text-white bg-gray-800
 
 function App() {
   const [currentView, setCurrentView] = useState(VIEWS.MATCH_HISTORY);
+  const { isLoading } = useLoading(); // Get loading state from the context
 
   useEffect(() => {
     console.log(`App.jsx: currentView is now: ${currentView}`);
@@ -27,7 +30,7 @@ function App() {
         return <DashboardPage />;
       case VIEWS.MATCH_HISTORY:
         return <MatchHistoryPage />;
-      case VIEWS.NOTES_GOALS_COMMAND_CENTER: // New case
+      case VIEWS.NOTES_GOALS_COMMAND_CENTER:
         return <NotesGoalsCommandCenterPage />;
       case VIEWS.STATS:
         return <StatsPage />;
@@ -42,8 +45,12 @@ function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-900" style={backgroundStyle}>
+      {isLoading && <LoadingBar />}
+      {/* No longer need to pass setIsLoading down */}
       <TopNavbar currentView={currentView} setCurrentView={setCurrentView} />
-      <main className="flex-1 pt-16 w-full">{renderView()}</main>
+      <main className="flex-1 pt-[50px] w-full transition-opacity duration-300 ease-in-out">
+        <div className={isLoading ? "opacity-0" : "opacity-100"}>{renderView()}</div>
+      </main>
     </div>
   );
 }
