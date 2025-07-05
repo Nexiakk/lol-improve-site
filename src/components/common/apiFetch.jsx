@@ -1,4 +1,4 @@
-const API_CALL_DELAY_MS = 1250;
+const API_CALL_DELAY_MS = 2500;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

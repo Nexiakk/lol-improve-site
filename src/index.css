@@ -24,7 +24,7 @@ body {
 /* CSS Variables for Winrate Chart (can be adjusted) */
 :root {
   --chart-wins-hsl: 200 98% 45%; /* Blueish for wins */
-  --chart-losses-bg-hsl: 0 0% 13%; /* Dark gray for the background part of the ring */
+  --chart-losses-bg-hsl: 340 75% 55%; /* Dark gray for the background part of the ring */
   /* You can define more chart colors if needed for other charts */
   /* --chart-1-hsl: 210 40% 96.1%;
 --chart-2-hsl: 142.1 70.6% 45.3%;
