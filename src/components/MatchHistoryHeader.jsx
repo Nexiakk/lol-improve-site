@@ -1,10 +1,10 @@
 // src/components/MatchHistoryHeader.jsx
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, RefreshCw, Loader2, CalendarDays, Users, ShieldCheck, User, Swords, Search, X, ChevronDown, ChevronUp, ListFilter, Edit, CheckCircle, Pin, PinOff, Target as TargetIcon } from "lucide-react"; // Added TargetIcon
+import { TrendingUp, RefreshCw, Loader2, CalendarDays, Users, ShieldCheck, User, Swords, Search, X, ChevronDown, ChevronUp, ListFilter } from "lucide-react";
 import DatePicker from "react-datepicker";
-import Select from "react-select"; // Assuming react-select is installed for patch filter
+import Select from "react-select";
 import "react-datepicker/dist/react-datepicker.css";
-import "./react-datepicker-dark.css"; // Your custom dark theme for datepicker
+import "./react-datepicker-dark.css";
 import { format } from "date-fns";
 
 // Helper to normalize text for searching
@@ -25,7 +25,6 @@ const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, ava
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const wrapperRef = useRef(null);
 
-  // NEW: Add a ref to hold the debounce timer
   const debounceTimeout = useRef(null);
 
   useEffect(() => {
@@ -33,7 +32,6 @@ const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, ava
     else setInputText(getChampionDisplayName(value) || value);
   }, [value, getChampionDisplayName]);
 
-  // This cleanup effect will clear any pending timer if the component unmounts
   useEffect(() => {
     return () => {
       if (debounceTimeout.current) {
@@ -44,15 +42,13 @@ const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, ava
 
   const handleInputChange = (e) => {
     const newText = e.target.value;
-    setInputText(newText); // Update the input text immediately
+    setInputText(newText);
     setActiveSuggestionIndex(-1);
 
-    // Clear any existing timer to reset the debounce period
     if (debounceTimeout.current) {
       clearTimeout(debounceTimeout.current);
     }
 
-    // If input is cleared, update the filter immediately
     if (newText.trim() === "") {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -60,7 +56,6 @@ const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, ava
       return;
     }
 
-    // Set a new timer to perform the search after a short delay
     debounceTimeout.current = setTimeout(() => {
       const normalizedInput = normalizeText(newText);
       const filteredSuggestions = availableChampions
@@ -74,7 +69,7 @@ const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, ava
         .slice(0, 7);
       setSuggestions(filteredSuggestions);
       setShowSuggestions(filteredSuggestions.length > 0);
-    }, 250); // 250ms delay
+    }, 250);
   };
 
   const handleSuggestionClick = (championApiName) => {
@@ -99,7 +94,6 @@ const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, ava
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      // Clear any pending search so it doesn't pop up after selecting
       if (debounceTimeout.current) {
         clearTimeout(debounceTimeout.current);
       }
@@ -174,8 +168,7 @@ const RoleFilter = ({ selectedRole, onRoleChange, commonInputClass, ROLE_ICON_MA
   if (!ROLE_ICON_MAP || !ROLE_ORDER) return null;
   return (
     <div className={`flex items-center bg-gray-700/80 border border-gray-600 rounded-l-md shadow-sm h-9 px-1.5`}>
-      {" "}
-      {/* Ensure h-9 */}
+      <img src={ROLE_ICON_MAP["TOP"]} alt="Top Lane" className="sr-only" /> {/* Preload common icon */}
       {ROLE_ORDER.map((roleKey) => {
         const IconComponent = ROLE_ICON_MAP[roleKey];
         const isActive = selectedRole === roleKey;
@@ -290,21 +283,15 @@ function MatchHistoryHeader({
   updateFetchDates,
   onClearFilters,
   availableChampions,
-  availableOpponentChampions, // <-- Destructure the new prop
+  availableOpponentChampions,
   availablePatches,
   ROLE_ICON_MAP,
   ROLE_ORDER,
-  goalTemplates, // NEW PROP
+  // Removed goalTemplates as it's no longer used directly in this component's UI
 }) {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showAdvancedUpdateOptions, setShowAdvancedUpdateOptions] = useState(false);
   const advancedUpdateOptionsRef = useRef(null);
-
-  const [activePreGameGoal, setActivePreGameGoal] = useState(null);
-  const [showPreGameGoalSetter, setShowPreGameGoalSetter] = useState(false);
-  const [customPreGameGoalText, setCustomPreGameGoalText] = useState("");
-  const [selectedPreGameTemplateId, setSelectedPreGameTemplateId] = useState("");
-  const preGameGoalSetterRef = useRef(null);
 
   const [championFilterMode, setChampionFilterMode] = useState("player"); // 'player' or 'opponent'
 
@@ -314,76 +301,29 @@ function MatchHistoryHeader({
     setChampionFilterMode((prev) => (prev === "player" ? "opponent" : "player"));
   };
 
-  useEffect(() => {
-    try {
-      const storedGoal = localStorage.getItem("activePreGameGoal");
-      if (storedGoal) {
-        setActivePreGameGoal(JSON.parse(storedGoal));
-      }
-    } catch (error) {
-      console.error("Error loading pre-game goal from localStorage:", error);
-    }
-  }, []);
-
-  const handleSetPreGameFocus = () => {
-    let goalToSet = null;
-    if (selectedPreGameTemplateId) {
-      const template = goalTemplates.find((t) => t.id.toString() === selectedPreGameTemplateId);
-      if (template) {
-        goalToSet = { text: template.title, templateId: template.id, category: template.category, setAt: Date.now() };
-      }
-    } else if (customPreGameGoalText.trim()) {
-      goalToSet = { text: customPreGameGoalText.trim(), setAt: Date.now() };
-    }
-
-    if (goalToSet) {
-      localStorage.setItem("activePreGameGoal", JSON.stringify(goalToSet));
-      setActivePreGameGoal(goalToSet);
-      setShowPreGameGoalSetter(false);
-      setCustomPreGameGoalText("");
-      setSelectedPreGameTemplateId("");
-    }
-  };
-
-  const handleClearPreGameFocus = () => {
-    localStorage.removeItem("activePreGameGoal");
-    setActivePreGameGoal(null);
-    setShowPreGameGoalSetter(false); // Also close setter if open
-  };
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (preGameGoalSetterRef.current && !preGameGoalSetterRef.current.contains(event.target)) {
-        const toggleButton = document.getElementById("pre-game-focus-toggle");
-        if (toggleButton && toggleButton.contains(event.target)) return;
-        setShowPreGameGoalSetter(false);
-      }
-    }
-    if (showPreGameGoalSetter) document.addEventListener("mousedown", handleClickOutside);
-    else document.removeEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showPreGameGoalSetter]);
-
   const calculateSingleGameKDA = (kills, deaths, assists) => {
     if (deaths === 0) return kills > 0 || assists > 0 ? (kills + assists) * 2 : 0;
     return (kills + assists) / deaths;
   };
   const summaryData = useMemo(() => {
     if (!filteredMatches || filteredMatches.length === 0) {
-      /* ... initial state ... */
+      return {
+        totalGames: 0,
+        wins: 0,
+        losses: 0,
+        winrate: 0,
+        avgKills: 0,
+        avgDeaths: 0,
+        avgAssists: 0,
+        avgKDA: "0.0",
+        topChampions: [],
+      };
     }
 
     const isDateFilterActive = filters.dateRange && (filters.dateRange.startDate || filters.dateRange.endDate);
     const matchesForSummaryCalc = isDateFilterActive ? filteredMatches : filteredMatches.slice(0, gamesForSummaryCount);
 
     const totalGames = matchesForSummaryCalc.length;
-    // ... rest of the calculation using matchesForSummaryCalc instead of recentMatches
-    // Ensure all variables like wins, totalKills, championStats, etc., are based on matchesForSummaryCalc
-
-    // Example for totalGames:
-    // const totalGames = matchesForSummaryCalc.length; // Use this instead of recentMatches.length
-
-    // ... (previous calculations for wins, totalKills, totalDeaths, totalAssists, championStats using matchesForSummaryCalc) ...
 
     let wins = 0,
       totalKills = 0,
@@ -391,8 +331,7 @@ function MatchHistoryHeader({
       totalAssists = 0;
     const championStats = {};
     matchesForSummaryCalc.forEach((match) => {
-      // Use matchesForSummaryCalc here
-      const player = match; // Assuming match object directly contains player stats
+      const player = match;
       if (player.win) wins++;
       totalKills += player.kills || 0;
       totalDeaths += player.deaths || 0;
@@ -421,7 +360,7 @@ function MatchHistoryHeader({
     const avgKills = totalGames > 0 ? totalKills / totalGames : 0;
     const avgDeaths = totalGames > 0 ? totalDeaths / totalGames : 0;
     const avgAssists = totalGames > 0 ? totalAssists / totalGames : 0;
-    const avgKDAValue = calculateSingleGameKDA(avgKills, avgDeaths, avgAssists); // calculateSingleGameKDA might need to be imported or defined
+    const avgKDAValue = calculateSingleGameKDA(avgKills, avgDeaths, avgAssists);
     const avgKDA = typeof avgKDAValue === "number" ? avgKDAValue.toFixed(1) : avgKDAValue;
 
     const sortedChampions = Object.values(championStats)
@@ -444,7 +383,7 @@ function MatchHistoryHeader({
       avgKDA,
       topChampions: sortedChampions,
     };
-  }, [filteredMatches, gamesForSummaryCount, getChampionDisplayName, filters.dateRange]); // Add filters.dateRange to dependency array
+  }, [filteredMatches, gamesForSummaryCount, getChampionDisplayName, filters.dateRange]);
   const getWinrateColor = (wr) => {
     if (wr >= 60) return "text-green-400";
     if (wr >= 50) return "text-blue-400";
@@ -503,123 +442,46 @@ function MatchHistoryHeader({
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mt-4 mb-2">
-      {/* Pre-Game Focus Section */}
-      <div className="mb-3 relative" ref={preGameGoalSetterRef}>
-        <div className="flex items-center justify-between bg-gray-800/50 p-2 rounded-lg border border-gray-700/50">
-          {" "}
-          {/* Ensure min height */}
-          <div className="flex items-center">
-            <TargetIcon size={18} className="mr-2 text-orange-400 flex-shrink-0" />
-            {activePreGameGoal ? (
-              <div className="text-xs">
-                <span className="text-gray-400 mr-1">Active Focus:</span>
-                <span className="text-orange-300 font-semibold">{activePreGameGoal.text}</span>
-                {activePreGameGoal.category && <span className="text-gray-500 text-[10px] ml-1">({activePreGameGoal.category})</span>}
-              </div>
-            ) : (
-              <span className="text-xs text-gray-400">No active pre-game focus set.</span>
-            )}
-          </div>
-          <div className="flex items-center">
-            {activePreGameGoal && (
-              <button onClick={handleClearPreGameFocus} className="p-1 text-red-500 hover:text-red-400 mr-1.5" title="Clear Active Focus">
-                <PinOff size={16} />
-              </button>
-            )}
-            <button id="pre-game-focus-toggle" onClick={() => setShowPreGameGoalSetter(!showPreGameGoalSetter)} className="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-md text-gray-300 hover:text-orange-300 transition-colors" title={showPreGameGoalSetter ? "Close Focus Setter" : "Set Pre-Game Focus"}>
-              {showPreGameGoalSetter ? <ChevronUp size={16} /> : <Edit size={16} />}
-            </button>
-          </div>
-        </div>
-        {showPreGameGoalSetter && (
-          <div className="absolute top-full left-0 mt-1 z-30 bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-700 w-full sm:w-auto min-w-[300px] space-y-2">
-            <h4 className="text-sm font-semibold text-gray-200 mb-1">Set Your Pre-Game Focus</h4>
-            {goalTemplates && goalTemplates.length > 0 && (
-              <select
-                value={selectedPreGameTemplateId}
-                onChange={(e) => {
-                  setSelectedPreGameTemplateId(e.target.value);
-                  if (e.target.value) setCustomPreGameGoalText("");
-                }}
-                className={`${commonInputClass} ${controlElementHeightClass}`}
-              >
-                <option value="">Select from templates...</option>
-                {goalTemplates.map((t) => (
-                  <option key={t.id} value={t.id.toString()}>
-                    {t.title} ({t.category || "General"})
-                  </option>
-                ))}
-              </select>
-            )}
-            <p className="text-xs text-gray-400 text-center my-1">OR</p>
-            <input
-              type="text"
-              value={customPreGameGoalText}
-              onChange={(e) => {
-                setCustomPreGameGoalText(e.target.value);
-                if (e.target.value) setSelectedPreGameTemplateId("");
-              }}
-              placeholder="Type a custom focus..."
-              className={`${commonInputClass} ${controlElementHeightClass}`}
-            />
-            <button onClick={handleSetPreGameFocus} className={`w-full bg-green-600 hover:bg-green-500 text-white text-xs py-1.5 px-3 rounded-md flex items-center justify-center ${controlElementHeightClass}`}>
-              <CheckCircle size={16} className="mr-1.5" /> Set Focus
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Summary Section */}
       {summaryData.totalGames > 0 && (
         <div className="max-w-5xl mx-auto bg-gray-800/60 backdrop-blur-md border border-gray-700/50 pt-3 pb-3 h-[160px] rounded-lg flex flex-col items-center justify-center gap-y-2 text-xs font-light text-gray-300 text-center shadow-xl mb-2 min-h-[160px]">
-          {" "}
           <div className="flex items-center gap-2 mx-auto">
-            {" "}
             <TrendingUp size={15} className="text-gray-400" />
-            <span className="text-xs text-gray-200 font-semibold"> {isAnyFilterActive ? `Filtered Performance (${summaryData.totalGames} Game${summaryData.totalGames === 1 ? "" : "s"})` : `Last ${summaryData.totalGames > gamesForSummaryCount ? gamesForSummaryCount : summaryData.totalGames} Games Performance`} </span>{" "}
-          </div>{" "}
+            <span className="text-xs text-gray-200 font-semibold"> {isAnyFilterActive ? `Filtered Performance (${summaryData.totalGames} Game${summaryData.totalGames === 1 ? "" : "s"})` : `Last ${summaryData.totalGames > gamesForSummaryCount ? gamesForSummaryCount : summaryData.totalGames} Games Performance`} </span>
+          </div>
           <div className="flex flex-col md:flex-row items-center justify-around w-full px-3 md:px-6 gap-5 md:gap-8">
-            {" "}
             <div className="relative min-h-[80px] min-w-[100px]">
-              {" "}
-              <WinrateHalfRadialChart winrate={summaryData.winrate} wins={summaryData.wins} losses={summaryData.losses} radius={50} strokeWidth={10} />{" "}
-            </div>{" "}
+              <WinrateHalfRadialChart winrate={summaryData.winrate} wins={summaryData.wins} losses={summaryData.losses} radius={50} strokeWidth={10} />
+            </div>
             <div className="flex flex-col items-center md:items-start justify-center gap-2">
-              {" "}
               {summaryData.topChampions.map((champ) => (
                 <div key={champ.name} className="flex gap-2.5 items-center text-sm font-semibold text-center w-full md:w-auto">
-                  {" "}
-                  <img alt={getChampionDisplayName(champ.name)} loading="lazy" width="32" height="32" decoding="async" src={getChampionImage(champ.name)} className="w-8 h-8 scale-100 rounded-md object-cover border-2 border-gray-600 shadow-md" style={{ color: "transparent" }} />{" "}
+                  <img alt={getChampionDisplayName(champ.name)} loading="lazy" width="32" height="32" decoding="async" src={getChampionImage(champ.name)} className="w-8 h-8 scale-100 rounded-md object-cover border-2 border-gray-600 shadow-md" style={{ color: "transparent" }} />
                   <div className="flex flex-col items-start opacity-90">
-                    {" "}
                     <div className="flex items-center gap-2">
-                      {" "}
-                      <span className={`min-w-[32px] text-start font-bold text-xs ${getWinrateColor(champ.winrate)}`}>{champ.winrate.toFixed(0)}%</span>{" "}
+                      <span className={`min-w-[32px] text-start font-bold text-xs ${getWinrateColor(champ.winrate)}`}>{champ.winrate.toFixed(0)}%</span>
                       <span className="text-gray-400 text-xs">
                         {champ.wins}W-{champ.games - champ.wins}L
-                      </span>{" "}
-                    </div>{" "}
+                      </span>
+                    </div>
                     <span className="flex gap-1.5 items-center text-xs font-normal">
-                      {" "}
-                      <span className={getKDAColor(champ.kda)}>{typeof champ.kda === "number" ? champ.kda.toFixed(1) : champ.kda}</span> <span className="text-gray-400">KDA</span>{" "}
-                    </span>{" "}
-                  </div>{" "}
+                      <span className={getKDAColor(champ.kda)}>{typeof champ.kda === "number" ? champ.kda.toFixed(1) : champ.kda}</span> <span className="text-gray-400">KDA</span>
+                    </span>
+                  </div>
                 </div>
               ))}{" "}
-            </div>{" "}
+            </div>
             <div className="hidden lg:flex flex-col items-center justify-center h-full gap-2.5 min-w-[100px]">
-              {" "}
               <div className="flex flex-col font-semibold text-gray-300 text-sm items-center gap-1">
                 Overall KDA <span className={`font-bold text-2xl ${getKDAColor(summaryData.avgKDA)}`}>{summaryData.avgKDA}</span>
-              </div>{" "}
+              </div>
               <div className="flex items-center gap-1.5 text-xs">
-                {" "}
                 <span className="text-gray-100">{summaryData.avgKills.toFixed(1)}</span>
                 <span className="text-gray-500 font-light">/</span> <span className="text-red-400">{summaryData.avgDeaths.toFixed(1)}</span>
-                <span className="text-gray-500 font-light">/</span> <span className="text-gray-100">{summaryData.avgAssists.toFixed(1)}</span>{" "}
-              </div>{" "}
-            </div>{" "}
-          </div>{" "}
+                <span className="text-gray-500 font-light">/</span> <span className="text-gray-100">{summaryData.avgAssists.toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       {summaryData.totalGames === 0 && filteredMatches && filteredMatches.length === 0 && allMatches && allMatches.length > 0 && <div className="max-w-5xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-2 h-[160px] flex items-center justify-center"> No matches found for the current filters. Try adjusting or clearing them. </div>}
@@ -746,6 +608,5 @@ function MatchHistoryHeader({
     </div>
   );
 }
-MatchHistoryHeader.displayName = "MatchHistoryHeader";
 
 export default MatchHistoryHeader;

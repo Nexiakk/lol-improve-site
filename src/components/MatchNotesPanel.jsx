@@ -231,7 +231,8 @@ const GoalItem = memo(({ goal, onUpdate, onDelete, isSaving }) => {
 });
 GoalItem.displayName = "GoalItem";
 
-function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose, isLoading: isSavingNotes }) {
+// Add getChampionImage and getChampionDisplayName as props
+function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose, isLoading: isSavingNotes, getChampionImage, getChampionDisplayName }) {
   const [goals, setGoals] = useState([]);
   const [positiveMoment, setPositiveMoment] = useState("");
   const [keyMistake, setKeyMistake] = useState("");
@@ -248,24 +249,26 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
 
   useEffect(() => {
     if (match) {
+      // Prioritize existing match goals, otherwise check activePreGameGoal, then default
       if (Array.isArray(match.goals) && match.goals.length > 0) {
         setGoals(match.goals.map((g) => ({ ...g, id: g.id || Date.now() + Math.random() })));
-      } else if (match.mainGoal) {
-        let initialGoalText = match.mainGoal;
-        if (!match.mainGoal && match.activePreGameGoal?.text) {
-          initialGoalText = match.activePreGameGoal.text;
-        }
+      } else if (Array.isArray(match.activePreGameGoal) && match.activePreGameGoal.length > 0) {
+        // Check if multiple pre-game goals exist
+        // Initialize goals with active pre-game goals, ensuring unique IDs and setting them as not completed by default
+        setGoals(match.activePreGameGoal.map((g) => ({ ...g, id: g.id || Date.now() + Math.random(), isCompleted: false, status: "", difficultyReason: "" })));
+      }
+      // Keep old single goal logic as a final fallback for compatibility with older data if needed
+      else if (match.mainGoal) {
         setGoals([
           {
             id: Date.now(),
-            text: initialGoalText,
+            text: match.mainGoal,
             status: match.goalAchieved || "",
             difficultyReason: match.goalDifficultyReason || "",
           },
         ]);
       } else {
-        let initialText = match.activePreGameGoal?.text || "";
-        setGoals([{ id: Date.now(), text: initialText, status: "", difficultyReason: "" }]);
+        setGoals([{ id: Date.now(), text: "", status: "", difficultyReason: "" }]);
       }
 
       setPositiveMoment(match.positiveMoment || "");
@@ -372,9 +375,9 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
     if (match?.matchId) {
       const notesData = {
         goals: goals.filter((g) => g.text.trim() !== ""),
-        mainGoal: null,
-        goalAchieved: null,
-        goalDifficultyReason: null,
+        mainGoal: null, // Clear old single goal fields
+        goalAchieved: null, // Clear old single goal fields
+        goalDifficultyReason: null, // Clear old single goal fields
         positiveMoment,
         keyMistake,
         keyMistakeTags,
@@ -392,46 +395,51 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
 
   if (!match) return null;
 
-  const getChampionDisplayNameFromPanel = (championKeyApi) => {
-    if (!championData || !championKeyApi) return championKeyApi || "Champion";
-    let ddragonKeyToLookup = championKeyApi;
-    if (championKeyApi === "Fiddlesticks") ddragonKeyToLookup = "FiddleSticks";
-    const championInfo = championData[ddragonKeyToLookup] || Object.values(championData).find((c) => c.id.toLowerCase() === championKeyApi.toLowerCase());
-    return championInfo ? championInfo.name : championKeyApi;
-  };
+  // Use the passed getChampionDisplayName and getChampionImage functions
+  const championNameDisplay = getChampionDisplayName(match.championName);
+  const opponentChampionNameDisplay = match.opponentChampionName ? getChampionDisplayName(match.opponentChampionName) : null;
 
-  const championNameDisplay = getChampionDisplayNameFromPanel(match.championName);
   const gameDate = match.gameCreation ? new Date(match.gameCreation).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "N/A";
   const commonTextareaClass = "w-full p-2.5 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-100 placeholder-gray-500 text-sm transition-all duration-200";
   const commonInputClass = "w-full p-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-100 placeholder-gray-500 text-sm";
 
   const isExistingReview = !!(match.mainGoal || match.positiveMoment || match.keyMistake || match.generalNotes || match.vibeTags?.length > 0 || match.gameRating);
-
-  const hasGoalContent = !!(match.mainGoal || match.goalAchieved);
+  // Re-evaluate content checks based on the new `goals` array
+  const hasGoalContent = Array.isArray(match.goals) && match.goals.some((g) => g.text?.trim() !== "");
   const hasVibeContent = !!(match.vibeTags?.length > 0);
-  const hasDecisionsContent = !!(match.positiveMoment || match.keyMistake || match.actionableTakeaway || match.keyMistakeTags?.length > 0);
+  const hasDecisionsContent = !!(match.positiveMoment || match.keyMistake || match.actionableTakeaway || (match.keyMistakeTags && match.keyMistakeTags.length > 0));
   const hasAssessmentContent = !!(match.gameRating || match.mentalRating);
   const hasGeneralNotesContent = !!match.generalNotes;
 
   return (
-    <div className="fixed top-16 right-0 w-full md:w-2/5 lg:w-1/3 xl:w-[30%] 2xl:w-1/4 h-[calc(100vh-4rem)] bg-gray-850 border-l border-gray-700 shadow-2xl flex flex-col z-10 custom-scrollbar">
+    <div className="fixed top-[90px] right-0 w-full md:w-2/5 lg:w-1/3 xl:w-[30%] 2xl:w-1/4 h-[calc(100vh-90px)] bg-gray-850 border-l border-gray-700 shadow-2xl flex flex-col z-10 custom-scrollbar">
       {/* Panel Header */}
       <div className="p-4 sm:p-5 pb-2 border-b border-gray-700">
         <div className="flex justify-between items-center">
-          <h2 className="flex items-baseline truncate">
-            {match.opponentChampionName ? (
+          <h2 className="flex items-center truncate">
+            {" "}
+            {/* Changed items-baseline to items-center for icon alignment */}
+            {getChampionImage && <img src={getChampionImage(match.championName)} alt={championNameDisplay} className="w-8 h-8 rounded-full mr-2 border border-gray-600 shadow-md" />}
+            <span className="text-xl font-bold text-gray-100">{championNameDisplay}</span>
+            {match.opponentChampionName && (
               <>
-                <span className="text-xl font-bold text-gray-100">{championNameDisplay}</span>
                 <span className="mx-2 text-sm font-normal text-gray-500">vs</span>
-                <span className="text-sm font-medium text-gray-300">{getChampionDisplayNameFromPanel(match.opponentChampionName)}</span>
+                {getChampionImage && <img src={getChampionImage(match.opponentChampionName)} alt={opponentChampionNameDisplay} className="w-8 h-8 rounded-full mr-2 border border-gray-700 opacity-90 shadow-md" />}
+                <span className="text-sm font-medium text-gray-300">{opponentChampionNameDisplay}</span>
               </>
-            ) : (
-              <span className="text-xl font-bold text-gray-100">Game Review: {championNameDisplay}</span>
             )}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-red-400 transition-colors cursor-pointer" aria-label="Close notes panel">
-            <XCircle size={22} />
-          </button>
+          <div className="flex items-center space-x-3">
+            {" "}
+            {/* Increased space-x for more separation */}
+            <button onClick={handleSave} disabled={isSavingNotes || !match?.matchId} className="bg-orange-600 hover:bg-orange-500 text-white font-semibold py-1.5 px-3 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-850 flex items-center justify-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed text-sm">
+              <Save size={16} className="mr-1.5" />
+              {isSavingNotes ? "Saving..." : "Save"}
+            </button>
+            <button onClick={onClose} className="text-gray-500 hover:text-red-400 transition-colors cursor-pointer" aria-label="Close notes panel">
+              <XCircle size={22} />
+            </button>
+          </div>
         </div>
         <p className="text-sm text-gray-400">{gameDate}</p>
       </div>
@@ -446,9 +454,9 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
                 <ListCollapse size={16} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
                 <select id="goalTemplateSelect" value={selectedTemplateId} onChange={handleTemplateSelect} className={`${commonInputClass} pl-8 appearance-none cursor-pointer`} disabled={isSavingNotes || isLoadingTemplates}>
                   <option value="">+ Add Goal from Template...</option>
-                  {goalTemplates.map((template) => (
-                    <option key={template.id} value={template.id.toString()}>
-                      {template.title} ({template.category || "General"})
+                  {goalTemplates.map((t) => (
+                    <option key={t.id} value={t.id.toString()}>
+                      {t.title} ({t.category || "General"})
                     </option>
                   ))}
                 </select>
@@ -515,14 +523,6 @@ function MatchNotesPanel({ match, championData, ddragonVersion, onSave, onClose,
         <CollapsibleSection title="General Notes & Timestamps" icon={Edit2} defaultOpen={hasGeneralNotesContent}>
           <AutoExpandingTextarea id="generalNotes" rows="3" className={commonTextareaClass} placeholder="Any other thoughts, observations, or VOD timestamps..." value={generalNotes} onChange={(e) => setGeneralNotes(e.target.value)} disabled={isSavingNotes} />
         </CollapsibleSection>
-      </div>
-
-      {/* Save Button */}
-      <div className="p-4 sm:p-5 pt-3 border-t border-gray-700">
-        <button onClick={handleSave} disabled={isSavingNotes || !match?.matchId} className="w-full bg-orange-600 hover:bg-orange-500 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-gray-850 flex items-center justify-center cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
-          <Save size={18} className="mr-2" />
-          {isSavingNotes ? "Saving Review..." : "Save Game Review"}
-        </button>
       </div>
     </div>
   );

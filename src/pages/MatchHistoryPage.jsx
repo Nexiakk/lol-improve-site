@@ -10,6 +10,7 @@ import ExpandedMatchDetails from "../components/ExpandedMatchDetails";
 import MatchHistoryHeader from "../components/MatchHistoryHeader";
 import RuneDisplay from "../components/common/RuneDisplay"; // Keep importing the wrapper
 import LiveGamePage from "../components/LiveGamePage";
+import Sidebar from "../components/Sidebar"; // NEW IMPORT
 import riotApiFetchWithRetry from "../components/common/apiFetch";
 import { getContinentalRoute, delay, timeAgo, formatGameDurationMMSS, formatGameMode, getKDAColorClass, getKDAStringSpans, getKDARatio, getCSString, processTimelineData, QUEUE_IDS } from "../utils/matchCalculations";
 
@@ -250,22 +251,11 @@ function MatchHistoryPage() {
   const [updateFetchDates, setUpdateFetchDates] = useState({ startDate: "", endDate: "" });
   const [goalTemplates, setGoalTemplates] = useState([]);
   const [activeView, setActiveView] = useState("matchHistory");
-  const [activePreGameGoal, setActivePreGameGoal] = useState(null); // ADDED: State for active pre-game goal
+  // CHANGED: preGameGoals is now an array, and its state is managed here
+  const [preGameGoals, setPreGameGoals] = useState([]); // State for active pre-game goals
 
   const matchListContainerRef = useRef(null);
   const prevPageRef = useRef(currentPage);
-
-  // ADDED: Load active pre-game goal from localStorage on mount
-  useEffect(() => {
-    try {
-      const storedGoal = localStorage.getItem("activePreGameGoal");
-      if (storedGoal) {
-        setActivePreGameGoal(JSON.parse(storedGoal));
-      }
-    } catch (error) {
-      console.error("Error loading pre-game goal from localStorage in MatchHistoryPage:", error);
-    }
-  }, []);
 
   const fetchGoalTemplatesForHeader = useCallback(async () => {
     try {
@@ -743,7 +733,14 @@ function MatchHistoryPage() {
 
   // Note Handling
   const handleOpenNotes = (match) => {
-    setSelectedMatchForNotes({ ...match, activePreGameGoal: activePreGameGoal });
+    setSelectedMatchForNotes({
+      ...match,
+      // Pass the current active pre-game goals to the match notes panel
+      activePreGameGoal: preGameGoals, // CHANGED: Pass the array
+      // Pass the image getter functions down to MatchNotesPanel
+      getChampionImage: getChampionImage,
+      getChampionDisplayName: getChampionDisplayName,
+    });
   };
   const handleCloseNotes = () => {
     setSelectedMatchForNotes(null);
@@ -835,7 +832,7 @@ function MatchHistoryPage() {
     return (
       <div className="text-left max-w-xs">
         <p className="font-bold text-orange-400 text-base mb-1">{name}</p>
-        <p className="text-xs text-gray-300" dangerouslySetInnerHTML={{ __html: description }}></p>
+        <p className="text-xs text-gray-300" dangerouslyM_HTML={{ __html: description }}></p>
       </div>
     );
   };
@@ -921,311 +918,332 @@ function MatchHistoryPage() {
     return filteredMatches;
   }, [filteredMatches]);
 
+  const commonInputClass = "w-full bg-gray-700/80 border border-gray-600 rounded-md shadow-sm focus:border-orange-500 text-gray-200 placeholder-gray-400 text-xs px-2.5"; // Defined here for passing to sidebar
+  const controlElementHeightClass = "h-9"; // Defined here for passing to sidebar
+
+
   return (
     <div className="flex flex-1 overflow-hidden h-[calc(100vh)] pt-[90px]">
       {" "}
       {/* Adjust pt-[Xpx] based on actual height of TopNavbar + ViewSwitcher */}
-      <div
-        ref={matchListContainerRef}
-        className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar h-full
-                            ${selectedMatchForNotes ? "w-full md:w-3/5 lg:w-2/3 xl:w-3/4" : "w-full"}`}
-      >
+      {/* Main content wrapper: now a flex container */}
+      <div className={`flex flex-grow h-full ${selectedMatchForNotes ? "md:w-3/5 lg:w-2/3 xl:w-3/4" : "w-full"} overflow-hidden`}>
         {/* The ViewSwitcher is now rendered here, acting as the 'extension' */}
         <div className="fixed top-[40px] left-0 right-0 z-10">
           {" "}
           {/* Position right below TopNavbar */}
           <ViewSwitcher activeView={activeView} setActiveView={setActiveView} />
         </div>
-        {activeView === "matchHistory" ? (
-          <>
-            <MatchHistoryHeader
-              filteredMatches={summaryMatches}
-              allMatches={allMatchesFromDb}
-              championData={championData}
-              getChampionImage={getChampionImage}
-              getChampionDisplayName={getChampionDisplayName}
-              handleUpdateAllMatches={handleUpdateAllMatches}
-              isUpdatingAllMatches={isUpdatingAllMatches}
-              isLoadingAccounts={isLoadingAccounts}
-              trackedAccounts={trackedAccounts}
-              ddragonVersion={ddragonVersion}
-              runesMap={runesMap}
-              updateProgress={updateProgress}
-              gamesForSummaryCount={GAMES_FOR_SUMMARY_PROP}
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onDatePresetFilter={handleDatePresetFilter}
-              onUpdateFetchDateChange={handleUpdateFetchDateChange}
-              updateFetchDates={updateFetchDates}
-              onClearFilters={handleClearFilters}
-              availableChampions={availableChampions}
-              availableOpponentChampions={availableOpponentChampions}
-              availablePatches={availablePatches}
-              ROLE_ICON_MAP={ROLE_ICON_MAP}
-              ROLE_ORDER={ROLE_ORDER}
-              goalTemplates={goalTemplates}
-            />
 
-            <div className="max-w-5xl mx-auto w-full mb-2 flex items-center justify-center px-4 sm:px-6 md:px-8">
-              {error && !isUpdatingAllMatches && (
-                <div className="w-full p-2.5 bg-red-900/40 text-red-300 border border-red-700/60 rounded-md text-sm text-center">
-                  <AlertTriangle size={18} className="inline mr-2" />
-                  Error: {error}
-                </div>
-              )}
-              {successMessage && !error && !isUpdatingAllMatches && <div className="w-full p-2.5 bg-green-800/40 text-green-300 border border-green-700/60 rounded-md text-sm text-center"> {successMessage} </div>}
-            </div>
+        {/* Left Sidebar - Pre-Game Goals */}
+        {activeView === "matchHistory" && ( // Only show sidebar if on match history view
+          <Sidebar
+            preGameGoals={preGameGoals}
+            setPreGameGoals={setPreGameGoals}
+            goalTemplates={goalTemplates}
+            commonInputClass={commonInputClass}
+            controlElementHeightClass={controlElementHeightClass}
+          />
+        )}
 
-            {isLoadingMatches && !isUpdatingAllMatches && allMatchesFromDb.length === 0 ? (
-              <div className="max-w-5xl mx-auto w-full mt-8 px-4 sm:px-6 md:px-8">
-                <div className="space-y-3">
-                  <div className="h-6 bg-gray-700/60 rounded w-1/4 mb-3 animate-pulse"></div>
-                  {Array.from({ length: MATCHES_PER_PAGE }).map((_, index) => (
-                    <MatchItemSkeleton key={index} />
-                  ))}
-                </div>
+        {/* Main Content Area (Match List) */}
+        <div
+          ref={matchListContainerRef}
+          className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar h-full flex-grow`}
+        >
+          {activeView === "matchHistory" ? (
+            <>
+              {/* MatchHistoryHeader needs its top margin adjusted since the sidebar now pushes it */}
+              <MatchHistoryHeader
+                filteredMatches={summaryMatches}
+                allMatches={allMatchesFromDb}
+                championData={championData}
+                getChampionImage={getChampionImage}
+                getChampionDisplayName={getChampionDisplayName}
+                handleUpdateAllMatches={handleUpdateAllMatches}
+                isUpdatingAllMatches={isUpdatingAllMatches}
+                isLoadingAccounts={isLoadingAccounts}
+                trackedAccounts={trackedAccounts}
+                ddragonVersion={ddragonVersion}
+                runesMap={runesMap}
+                updateProgress={updateProgress}
+                gamesForSummaryCount={GAMES_FOR_SUMMARY_PROP}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onDatePresetFilter={handleDatePresetFilter}
+                onUpdateFetchDateChange={handleUpdateFetchDateChange}
+                updateFetchDates={updateFetchDates}
+                onClearFilters={handleClearFilters}
+                availableChampions={availableChampions}
+                availableOpponentChampions={availableOpponentChampions}
+                ROLE_ICON_MAP={ROLE_ICON_MAP}
+                ROLE_ORDER={ROLE_ORDER}
+                goalTemplates={goalTemplates}
+                availablePatches={availablePatches} // Pass availablePatches
+                // No more pre-game goal props here
+              />
+
+              <div className="max-w-5xl mx-auto w-full mb-2 flex items-center justify-center px-4 sm:px-6 md:px-8">
+                {error && !isUpdatingAllMatches && (
+                  <div className="w-full p-2.5 bg-red-900/40 text-red-300 border border-red-700/60 rounded-md text-sm text-center">
+                    <AlertTriangle size={18} className="inline mr-2" />
+                    Error: {error}
+                  </div>
+                )}
+                {successMessage && !error && !isUpdatingAllMatches && <div className="w-full p-2.5 bg-green-800/40 text-green-300 border border-green-700/60 rounded-md text-sm text-center"> {successMessage} </div>}
               </div>
-            ) : !isLoadingMatches && filteredMatches.length === 0 && !error && !isUpdatingAllMatches ? (
-              <div className="max-w-5xl mx-auto w-full mt-8 px-4 sm:px-6 md:px-8">
-                <div className="text-center py-10 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-dashed border-gray-700/50 min-h-[180px] flex flex-col items-center justify-center">
-                  <ListChecks size={48} className="text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400 text-lg">{allMatchesFromDb.length > 0 && filteredMatches.length === 0 ? "No matches found for the current filters." : "No matches found."}</p>
-                  {allMatchesFromDb.length > 0 && filteredMatches.length === 0 && <p className="text-gray-500 text-sm">Try adjusting or clearing the filters.</p>}
-                  {allMatchesFromDb.length === 0 && <p className="text-gray-500 text-sm">Click "Update Matches" to fetch recent games, or add accounts on the 'Accounts' page.</p>}
+
+              {isLoadingMatches && !isUpdatingAllMatches && allMatchesFromDb.length === 0 ? (
+                <div className="max-w-5xl mx-auto w-full mt-8 px-4 sm:px-6 md:px-8">
+                  <div className="space-y-3">
+                    <div className="h-6 bg-gray-700/60 rounded w-1/4 mb-3 animate-pulse"></div>
+                    {Array.from({ length: MATCHES_PER_PAGE }).map((_, index) => (
+                      <MatchItemSkeleton key={index} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              !isLoadingMatches &&
-              Object.keys(groupedMatches).length > 0 && (
-                <div className="space-y-3 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-8">
-                  {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
-                    <div key={dateKey}>
-                      <h2 className="text-lg font-semibold text-gray-100 pb-1.5"> {dateKey} </h2>
-                      <div className="space-y-1">
-                        {matchesOnDate.map((match) => {
-                          const participantData = match;
-                          const isWin = typeof match.win === "boolean" ? match.win : null;
-                          const kdaStringSpans = getKDAStringSpans(participantData);
-                          const kdaRatio = getKDARatio(participantData);
-                          const kdaColorClass = getKDAColorClass(participantData.kills, participantData.deaths, participantData.assists);
-                          const csString = getCSString(participantData);
-                          const gameModeDisplay = formatGameMode(match.gameMode, match.queueId);
-                          const gameDurationFormatted = formatGameDurationMMSS(match.gameDuration);
-                          const itemsRow1 = [match.item0, match.item1, match.item2].map((id) => getItemImage(id));
-                          const itemsRow2 = [match.item3, match.item4, match.item5].map((id) => getItemImage(id));
-                          const trinketImg = getItemImage(match.item6);
-                          const summoner1Img = getSummonerSpellImage(match.summoner1Id);
-                          const summoner2Img = getSummonerSpellImage(match.summoner2Id);
-                          let primaryPerkId = null;
-                          let subStyleId = null;
-                          let primaryRuneImg = null;
-                          let subStyleImgPath = null;
-                          if (match.perks && match.perks.styles && Array.isArray(match.perks.styles) && Object.keys(runesMap).length > 0 && ddragonVersion) {
-                            const primaryStyleInfo = match.perks.styles.find((s) => s.description === "primaryStyle");
-                            const subStyleInfo = match.perks.styles.find((s) => s.description === "subStyle");
-                            if (primaryStyleInfo?.selections?.[0]?.perk) {
-                              primaryPerkId = primaryStyleInfo.selections[0].perk;
-                              primaryRuneImg = getRuneImage(primaryPerkId);
+              ) : !isLoadingMatches && filteredMatches.length === 0 && !error && !isUpdatingAllMatches ? (
+                <div className="max-w-5xl mx-auto w-full mt-8 px-4 sm:px-6 md:px-8">
+                  <div className="text-center py-10 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-dashed border-gray-700/50 min-h-[180px] flex flex-col items-center justify-center">
+                    <ListChecks size={48} className="text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400 text-lg">{allMatchesFromDb.length > 0 && filteredMatches.length === 0 ? "No matches found for the current filters." : "No matches found."}</p>
+                    {allMatchesFromDb.length > 0 && filteredMatches.length === 0 && <p className="text-gray-500 text-sm">Try adjusting or clearing the filters.</p>}
+                    {allMatchesFromDb.length === 0 && <p className="text-gray-500 text-sm">Click "Update Matches" to fetch recent games, or add accounts on the 'Accounts' page.</p>}
+                  </div>
+                </div>
+              ) : (
+                !isLoadingMatches &&
+                Object.keys(groupedMatches).length > 0 && (
+                  <div className="space-y-3 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-8">
+                    {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
+                      <div key={dateKey}>
+                        <h2 className="text-lg font-semibold text-gray-100 pb-1.5"> {dateKey} </h2>
+                        <div className="space-y-1">
+                          {matchesOnDate.map((match) => {
+                            const participantData = match;
+                            const isWin = typeof match.win === "boolean" ? match.win : null;
+                            const kdaStringSpans = getKDAStringSpans(participantData);
+                            const kdaRatio = getKDARatio(participantData);
+                            const kdaColorClass = getKDAColorClass(participantData.kills, participantData.deaths, participantData.assists);
+                            const csString = getCSString(participantData);
+                            const gameModeDisplay = formatGameMode(match.gameMode, match.queueId);
+                            const gameDurationFormatted = formatGameDurationMMSS(match.gameDuration);
+                            const itemsRow1 = [match.item0, match.item1, match.item2].map((id) => getItemImage(id));
+                            const itemsRow2 = [match.item3, match.item4, match.item5].map((id) => getItemImage(id));
+                            const trinketImg = getItemImage(match.item6);
+                            const summoner1Img = getSummonerSpellImage(match.summoner1Id);
+                            const summoner2Img = getSummonerSpellImage(match.summoner2Id);
+                            let primaryPerkId = null;
+                            let subStyleId = null;
+                            let primaryRuneImg = null;
+                            let subStyleImgPath = null;
+                            if (match.perks && match.perks.styles && Array.isArray(match.perks.styles) && Object.keys(runesMap).length > 0 && ddragonVersion) {
+                              const primaryStyleInfo = match.perks.styles.find((s) => s.description === "primaryStyle");
+                              const subStyleInfo = match.perks.styles.find((s) => s.description === "subStyle");
+                              if (primaryStyleInfo?.selections?.[0]?.perk) {
+                                primaryPerkId = primaryStyleInfo.selections[0].perk;
+                                primaryRuneImg = getRuneImage(primaryPerkId);
+                              }
+                              if (subStyleInfo?.style) {
+                                subStyleId = subStyleInfo.style;
+                                subStyleImgPath = getRuneImage(subStyleId);
+                              }
                             }
-                            if (subStyleInfo?.style) {
-                              subStyleId = subStyleInfo.style;
-                              subStyleImgPath = getRuneImage(subStyleId);
-                            }
-                          }
-                          const playerRoleIcon = match.teamPosition ? ROLE_ICON_MAP[match.teamPosition.toUpperCase()] : null;
-                          const hasMeaningfulNotes = (match.mainGoal && match.mainGoal.trim() !== "") || (match.actionableTakeaway && match.actionableTakeaway.trim() !== "") || (match.generalNotes && match.generalNotes.trim() !== "") || (match.positiveMoment && match.positiveMoment.trim() !== "") || (match.keyMistake && match.keyMistake.trim() !== "");
-                          const notesButtonIcon = hasMeaningfulNotes ? MessageSquare : Edit;
-                          const notesButtonTitle = hasMeaningfulNotes ? "View/Edit Review" : "Add Review";
-                          const notesButtonBgClass = hasMeaningfulNotes ? "bg-sky-600 hover:bg-sky-500 text-white" : "bg-orange-600 hover:bg-orange-500 text-white";
-                          const resultBgOverlayClass = isWin === null ? "bg-gray-800/25" : isWin ? "bg-blue-900/20" : "bg-red-900/20";
-                          const expandButtonBgClass = isWin === null ? "bg-gray-700/60 hover:bg-gray-600/80" : isWin ? "bg-blue-900/25 hover:bg-[#304A80]" : "bg-red-900/25 hover:bg-[#582C3A]";
-                          const isExpanded = expandedMatchId === match.matchId;
-                          const animationClass = match.isNew ? "match-item-enter-active" : "";
-                          return (
-                            <div key={match.matchId} className={`rounded-lg shadow-lg overflow-hidden group ${resultBgOverlayClass} ${animationClass}`}>
-                              <div className={`flex items-stretch ${isExpanded ? "rounded-t-lg" : "rounded-lg"} ${resultBgOverlayClass}`}>
-                                <div className="flex flex-1 items-stretch p-3 ml-1">
-                                  <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5">
-                                    <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p>
-                                    <div className="flex justify-start items-baseline w-full text-xs">
-                                      <span className="text-gray-200 mr-2.5">{gameDurationFormatted}</span> <span className="text-gray-400">{timeAgo(match.gameCreation / 1000)}</span>
-                                    </div>
-                                    <div className="text-xs text-gray-400 truncate w-full pt-0.5" title={`${match.trackedAccountName} (${match.trackedAccountPlatform?.toUpperCase()})`}>
-                                      <span className="truncate">{match.trackedAccountName}</span>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center justify-center space-x-1.5 flex-shrink-0 mx-1">
-                                    <Tooltip title={getChampionDisplayName(match.championName)} classNames={{ root: "custom-tooltip" }}>
-                                      <div className="relative">
-                                        <img
-                                          src={getChampionImage(match.championName)}
-                                          alt={getChampionDisplayName(match.championName)}
-                                          className="w-13 h-13 rounded-md border-2 border-gray-600 shadow-md"
-                                          onError={(e) => {
-                                            e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.championName ? match.championName.substring(0, 1) : "?"}`;
-                                          }}
-                                        />
-                                        {playerRoleIcon && <img src={playerRoleIcon} alt={match.teamPosition || "Role"} className="absolute -bottom-1 -left-1 w-5 h-5 p-0.5 bg-gray-950 rounded-full border border-gray-500 shadow-sm" />}
+                            const playerRoleIcon = match.teamPosition ? ROLE_ICON_MAP[match.teamPosition.toUpperCase()] : null;
+                            const hasMeaningfulNotes = (match.mainGoal && match.mainGoal.trim() !== "") || (match.actionableTakeaway && match.actionableTakeaway.trim() !== "") || (match.generalNotes && match.generalNotes.trim() !== "") || (match.positiveMoment && match.positiveMoment.trim() !== "") || (match.keyMistake && match.keyMistake.trim() !== "");
+                            const notesButtonIcon = hasMeaningfulNotes ? MessageSquare : Edit;
+                            const notesButtonTitle = hasMeaningfulNotes ? "View/Edit Review" : "Add Review";
+                            const notesButtonBgClass = hasMeaningfulNotes ? "bg-sky-600 hover:bg-sky-500 text-white" : "bg-orange-600 hover:bg-orange-500 text-white";
+                            const resultBgOverlayClass = isWin === null ? "bg-gray-800/25" : isWin ? "bg-blue-900/20" : "bg-red-900/20";
+                            const expandButtonBgClass = isWin === null ? "bg-gray-700/60 hover:bg-gray-600/80" : isWin ? "bg-blue-900/25 hover:bg-[#304A80]" : "bg-red-900/25 hover:bg-[#582C3A]";
+                            const isExpanded = expandedMatchId === match.matchId;
+                            const animationClass = match.isNew ? "match-item-enter-active" : "";
+                            return (
+                              <div key={match.matchId} className={`rounded-lg shadow-lg overflow-hidden group ${resultBgOverlayClass} ${animationClass}`}>
+                                <div className={`flex items-stretch ${isExpanded ? "rounded-t-lg" : "rounded-lg"} ${resultBgOverlayClass}`}>
+                                  <div className="flex flex-1 items-stretch p-3 ml-1">
+                                    <div className="flex flex-col justify-around items-start w-40 flex-shrink-0 mr-2 space-y-0.5">
+                                      <p className={`text-md font-semibold text-gray-50`}>{gameModeDisplay}</p>
+                                      <div className="flex justify-start items-baseline w-full text-xs">
+                                        <span className="text-gray-200 mr-2.5">{gameDurationFormatted}</span> <span className="text-gray-400">{timeAgo(match.gameCreation / 1000)}</span>
                                       </div>
-                                    </Tooltip>
-                                    <div className="text-gray-400 text-[0.9rem] font-light self-center px-0.5">vs</div>
-                                    <Tooltip title={getChampionDisplayName(match.opponentChampionName)} classNames={{ root: "custom-tooltip" }}>
-                                      <div className="relative">
-                                        {match.opponentChampionName ? (
+                                      <div className="text-xs text-gray-400 truncate w-full pt-0.5" title={`${match.trackedAccountName} (${match.trackedAccountPlatform?.toUpperCase()})`}>
+                                        <span className="truncate">{match.trackedAccountName}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-center space-x-1.5 flex-shrink-0 mx-1">
+                                      <Tooltip title={getChampionDisplayName(match.championName)} classNames={{ root: "custom-tooltip" }}>
+                                        <div className="relative">
                                           <img
-                                            src={getChampionImage(match.opponentChampionName)}
-                                            alt={getChampionDisplayName(match.opponentChampionName)}
-                                            className="w-13 h-13 rounded-md border-2 border-gray-700 opacity-90 shadow-md"
+                                            src={getChampionImage(match.championName)}
+                                            alt={getChampionDisplayName(match.championName)}
+                                            className="w-13 h-13 rounded-md border-2 border-gray-600 shadow-md"
                                             onError={(e) => {
-                                              e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.opponentChampionName ? match.opponentChampionName.substring(0, 1) : "?"}`;
+                                              e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.championName ? match.championName.substring(0, 1) : "?"}`;
                                             }}
                                           />
-                                        ) : (
-                                          <div className="w-12 h-12 bg-gray-700/50 rounded-md flex items-center justify-center border border-gray-600 shadow-md">
-                                            <ListChecks size={20} className="text-gray-500" />
-                                          </div>
-                                        )}
-                                      </div>
-                                    </Tooltip>
-                                  </div>
-                                  <div className="w-px bg-gray-700/60 self-stretch mx-3"></div>
-                                  <div className="flex items-center space-x-2 bg-gray-900/70 p-2 rounded-lg shadow-inner border border-gray-700/50 flex-shrink-0">
-                                    <div className="flex space-x-1">
-                                      <div className="flex flex-col space-y-0.5">
-                                        <Popover content={getSummonerSpellTooltipContent(match.summoner1Id)} placement="top" trigger="hover" classNames={{ root: "custom-popover" }}>
-                                          <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner1Img ? <img src={summoner1Img} alt="Summoner Spell 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
-                                        </Popover>
-                                        <Popover content={getSummonerSpellTooltipContent(match.summoner2Id)} placement="bottom" trigger="hover" classNames={{ root: "custom-popover" }}>
-                                          <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner2Img ? <img src={summoner2Img} alt="Summoner Spell 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
-                                        </Popover>
-                                      </div>
-                                      <RuneDisplay
-                                        perks={match.perks}
-                                        runesDataFromDDragon={runesDataFromDDragon}
-                                        runesMap={runesMap}
-                                        getRuneImage={getRuneImage}
-                                        layout="compact"
-                                        size="md"
-                                        // *** IMPORTANT CHANGE HERE ***
-                                        // Pass the main scroll container ref
-                                        playerCardRef={matchListContainerRef}
-                                        popoverProps={{
-                                          trigger: "hover",
-                                          placement: "top",
-                                          overlayInnerStyle: { backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px" },
-                                        }}
-                                      >
-                                        {/* Pass the div with rune images as children for the popover trigger */}
-                                        <div className="flex flex-col space-y-0.5">
-                                          <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50">
-                                            {/* Use primaryPerkId and subStyleId directly with getRuneImage */}
-                                            {getRuneImage(primaryPerkId) ? (
-                                              <img
-                                                src={getRuneImage(primaryPerkId)}
-                                                alt={runesMap[primaryPerkId]?.name || "Keystone"}
-                                                className="w-full h-full object-contain"
-                                                onError={(e) => {
-                                                  e.target.style.display = "none";
-                                                  const parent = e.target.parentNode;
-                                                  if (parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>';
-                                                }}
-                                              />
-                                            ) : (
-                                              <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>
-                                            )}
-                                          </div>
-                                          <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50 p-0.5">
-                                            {getRuneImage(subStyleId) ? (
-                                              <img
-                                                src={getRuneImage(subStyleId)}
-                                                alt={runesMap[subStyleId]?.name || "Secondary Tree"}
-                                                className="w-full h-full object-contain"
-                                                onError={(e) => {
-                                                  e.target.style.display = "none";
-                                                  const parent = e.target.parentNode;
-                                                  if (parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>';
-                                                }}
-                                              />
-                                            ) : (
-                                              <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>
-                                            )}
-                                          </div>
+                                          {playerRoleIcon && <img src={playerRoleIcon} alt={match.teamPosition || "Role"} className="absolute -bottom-1 -left-1 w-5 h-5 p-0.5 bg-gray-950 rounded-full border border-gray-500 shadow-sm" />}
                                         </div>
-                                      </RuneDisplay>
+                                      </Tooltip>
+                                      <div className="text-gray-400 text-[0.9rem] font-light self-center px-0.5">vs</div>
+                                      <Tooltip title={getChampionDisplayName(match.opponentChampionName)} classNames={{ root: "custom-tooltip" }}>
+                                        <div className="relative">
+                                          {match.opponentChampionName ? (
+                                            <img
+                                              src={getChampionImage(match.opponentChampionName)}
+                                              alt={getChampionDisplayName(match.opponentChampionName)}
+                                              className="w-13 h-13 rounded-md border-2 border-gray-700 opacity-90 shadow-md"
+                                              onError={(e) => {
+                                                e.target.src = `https://placehold.co/48x48/222/ccc?text=${match.opponentChampionName ? match.opponentChampionName.substring(0, 1) : "?"}`;
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="w-12 h-12 bg-gray-700/50 rounded-md flex items-center justify-center border border-gray-600 shadow-md">
+                                              <ListChecks size={20} className="text-gray-500" />
+                                            </div>
+                                          )}
+                                        </div>
+                                      </Tooltip>
                                     </div>
-                                    <div className="flex flex-col space-y-0.5">
-                                      <div className="flex space-x-0.5">
-                                        {[match.item0, match.item1, match.item2].map((itemId, idx) => (
-                                          <Popover key={`item-top-${idx}`} content={getItemTooltipContent(itemId)} trigger="hover" placement="top" classNames={{ root: "custom-popover" }}>
-                                            <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">{getItemImage(itemId) ? <img src={getItemImage(itemId)} alt={`Item ${idx}`} className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}</div>
+                                    <div className="w-px bg-gray-700/60 self-stretch mx-3"></div>
+                                    <div className="flex items-center space-x-2 bg-gray-900/70 p-2 rounded-lg shadow-inner border border-gray-700/50 flex-shrink-0">
+                                      <div className="flex space-x-1">
+                                        <div className="flex flex-col space-y-0.5">
+                                          <Popover content={getSummonerSpellTooltipContent(match.summoner1Id)} placement="top" trigger="hover" classNames={{ root: "custom-popover" }}>
+                                            <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner1Img ? <img src={summoner1Img} alt="Summoner Spell 1" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
                                           </Popover>
-                                        ))}
-                                        <Popover content={getItemTooltipContent(match.item6)} trigger="hover" placement="top" classNames={{ root: "custom-popover" }}>
-                                          <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">{trinketImg ? <img src={trinketImg} alt="Trinket" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}</div>
-                                        </Popover>
+                                          <Popover content={getSummonerSpellTooltipContent(match.summoner2Id)} placement="bottom" trigger="hover" classNames={{ root: "custom-popover" }}>
+                                            <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner2Img ? <img src={summoner2Img} alt="Summoner Spell 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
+                                          </Popover>
+                                        </div>
+                                        <RuneDisplay
+                                          perks={match.perks}
+                                          runesDataFromDDragon={runesDataFromDDragon}
+                                          runesMap={runesMap}
+                                          getRuneImage={getRuneImage}
+                                          layout="compact"
+                                          size="md"
+                                          // *** IMPORTANT CHANGE HERE ***
+                                          // Pass the main scroll container ref
+                                          playerCardRef={matchListContainerRef}
+                                          popoverProps={{
+                                            trigger: "hover",
+                                            placement: "top",
+                                            overlayInnerStyle: { backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px" },
+                                          }}
+                                        >
+                                          {/* Pass the div with rune images as children for the popover trigger */}
+                                          <div className="flex flex-col space-y-0.5">
+                                            <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50">
+                                              {/* Use primaryPerkId and subStyleId directly with getRuneImage */}
+                                              {getRuneImage(primaryPerkId) ? (
+                                                <img
+                                                  src={getRuneImage(primaryPerkId)}
+                                                  alt={runesMap[primaryPerkId]?.name || "Keystone"}
+                                                  className="w-full h-full object-contain"
+                                                  onError={(e) => {
+                                                    e.target.style.display = "none";
+                                                    const parent = e.target.parentNode;
+                                                    if (parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>';
+                                                  }}
+                                                />
+                                              ) : (
+                                                <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>
+                                              )}
+                                            </div>
+                                            <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50 p-0.5">
+                                              {getRuneImage(subStyleId) ? (
+                                                <img
+                                                  src={getRuneImage(subStyleId)}
+                                                  alt={runesMap[subStyleId]?.name || "Secondary Tree"}
+                                                  className="w-full h-full object-contain"
+                                                  onError={(e) => {
+                                                    e.target.style.display = "none";
+                                                    const parent = e.target.parentNode;
+                                                    if (parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>';
+                                                  }}
+                                                />
+                                              ) : (
+                                                <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </RuneDisplay>
                                       </div>
-                                      <div className="flex space-x-0.5">
-                                        {[match.item3, match.item4, match.item5].map((itemId, idx) => (
-                                          <Popover key={`item-bot-${idx}`} content={getItemTooltipContent(itemId)} trigger="hover" placement="bottom" classNames={{ root: "custom-popover" }}>
-                                            <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">{getItemImage(itemId) ? <img src={getItemImage(itemId)} alt={`Item ${idx + 3}`} className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}</div>
+                                      <div className="flex flex-col space-y-0.5">
+                                        <div className="flex space-x-0.5">
+                                          {[match.item0, match.item1, match.item2].map((itemId, idx) => (
+                                            <Popover key={`item-top-${idx}`} content={getItemTooltipContent(itemId)} trigger="hover" placement="top" classNames={{ root: "custom-popover" }}>
+                                              <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">{getItemImage(itemId) ? <img src={getItemImage(itemId)} alt={`Item ${idx}`} className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}</div>
+                                            </Popover>
+                                          ))}
+                                          <Popover content={getItemTooltipContent(match.item6)} trigger="hover" placement="top" classNames={{ root: "custom-popover" }}>
+                                            <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">{trinketImg ? <img src={trinketImg} alt="Trinket" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}</div>
                                           </Popover>
-                                        ))}
-                                        <div className="w-6 h-6"></div>
+                                        </div>
+                                        <div className="flex space-x-0.5">
+                                          {[match.item3, match.item4, match.item5].map((itemId, idx) => (
+                                            <Popover key={`item-bot-${idx}`} content={getItemTooltipContent(itemId)} trigger="hover" placement="bottom" classNames={{ root: "custom-popover" }}>
+                                              <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50">{getItemImage(itemId) ? <img src={getItemImage(itemId)} alt={`Item ${idx + 3}`} className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>}</div>
+                                            </Popover>
+                                          ))}
+                                          <div className="w-6 h-6"></div>
+                                        </div>
                                       </div>
                                     </div>
+                                    <div className="w-px bg-gray-700/60 self-stretch mx-3"></div>
+                                    <div className="flex flex-col justify-center flex-grow min-w-[90px] space-y-0.5">
+                                      <p className="text-sm">{kdaStringSpans}</p>
+                                      <p>
+                                        <span className={`text-xs ${kdaColorClass}`}>{kdaRatio}</span> <span className="text-[10px] text-gray-400 ml-1">KDA</span>
+                                      </p>
+                                      <p className="text-gray-300 text-xs mt-0.5">{csString}</p>
+                                    </div>
+                                    <div className="flex-shrink-0 flex-grow-0 w-66 mr-4">
+                                      <ReviewHub match={match} onOpenNotes={handleOpenNotes} />
+                                    </div>
                                   </div>
-                                  <div className="w-px bg-gray-700/60 self-stretch mx-3"></div>
-                                  <div className="flex flex-col justify-center flex-grow min-w-[90px] space-y-0.5">
-                                    <p className="text-sm">{kdaStringSpans}</p>
-                                    <p>
-                                      <span className={`text-xs ${kdaColorClass}`}>{kdaRatio}</span> <span className="text-[10px] text-gray-400 ml-1">KDA</span>
-                                    </p>
-                                    <p className="text-gray-300 text-xs mt-0.5">{csString}</p>
-                                  </div>
-                                  <div className="flex-shrink-0 flex-grow-0 w-66 mr-4">
-                                    <ReviewHub match={match} onOpenNotes={handleOpenNotes} />
-                                  </div>
+                                  <button className={`flex items-center justify-center ${expandButtonBgClass} transition-colors w-8 cursor-pointer ${isExpanded ? "rounded-tr-lg" : "rounded-r-lg"}`} title={isExpanded ? "Collapse Details" : "Expand Details"} onClick={() => toggleExpandMatch(match.matchId)}>
+                                    {isExpanded ? <ChevronUp size={18} className="text-gray-300 group-hover:text-orange-300" /> : <ChevronDown size={18} className="text-gray-400" />}
+                                  </button>
                                 </div>
-                                <button className={`flex items-center justify-center ${expandButtonBgClass} transition-colors w-8 cursor-pointer ${isExpanded ? "rounded-tr-lg" : "rounded-r-lg"}`} title={isExpanded ? "Collapse Details" : "Expand Details"} onClick={() => toggleExpandMatch(match.matchId)}>
-                                  {isExpanded ? <ChevronUp size={18} className="text-gray-300 group-hover:text-orange-300" /> : <ChevronDown size={18} className="text-gray-400" />}
-                                </button>
+                                {isExpanded && (
+                                  <ExpandedMatchDetails
+                                    match={match}
+                                    ddragonVersion={ddragonVersion}
+                                    championData={championData}
+                                    summonerSpellsMap={summonerSpellsMap}
+                                    runesMap={runesMap}
+                                    runesDataFromDDragon={runesDataFromDDragon}
+                                    getChampionImage={getChampionImage}
+                                    getSummonerSpellImage={getSummonerSpellImage}
+                                    getItemImage={getItemImage}
+                                    getRuneImage={getRuneImage}
+                                    getChampionDisplayName={getChampionDisplayName}
+                                    isTrackedPlayerWin={isWin}
+                                    roleIconMap={ROLE_ICON_MAP}
+                                    roleOrder={ROLE_ORDER}
+                                    processTimelineDataForPlayer={processTimelineData}
+                                  />
+                                )}
                               </div>
-                              {isExpanded && (
-                                <ExpandedMatchDetails
-                                  match={match}
-                                  ddragonVersion={ddragonVersion}
-                                  championData={championData}
-                                  summonerSpellsMap={summonerSpellsMap}
-                                  runesMap={runesMap}
-                                  runesDataFromDDragon={runesDataFromDDragon}
-                                  getChampionImage={getChampionImage}
-                                  getSummonerSpellImage={getSummonerSpellImage}
-                                  getItemImage={getItemImage}
-                                  getRuneImage={getRuneImage}
-                                  getChampionDisplayName={getChampionDisplayName}
-                                  isTrackedPlayerWin={isWin}
-                                  roleIconMap={ROLE_ICON_MAP}
-                                  roleOrder={ROLE_ORDER}
-                                  processTimelineDataForPlayer={processTimelineData}
-                                />
-                              )}
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )
-            )}
+                    ))}
+                  </div>
+                )
+              )}
 
-            {!isLoadingMatches && totalPages > 1 && <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
-          </>
-        ) : (
-          <LiveGamePage trackedAccounts={trackedAccounts} getChampionImage={getChampionImage} getSummonerSpellImage={getSummonerSpellImage} getRuneImage={getRuneImage} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} championData={championData} ddragonVersion={ddragonVersion} />
-        )}
+              {!isLoadingMatches && totalPages > 1 && <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
+            </>
+          ) : (
+            <LiveGamePage trackedAccounts={trackedAccounts} getChampionImage={getChampionImage} getSummonerSpellImage={getSummonerSpellImage} getRuneImage={getRuneImage} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} championData={championData} ddragonVersion={ddragonVersion} />
+          )}
+        </div>
       </div>
-      {selectedMatchForNotes && <MatchNotesPanel match={selectedMatchForNotes} championData={championData} ddragonVersion={ddragonVersion} onSave={handleSaveNotes} onClose={handleCloseNotes} isLoading={isSavingNotes} />}
+      {selectedMatchForNotes && <MatchNotesPanel match={selectedMatchForNotes} championData={championData} ddragonVersion={ddragonVersion} onSave={handleSaveNotes} onClose={handleCloseNotes} isLoading={isSavingNotes} getChampionImage={getChampionImage} getChampionDisplayName={getChampionDisplayName} />}
     </div>
   );
 }
