@@ -6,176 +6,25 @@ import DatePicker from "react-datepicker";
 import { subDays } from "date-fns";
 import { calculateSummaryStatsForPeriod, getKDAColorClass } from "../utils/matchCalculations";
 import { ROLE_ICON_MAP, ROLE_ORDER } from "../pages/MatchHistoryPage";
+import RuneDisplay from "../components/common/RuneDisplay";
 
 // --- CSS IMPORTS ---
 import "react-datepicker/dist/react-datepicker.css";
-// import './react-datepicker-dark.css';
 
-import statModsAdaptiveForceIcon from "../assets/shards/StatModsAdaptiveForceIcon.webp";
-import statModsAttackSpeedIcon from "../assets/shards/StatModsAttackSpeedIcon.webp";
-import statModsCDRScalingIcon from "../assets/shards/StatModsCDRScalingIcon.webp";
-import statModsHealthFlatIcon from "../assets/shards/StatModsHealthFlatIcon.webp";
-import statModsMovementSpeedIcon from "../assets/shards/StatModsMovementSpeedIcon.webp";
-import statModsTenacityIcon from "../assets/shards/StatModsTenacityIcon.webp";
-import statModsHealthPlusIcon from "../assets/shards/StatModsHealthPlusIcon.webp";
-
-const LOCAL_STAT_SHARD_ICONS = {
-  StatModsAdaptiveForceIcon: statModsAdaptiveForceIcon,
-  StatModsAttackSpeedIcon: statModsAttackSpeedIcon,
-  StatModsCDRScalingIcon: statModsCDRScalingIcon,
-  StatModsHealthFlatIcon: statModsHealthFlatIcon,
-  StatModsMovementSpeedIcon: statModsMovementSpeedIcon,
-  StatModsTenacityIcon: statModsTenacityIcon,
-  StatModsHealthPlusIcon: statModsHealthPlusIcon,
-};
-
-const STAT_SHARD_ROWS = [
-  [
-    { id: 5008, name: "Adaptive Force", iconName: "StatModsAdaptiveForceIcon" },
-    { id: 5005, name: "Attack Speed", iconName: "StatModsAttackSpeedIcon" },
-    { id: 5007, name: "Ability Haste", iconName: "StatModsCDRScalingIcon" },
-  ],
-  [
-    { id: 5008, name: "Adaptive Force", iconName: "StatModsAdaptiveForceIcon" },
-    { id: 5010, name: "Movement Speed", iconName: "StatModsMovementSpeedIcon" },
-    { id: 5001, name: "Health Scaling", iconName: "StatModsHealthPlusIcon" },
-  ],
-  [
-    { id: 5011, name: "Base Health", iconName: "StatModsHealthFlatIcon" },
-    { id: 5009, name: "Tenacity and Slow Resist", iconName: "StatModsTenacityIcon" },
-    { id: 5001, name: "Health Scaling", iconName: "StatModsHealthPlusIcon" },
-  ],
-];
-
-const getStatShardImage = (iconName) => {
-  const localIcon = LOCAL_STAT_SHARD_ICONS[iconName];
-  if (localIcon) return localIcon;
-  return `https://placehold.co/20x20/1a1a1a/4a4a4a?text=S`;
-};
-
-const RUNE_TREE_COLORS = {
-  8000: "border-yellow-400", // Precision
-  8100: "border-red-500", // Domination
-  8200: "border-blue-400", // Sorcery
-  8400: "border-green-400", // Resolve
-  8300: "border-teal-400", // Inspiration
-};
-
-const RuneTreeDisplay = ({ fullRunesData, runesDataFromDDragon, runesMap, getRuneImage }) => {
-  if (!fullRunesData || !runesDataFromDDragon || !runesMap) {
-    return <div className="p-4 text-center text-gray-500">Not enough data to display rune tree.</div>;
-  }
-
-  const [primary, secondary, stats] = fullRunesData.key.split("|");
-  const selectedPrimaryRuneIds = primary.split(",").map((id) => parseInt(id, 10));
-  const selectedSecondaryRuneIds = secondary.split(",").map((id) => parseInt(id, 10));
-
-  const primaryStyleId = runesMap[selectedPrimaryRuneIds[0]]?.styleId;
-  const secondaryStyleId = runesMap[selectedSecondaryRuneIds[0]]?.styleId;
-
-  const primaryTree = runesDataFromDDragon.find((tree) => tree.id === primaryStyleId);
-  const secondaryTree = runesDataFromDDragon.find((tree) => tree.id === secondaryStyleId);
-
-  const renderRuneTree = (tree, selectedPerkIds, isPrimaryTree) => {
-    if (!tree) return null;
-    const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4);
-    const runeImageSize = isPrimaryTree ? "w-7 h-7" : "w-6 h-6";
-    const keystoneImageSize = "w-9 h-9";
-    const treeBorderColor = RUNE_TREE_COLORS[tree.id] || "border-gray-500";
-
-    const containerMinWidthClass = isPrimaryTree ? "min-w-[170px]" : "";
-
-    return (
-      <div className={`flex flex-col items-center ${isPrimaryTree ? "space-y-2" : "space-y-1"} ${containerMinWidthClass}`}>
-        <div className="flex items-center space-x-2 mb-1">
-          <img src={getRuneImage(tree.id)} alt={tree.name} className="w-6 h-6" />
-        </div>
-        {slotsToRender.map((slot, slotIndex) => {
-          const isKeystoneRow = isPrimaryTree && slotIndex === 0;
-          let rowLayoutClass = "flex justify-center items-center w-full min-h-[44px] space-x-3";
-
-          if (isKeystoneRow) {
-            rowLayoutClass = `flex justify-center items-center w-full min-h-[44px] space-x-2`;
-          }
-
-          return (
-            <div key={`${tree.id}-slot-${slotIndex}`} className={rowLayoutClass}>
-              {slot.runes.map((rune) => {
-                const isActive = selectedPerkIds.includes(rune.id);
-                const currentRuneSize = isPrimaryTree && slotIndex === 0 ? keystoneImageSize : runeImageSize;
-                const activeRuneClasses = isActive ? "opacity-100" : "opacity-100 filter grayscale brightness-50";
-
-                return (
-                  <div key={rune.id} className="relative" title={runesMap[rune.id]?.name || rune.name}>
-                    <img src={getRuneImage(rune.id)} alt={runesMap[rune.id]?.name || rune.name} className={`${currentRuneSize} rounded-full ${activeRuneClasses}`} />
-                    {/* FIXED: Added !isKeystoneRow to prevent border on the main keystone */}
-                    {isActive && !isKeystoneRow && <div className={`absolute -inset-0.5 rounded-full border-2 ${treeBorderColor}`}></div>}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const renderStatShards = () => {
-    const selectedShards = stats.split(",").map((id) => parseInt(id, 10));
-    return (
-      <div className="flex flex-col items-center space-y-1 pt-1">
-        {STAT_SHARD_ROWS.map((rowOfShards, rowIndex) => (
-          <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-2.5 items-center">
-            {rowOfShards.map((shard) => {
-              const isActive = shard.id === selectedShards[rowIndex];
-              const shardIconSrc = getStatShardImage(shard.iconName);
-              const activeClasses = isActive ? "border-yellow-400 border-2 opacity-100 scale-110" : "border-gray-700 border opacity-50 filter grayscale";
-              return (
-                <div key={shard.id} title={shard.name} className={`p-0.5 rounded-full transition-all ${activeClasses}`}>
-                  <img src={shardIconSrc} alt={shard.name} className="w-4 h-4 rounded-full" />
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <Panel title="Full Rune Page" headers={["Games/WR"]}>
-      <div className="flex items-start justify-between p-2 h-full">
-        <div className="flex gap-4">
-          {primaryTree && renderRuneTree(primaryTree, selectedPrimaryRuneIds, true)}
-          <div className="flex flex-col space-y-2">
-            {secondaryTree && renderRuneTree(secondaryTree, selectedSecondaryRuneIds, false)}
-            <hr className="border-gray-700 my-1" />
-            {renderStatShards()}
-          </div>
-        </div>
-        <div className="text-right text-xs">
-          <p className="text-gray-200">{fullRunesData.games} Games</p>
-          <p className={`font-bold ${fullRunesData.winRate >= 50 ? "text-green-400" : "text-red-400"}`}>{fullRunesData.winRate.toFixed(0)}% WR</p>
-        </div>
-      </div>
-    </Panel>
-  );
-};
-
-const RunesSummaryPanel = ({ runePages, getRuneImage, runesMap }) => {
+const RunesSummaryPanel = ({ runePages, getRuneImage, runesMap, runesDataFromDDragon }) => {
   return (
     <Panel title="Rune Pages" headers={["Games", "WR"]} hasScrollbar>
-      {/* FIXED: Changed to overflow-y-scroll for a stable layout */}
       <div className="space-y-1 h-full overflow-y-scroll custom-scrollbar pr-1">
         {runePages.map((page) => {
-          const [primary, secondary] = page.key.split("|");
+          const [primaryRunesKey, secondaryRunesKey, statShardsKey] = page.key.split("|");
 
-          const primaryRunes = primary.split(",").map((id) => ({ id: id, data: runesMap[id] }));
-          const secondaryRunes = secondary.split(",").map((id) => ({ id: id, data: runesMap[id] }));
+          const primaryRunes = primaryRunesKey.split(",").map((id) => ({ id: id, data: runesMap[id] }));
+          const secondaryRunes = secondaryRunesKey.split(",").map((id) => ({ id: id, data: runesMap[id] }));
 
           return (
             <StatRow key={page.key} games={page.games} winRate={page.winRate}>
               <div className="flex items-center space-x-3">
+                {/* Render rune icons directly for the summary list */}
                 <div className="flex items-center space-x-1.5">{primaryRunes.map((runeInfo, index) => runeInfo && runeInfo.data && <img key={runeInfo.id + index} src={getRuneImage(runeInfo.id)} title={runeInfo.data.name} className={index === 0 ? "w-8 h-8 rounded-full" : "w-6 h-6"} />)}</div>
                 <div className="w-px h-7 bg-gray-700"></div>
                 <div className="flex items-center space-x-1.5">{secondaryRunes.map((runeInfo, index) => runeInfo && runeInfo.data && <img key={runeInfo.id + index} src={getRuneImage(runeInfo.id)} title={runeInfo.data.name} className="w-6 h-6" />)}</div>
@@ -202,10 +51,8 @@ const getSkillPriority = (skillOrderString) => {
     .map(([skill]) => skill);
 };
 
-// Helper function for Community Dragon ability icons
 const getSkillAbilityIconUrl = (championDdragonId, skillChar) => {
   if (!championDdragonId || !skillChar) return null;
-  // Ensure skillChar is lowercase (q, w, e, r) for Community Dragon URL
   const lowerSkillChar = skillChar.toLowerCase();
   return `https://cdn.communitydragon.org/latest/champion/${championDdragonId}/ability-icon/${lowerSkillChar}`;
 };
@@ -221,7 +68,6 @@ const SkillIcon = ({ championDdragonId, skillKey }) => {
   if (!skillIconUrl || imgError) {
     return (
       <div className="relative">
-        {/* CHANGED: Increased fallback icon size */}
         <div className="w-7 h-7 bg-gray-700 rounded-md flex items-center justify-center">
           <span className="text-white font-bold">{skillKey}</span>
         </div>
@@ -232,14 +78,11 @@ const SkillIcon = ({ championDdragonId, skillKey }) => {
 
   return (
     <div className="relative">
-      {/* CHANGED: Increased skill icon size */}
       <img src={skillIconUrl} alt={skillKey} className="w-7 h-7 rounded-md object-contain" onError={() => setImgError(true)} />
       <span className="absolute -bottom-1 -right-1 text-[9px] bg-gray-900 px-1 py-0 rounded-sm font-mono border border-gray-600 leading-none">{skillKey}</span>
     </div>
   );
 };
-
-// In StatsPage.jsx, replace the SkillPathPanel component
 
 const SkillPathPanel = ({ details, championInfo }) => {
   if (!details) {
@@ -266,7 +109,6 @@ const SkillPathPanel = ({ details, championInfo }) => {
 
   return (
     <div className="bg-gray-800/50 rounded-md p-2">
-      {/* CHANGED: Reduced header size and padding */}
       <div className="flex justify-between items-center text-gray-400 text-[10px] font-bold uppercase px-2 pb-0.5">
         <span>Skill Path</span>
         <div className="flex">
@@ -287,7 +129,6 @@ const SkillPathPanel = ({ details, championInfo }) => {
 
           <div className="flex items-center gap-x-1">
             {fullSkillOrder.map((skill, index) => (
-              // CHANGED: Increased skill box size and font size
               <div key={index} className={`w-6 h-6 bg-gray-800/80 rounded-sm flex font-semibold items-center justify-center ${SKILL_COLORS[skill] || "text-gray-400"} text-xs`}>
                 {skill}
               </div>
@@ -319,8 +160,6 @@ const RoleFilter = ({ selectedRole, onRoleChange, ROLE_ICON_MAP, ROLE_ORDER }) =
   </div>
 );
 
-// src/pages/StatsPage.jsx
-
 const PatchFilter = ({ selectedPatches, availablePatches, onPatchChange }) => {
   const patchOptions = useMemo(() => availablePatches.map((p) => ({ value: p, label: p })), [availablePatches]);
   const selectedValues = useMemo(() => selectedPatches.map((p) => ({ value: p, label: p })), [selectedPatches]);
@@ -344,46 +183,26 @@ const PatchFilter = ({ selectedPatches, availablePatches, onPatchChange }) => {
   );
 };
 
-// MODIFICATION: The DateFilter component has been removed and its logic merged into ChampionFilters for a cleaner layout implementation.
 const ChampionFilters = ({ filters, onFilterChange, onDatePresetChange, availablePatches, ROLE_ICON_MAP, ROLE_ORDER }) => {
-  // These handlers now pass data in the correct format
   const handleRoleFilterChange = (roleValue) => onFilterChange({ role: roleValue, activePreset: null });
   const handlePatchChange = (patchValues) => onFilterChange({ patch: patchValues, activePreset: null });
 
-  // When a date is manually changed (or cleared), it deactivates the preset buttons
   const handleDateChange = (dates) => {
     const [start, end] = dates || [null, null];
     onFilterChange({ dateRange: { startDate: start, endDate: end }, activePreset: null });
   };
 
-  // New, cleaner styles for the preset buttons
   const presetButtonBaseClass = "px-3 py-1.5 bg-gray-700/60 hover:bg-gray-700 border border-transparent text-gray-300 text-xs font-semibold rounded-md";
   const presetButtonActiveClass = "bg-orange-600/80 text-white border-orange-500/50 hover:bg-orange-600";
 
   return (
-    // Main container now separates the two filter groups with a gap
     <div className="flex justify-end items-center flex-shrink-0 gap-x-1">
-      {/* Group 1: The main filter inputs (role, patch, date) */}
       <div className="flex items-center shadow-sm">
         <RoleFilter selectedRole={filters.role} onRoleChange={handleRoleFilterChange} ROLE_ICON_MAP={ROLE_ICON_MAP} ROLE_ORDER={ROLE_ORDER} />
         <PatchFilter selectedPatches={filters.patch} availablePatches={availablePatches} onPatchChange={handlePatchChange} />
-        <DatePicker
-          selectsRange
-          startDate={filters.dateRange.startDate}
-          endDate={filters.dateRange.endDate}
-          onChange={handleDateChange}
-          isClearable
-          placeholderText="Filter by date..."
-          dateFormat="yyyy/MM/dd"
-          popperPlacement="bottom-end"
-          // MODIFIED: Added rounded-r-md and a right border to properly cap off the input group
-          className="bg-gray-700/80 border-y border-r border-gray-600 text-gray-200 placeholder-gray-400 text-xs px-2.5 focus:border-orange-500 h-9 w-full rounded-r-md"
-          wrapperClassName="w-48"
-          calendarClassName="react-datepicker-dark"
-        />
+        <DatePicker selectsRange startDate={filters.dateRange.startDate} endDate={filters.dateRange.endDate} onChange={handleDateChange} isClearable placeholderText="Filter by date..." dateFormat="yyyy/MM/dd" popperPlacement="bottom-end" className="bg-gray-700/80 border-y border-r border-gray-600 text-gray-200 placeholder-gray-400 text-xs px-2.5 focus:border-orange-500 h-9 w-full rounded-r-md" wrapperClassName="w-48" calendarClassName="react-datepicker-dark" />
       </div>
 
-      {/* Group 2: The new, improved preset buttons */}
       <div className="flex items-center gap-x-1">
         <button onClick={() => onDatePresetChange("last7days")} className={`${presetButtonBaseClass} ${filters.activePreset === "last7days" ? presetButtonActiveClass : ""}`}>
           Last 7 Days
@@ -454,7 +273,7 @@ const PerformanceStats = ({ stats }) => {
         { title: "Dmg % Team", key: "damagePercentOfTeam", value: stats.current.damagePercentOfTeam, icon: <Zap size={16} />, format: "percent" },
         { title: "Gold Diff @ 14", key: "goldDiff14", value: stats.current.goldDiff14, icon: <Coins size={16} />, format: "diff" },
         { title: "CS Diff @ 14", key: "csDiff14", value: stats.current.csDiff14, icon: <Swords size={16} />, format: "diff" },
-        { title: "Dmg Diff @ 14", key: "damageDiff14", value: stats.current.damageDiff14, icon: <Zap size={16} />, format: "diff" },
+        { title: "Dmg Diff @ 14", value: stats.current.damageDiff14, icon: <Zap size={16} />, format: "diff" },
         { title: "KP Diff", key: "avgKpDiff", value: stats.current.avgKpDiff, icon: <Swords size={16} />, format: "diff" },
         { title: "Dmg/Gold", key: "damagePerGold", value: stats.current.damagePerGold, icon: <Zap size={16} />, format: "decimal2" },
         { title: "Wards Placed", key: "avgWardsPlaced", value: stats.current.avgWardsPlaced, icon: <Eye size={16} />, format: "decimal1" },
@@ -533,7 +352,6 @@ const getKDAStringHTML = (kills, deaths, assists) => {
 };
 
 // Centralized configuration for all statistic columns to ensure perfect alignment
-// src/pages/StatsPage.jsx (lines 292-303)
 const STATS_COLUMNS = [
   { header: "WR%", width: "w-[7%]", getValue: (s) => [{ value: `${Math.round(s.winRate || 0)}%`, color: (s.winRate || 0) >= 50 ? "text-green-400" : "text-red-400" }] },
   {
@@ -542,7 +360,6 @@ const STATS_COLUMNS = [
     getValue: (s) => {
       const kdaRatio = s.kdaRatio;
       const kdaDisplay = kdaRatio === "Perfect" ? "Perfect" : (kdaRatio || 0).toFixed(2);
-      // Use the directly imported function
       const kdaColorClass = getKDAColorClass(s.avgKills, s.avgDeaths, s.avgAssists);
 
       return [
@@ -575,7 +392,6 @@ const ChampionStatDisplay = ({ items = [], className }) => (
   </div>
 );
 
-// MODIFIED: The ListHeader is now generated dynamically from the STATS_COLUMNS config.
 const ChampionList = ({ champions, onChampionClick, onMatchupSelect, getChampionImage, getChampionDisplayName, selectedMatchup, selectedChampion, expandedChampion }) => {
   return (
     <div className="bg-gray-800/30 rounded-lg flex flex-col h-full">
@@ -593,17 +409,7 @@ const ChampionList = ({ champions, onChampionClick, onMatchupSelect, getChampion
       <div className="overflow-y-auto flex-grow custom-scrollbar">
         <div className="space-y-1 p-2">
           {champions.map((champ) => (
-            <ChampionListItem
-              key={champ.championName}
-              champion={champ}
-              isSelected={selectedChampion?.championName === champ.championName}
-              isExpanded={expandedChampion === champ.championName}
-              onClick={() => onChampionClick(champ)}
-              onMatchupSelect={onMatchupSelect} // This prop is now correctly defined
-              getChampionImage={getChampionImage}
-              getChampionDisplayName={getChampionDisplayName}
-              selectedMatchup={selectedMatchup}
-            />
+            <ChampionListItem key={champ.championName} champion={champ} isSelected={selectedChampion?.championName === champ.championName} isExpanded={expandedChampion === champ.championName} onClick={() => onChampionClick(champ)} onMatchupSelect={onMatchupSelect} getChampionImage={getChampionImage} getChampionDisplayName={getChampionDisplayName} selectedMatchup={selectedMatchup} />
           ))}
         </div>
       </div>
@@ -611,20 +417,16 @@ const ChampionList = ({ champions, onChampionClick, onMatchupSelect, getChampion
   );
 };
 
-const ChampionListItem = ({ champion, isSelected, isExpanded, onClick, onMatchupSelect, getChampionDisplayName, getChampionImage, selectedMatchup }) => {
+const ChampionListItem = ({ champion, isSelected, isExpanded, onClick, onMatchupSelect, getChampionImage, getChampionDisplayName, selectedMatchup }) => {
   const { championName, gamesPlayed, stats, matchups } = champion;
 
-  // This function determines the correct background and hover classes.
   const getItemClasses = () => {
     if (isSelected && isExpanded) {
-      // If the champion is selected AND expanded, use a fixed "active" color.
       return "bg-orange-500/20";
     }
     if (isSelected) {
-      // If the champion is selected but NOT expanded, keep the hover effect.
       return "bg-orange-500/10 hover:bg-orange-500/20";
     }
-    // The default state for a non-selected champion.
     return "bg-gray-800/60 hover:bg-gray-700/60";
   };
 
@@ -688,7 +490,6 @@ const MatchupList = ({ matchups, onMatchupSelect, getChampionImage, getChampionD
 const MatchupListItem = ({ matchupData, onSelect, getChampionImage, getChampionDisplayName, isSelected }) => {
   const { opponentChampionName, gamesPlayed, stats } = matchupData;
   return (
-    // VISUAL FIX: Apply a distinct style with a ring and different background color when isSelected is true.
     <div className={`flex items-center py-1.5 px-1.5 rounded-md cursor-pointer ${isSelected ? "bg-orange-900/60 ring-1 ring-orange-500" : "bg-gray-900/50 hover:bg-gray-900"}`} onClick={onSelect}>
       <div className="w-[15%] flex items-center">
         <p className="w-8 text-center text-xs font-semibold text-gray-400 flex-shrink-0">VS</p>
@@ -711,7 +512,6 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
   const [selectedItemBuildTab, setSelectedItemBuildTab] = useState(3);
 
   useEffect(() => {
-    // Reset the selections when the champion or matches change
     setSelectedRuneCoreKey("summary");
     setSelectedItemBuildTab(3);
   }, [matches]);
@@ -722,7 +522,6 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
   }, [championName, ddragonChampions]);
 
   const details = useMemo(() => {
-    // Now uses the `matches` prop directly
     if (!matches || matches.length === 0 || !itemData || !runesMap || Object.keys(runesMap).length === 0) {
       return null;
     }
@@ -744,7 +543,6 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
       let bestCombination = [];
       let bestGoldValue = 0;
 
-      // Iterate through all possible subsets of candidate items
       const numCandidates = candidateIds.length;
       for (let i = 0; i < 1 << numCandidates; i++) {
         let currentCombination = [];
@@ -765,12 +563,10 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
           }
         }
 
-        // Check if the combination is valid (within gold limit and follows game rules)
         const isOverGoldLimit = currentGoldValue > STARTING_GOLD_LIMIT;
         const hasBothPotions = hasHealthPotion && hasRefillablePotion;
 
         if (!isOverGoldLimit && !hasBothPotions) {
-          // If this valid combination is better than our previous best, store it
           if (currentGoldValue > bestGoldValue) {
             bestGoldValue = currentGoldValue;
             bestCombination = currentCombination;
@@ -805,9 +601,27 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
 
     const groupAndCalcStats = (collection, keyFunc, dpmFunc = null) => {
       const groups = collection.reduce((acc, item) => {
-        const key = keyFunc(item);
+        const keyOrKeyInfo = keyFunc(item); // This can be a string or { key, perksObject }
+
+        let key;
+        let perksObject;
+
+        if (typeof keyOrKeyInfo === "object" && keyOrKeyInfo !== null && "key" in keyOrKeyInfo) {
+          key = keyOrKeyInfo.key;
+          perksObject = keyOrKeyInfo.perksObject;
+        } else {
+          key = keyOrKeyInfo;
+        }
+
         if (key === null || key === undefined || key === "") return acc;
-        if (!acc[key]) acc[key] = { games: 0, wins: 0, dpms: [] };
+
+        if (!acc[key]) {
+          acc[key] = { games: 0, wins: 0, dpms: [] };
+          if (perksObject) {
+            acc[key].perksObject = perksObject; // Store the full perks object here if provided
+          }
+        }
+
         acc[key].games++;
         if (item.win) acc[key].wins++;
         if (dpmFunc) {
@@ -823,6 +637,7 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
       return Object.entries(groups)
         .map(([key, data]) => {
           const result = { key, games: data.games, winRate: (data.wins / data.games) * 100 };
+          if (data.perksObject) result.perksObject = data.perksObject; // Ensure perksObject is passed through
           if (dpmFunc) {
             result.dpm = data.dpms.length > 0 ? data.dpms.reduce((a, b) => a + b, 0) / data.dpms.length : 0;
           }
@@ -831,6 +646,7 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
         .sort((a, b) => b.games - a.games);
     };
 
+    // runeCores: keyFunc returns a string (keystoneId|firstLegendary)
     const runeCores = groupAndCalcStats(matches, (match) => {
       const primaryStyle = match.perks.styles?.find((s) => s.description === "primaryStyle");
       if (!primaryStyle) return null;
@@ -854,11 +670,15 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
     if (selectedMatches.length === 0) return { runeCores, filteredDetails: null };
 
     const calcFilteredDetails = (matches) => {
+      // fullRunes: keyFunc returns { key: string, perksObject: object }
       const fullRunes = groupAndCalcStats(matches, (m) => {
         const perks = m.perks;
         if (!perks?.styles || perks.styles.length < 2 || !perks.statPerks) return null;
         const statPerksInOrder = [perks.statPerks.offense, perks.statPerks.flex, perks.statPerks.defense];
-        return `${perks.styles[0].selections.map((s) => s.perk).join(",")}|${perks.styles[1].selections.map((s) => s.perk).join(",")}|${statPerksInOrder.join(",")}`;
+        return {
+          key: `${perks.styles[0].selections.map((s) => s.perk).join(",")}|${perks.styles[1].selections.map((s) => s.perk).join(",")}|${statPerksInOrder.join(",")}`,
+          perksObject: perks, // Pass the full perks object here
+        };
       });
       const spells = groupAndCalcStats(matches, (m) => [m.summoner1Id, m.summoner2Id].sort().join(","));
       const startingItems = groupAndCalcStats(matches, getStartingItemsFromEvents);
@@ -947,20 +767,37 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
           </div>
         ) : (
           <div className="space-y-2">
-            {/* NEW: Two-column grid layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Column 1: Rune Display (takes 2/3 of the width on large screens) */}
               <div className="lg:col-span-2 h-[340px] flex flex-col">
                 {selectedRuneCoreKey === "summary" ? (
-                  <RunesSummaryPanel runePages={details.filteredDetails.fullRunes} getRuneImage={getRuneImage} runesMap={runesMap} />
+                  <RunesSummaryPanel runePages={details.filteredDetails.fullRunes} getRuneImage={getRuneImage} runesMap={runesMap} runesDataFromDDragon={runesDataFromDDragon} />
                 ) : details.filteredDetails.fullRunes && details.filteredDetails.fullRunes.length > 0 ? (
-                  <RuneTreeDisplay fullRunesData={details.filteredDetails.fullRunes[0]} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} getRuneImage={getRuneImage} />
+                  // Display full RuneDisplay for selected Rune-Item combination
+                  <div className="bg-gray-800/50 rounded-md p-2 flex flex-col h-full items-center justify-center">
+                    {/* REMOVE PANEL HEADER HERE */}
+                    {/* <PanelHeader>
+                      <span className="flex-1">Full Rune Page</span>
+                      <span className="w-10 text-right">Games</span>
+                      <span className="w-10 text-right">WR</span>
+                    </PanelHeader> */}
+                    <RuneDisplay
+                      perks={details.filteredDetails.fullRunes[0].perksObject} // Pass the full perks object
+                      runesDataFromDDragon={runesDataFromDDragon}
+                      runesMap={runesMap}
+                      getRuneImage={getRuneImage}
+                      layout="full"
+                      size="lg"
+                    />
+                    <div className="text-right text-xs mt-4">
+                      <p className="text-gray-200">{details.filteredDetails.fullRunes[0].games} Games</p>
+                      <p className={`font-bold ${details.filteredDetails.fullRunes[0].winRate >= 50 ? "text-green-400" : "text-red-400"}`}>{details.filteredDetails.fullRunes[0].winRate.toFixed(0)}% WR</p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="p-4 text-center text-gray-500">No complete rune page data found for this specific rune-item core.</div>
                 )}
               </div>
 
-              {/* Column 2: Spells and Items (takes 1/3 of the width on large screens) */}
               <div className="lg:col-span-1 h-[340px] flex flex-col space-y-2">
                 <SpellsPanel details={details.filteredDetails.spells} ddragonVersion={ddragonVersion} summonerSpellsMap={summonerSpellsMap} />
                 <StartingItemsPanel details={details.filteredDetails.startingItems} getItemImage={getItemImage} />
@@ -968,7 +805,6 @@ const ChampionDetailView = ({ championName, matches, stats, getChampionImage, ge
               </div>
             </div>
 
-            {/* Other panels remain full-width below the new grid */}
             <SkillPathPanel details={details.filteredDetails.skillPaths[0]} championInfo={championInfo} />
 
             <ItemBuildsPanel details={details.filteredDetails.itemBuilds} selectedTab={selectedItemBuildTab} onTabClick={setSelectedItemBuildTab} getItemImage={getItemImage} />
@@ -985,7 +821,6 @@ const RuneCoreRow = ({ runeCore, isSelected, onClick, getRuneImage, getItemImage
   const isSummary = runeCore.key === "summary";
   const [keystoneId, firstItemId] = isSummary ? [null, null] : runeCore.key.split("|");
   return (
-    // MODIFIED: Removed "transition-colors" for an instant hover effect.
     <div onClick={onClick} className={`flex items-center p-0.5 rounded-md cursor-pointer ${isSelected ? "bg-orange-500/20" : "hover:bg-gray-700/50"}`}>
       <div className="flex items-center space-x-1 w-2/3">
         {isSummary ? (
@@ -1011,8 +846,10 @@ const Panel = ({ title, children, headers, hasScrollbar }) => (
         <span className="flex-1">{title}</span>
         {headers &&
           headers.map((h) => (
-            // FIXED: Reduced width to pull columns left
-            <span key={h} className="w-10 text-right">
+            // Adjusted width for better spacing in Rune Summary Panel's StatRow
+            <span key={h} className="w-[45px] text-right pr-2">
+              {" "}
+              {/* Increased width from w-10 to w-45px */}
               {h}
             </span>
           ))}
@@ -1033,9 +870,8 @@ const StatRow = ({ children, games, winRate, dpm, maxDpm }) => (
         </div>
       </div>
     )}
-    {/* FIXED: Reduced width to pull columns left */}
-    <div className="w-10 text-right text-gray-300">{games}</div>
-    <div className={`w-10 text-right font-bold ${winRate >= 50 ? "text-green-400" : "text-orange-400"}`}>{winRate.toFixed(0)}%</div>
+    <div className="w-[45px] text-right text-gray-300">{games}</div> {/* Standardized width */}
+    <div className={`w-[55px] text-right font-bold ${winRate >= 50 ? "text-green-400" : "text-orange-400"}`}>{winRate.toFixed(0)}%</div> {/* Standardized width */}
   </div>
 );
 const SpellsPanel = ({ details, ddragonVersion, summonerSpellsMap }) => {
@@ -1047,7 +883,7 @@ const SpellsPanel = ({ details, ddragonVersion, summonerSpellsMap }) => {
             <div className="flex space-x-1">
               {r.key.split(",").map((id) => {
                 const spellData = summonerSpellsMap[id];
-                if (!spellData) return null; // Handle case where spell data might be missing
+                if (!spellData) return null;
                 return <img key={id} src={`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/spell/${spellData.image.full}`} className="w-6 h-6 rounded" title={spellData.name} />;
               })}
             </div>
@@ -1110,13 +946,11 @@ const ItemBuildsPanel = ({ details, selectedTab, onTabClick, getItemImage }) => 
         <PanelHeader>
           <span className="flex-1">Item Builds</span>
           <span className="w-28 mx-2 text-center">Damage Per Minute</span>
-          {/* FIXED: Reduced width of Games and WR columns to pull them left */}
-          <span className="w-10 text-right">Games</span>
-          <span className="w-10 text-right">WR</span>
+          <span className="w-[55px] text-right">Games</span> {/* Corrected width */}
+          <span className="w-[50px] text-right pr-3">WR</span> {/* Corrected width */}
         </PanelHeader>
       </div>
 
-      {/* FIXED: Changed to overflow-y-scroll for a stable layout */}
       <div className="space-y-1 h-[105px] overflow-y-scroll custom-scrollbar pr-1">
         {builds.length > 0 ? (
           builds.map((r) => (
@@ -1150,11 +984,11 @@ function StatsPage() {
   const [ddragonVersion, setDdragonVersion] = useState("");
   const [ddragonChampions, setDdragonChampions] = useState(null);
   const [summonerSpellsMap, setSummonerSpellsMap] = useState({});
-  const [itemData, setItemData] = useState(null); // <<< ADD THIS STATE
-  const [runesData, setRunesData] = useState(null); // <<< ADD THIS STATE
+  const [itemData, setItemData] = useState(null);
+  const [runesData, setRunesData] = useState(null);
   const [selectedChampion, setSelectedChampion] = useState(null);
-  const [selectedMatchup, setSelectedMatchup] = useState(null); // <-- ADD new state for the selected matchup
-  const [expandedChampion, setExpandedChampion] = useState(null); // NEW: State to control expansion
+  const [selectedMatchup, setSelectedMatchup] = useState(null);
+  const [expandedChampion, setExpandedChampion] = useState(null);
   const [performancePeriod, setPerformancePeriod] = useState("last7days");
   const [performanceStats, setPerformanceStats] = useState({ current: null, previous: null });
   const [championFilters, setChampionFilters] = useState({ role: "", patch: [], dateRange: { startDate: null, endDate: null }, activePreset: null });
@@ -1176,7 +1010,6 @@ function StatsPage() {
         }
         setDdragonVersion(latestVersion);
 
-        // Add summoner.json to the data fetches
         const dataFetches = [
           fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion.json`).then((res) => res.json()),
           fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/item.json`).then((res) => res.json()),
@@ -1187,12 +1020,10 @@ function StatsPage() {
         return Promise.all(dataFetches);
       })
       .then(([championJson, itemJson, runesJson, summonerJson]) => {
-        // Set all the data states successfully
         setDdragonChampions(championJson.data);
         setItemData(itemJson.data);
         setRunesData(runesJson);
 
-        // Process and set the summoner spells map
         const spells = {};
         if (summonerJson && summonerJson.data) {
           for (const key in summonerJson.data) {
@@ -1254,7 +1085,6 @@ function StatsPage() {
     },
     [ddragonVersion, runesMap]
   );
-  // ADD THIS NEW FUNCTION
   const getItemImage = useCallback(
     (itemId) => {
       if (!itemId || !ddragonVersion || !itemData) return null;
@@ -1294,7 +1124,7 @@ function StatsPage() {
             opponentChampionName: opponentName,
             gamesPlayed: matchups[opponentName].length,
             stats: calculateSummaryStatsForPeriod(matchups[opponentName], 0, Date.now()),
-            matches: matchups[opponentName], // <-- ADD THIS LINE to include the raw matches
+            matches: matchups[opponentName],
           }))
           .sort((a, b) => b.gamesPlayed - a.gamesPlayed);
 
@@ -1320,7 +1150,6 @@ function StatsPage() {
       case "last7days":
         days = 7;
         break;
-      // FIXED: Added the missing case for the 30-day filter.
       case "last30days":
         days = 30;
         break;
@@ -1365,8 +1194,6 @@ function StatsPage() {
     (champion) => {
       const champName = champion.championName;
 
-      // Case 1: A completely different champion is clicked.
-      // Action: Select the new champion, expand it, and clear any old matchup.
       if (selectedChampion?.championName !== champName) {
         setSelectedChampion(champion);
         setExpandedChampion(champName);
@@ -1374,23 +1201,22 @@ function StatsPage() {
         return;
       }
 
-      // Case 2: The *currently selected* champion is clicked again.
-      // Action: Check if a matchup is active.
       if (selectedMatchup) {
-        // If a matchup is active, clear it but keep the list expanded.
         setSelectedMatchup(null);
       } else {
-        // If no matchup is active, toggle the expansion of the list.
         setExpandedChampion((current) => (current === champName ? null : champName));
       }
     },
     [selectedChampion, selectedMatchup]
-  ); // Dependency array updated
+  );
 
-  const handleChampionFilterChange = (newFilterValues) => {
-    setChampionFilters((prev) => ({ ...prev, ...newFilterValues }));
-    handleChampionSelect(null);
-  };
+  const handleChampionFilterChange = useCallback(
+    (newFilterValues) => {
+      setChampionFilters((prevFilters) => ({ ...prevFilters, ...newFilterValues }));
+      handleChampionClick(null); // Clear selected champion and collapse when filters change
+    },
+    [handleChampionClick]
+  );
 
   useEffect(() => {
     if (!isLoading && filteredChampionData.length > 0 && !selectedChampion) {
@@ -1399,7 +1225,6 @@ function StatsPage() {
   }, [isLoading, filteredChampionData, selectedChampion, handleChampionClick]);
 
   const matchesForDetailView = useMemo(() => {
-    // This logic is now guaranteed to be correct because handleChampionSelect clears selectedMatchup.
     if (selectedMatchup) return selectedMatchup.matches;
     if (selectedChampion) return selectedChampion.matches;
     return null;
@@ -1408,7 +1233,6 @@ function StatsPage() {
   const handleDatePresetChange = (preset) => {
     const now = new Date();
     let startDate;
-    // If clicking the currently active preset, clear the date filter
     if (championFilters.activePreset === preset) {
       handleChampionFilterChange({ dateRange: { startDate: null, endDate: null }, activePreset: null });
       return;
@@ -1417,7 +1241,6 @@ function StatsPage() {
     if (preset === "last7days") startDate = subDays(now, 7);
     if (preset === "last30days") startDate = subDays(now, 30);
 
-    // Update the date range and set the active preset key
     handleChampionFilterChange({
       dateRange: { startDate, endDate: now },
       activePreset: preset,
@@ -1435,7 +1258,6 @@ function StatsPage() {
     );
   }
 
-  // If no errors, check if we are still loading data
   if (isLoading || !ddragonChampions || !itemData || !runesData) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-10 text-white">
@@ -1480,7 +1302,6 @@ function StatsPage() {
             championName={selectedChampion?.championName}
             matches={matchesForDetailView}
             stats={selectedMatchup ? selectedMatchup.stats : selectedChampion?.stats}
-            // Keep passing down all the other necessary props
             getChampionImage={getChampionImage}
             getChampionDisplayName={getChampionDisplayName}
             itemData={itemData}
@@ -1499,4 +1320,3 @@ function StatsPage() {
 }
 
 export default StatsPage;
-// endregion

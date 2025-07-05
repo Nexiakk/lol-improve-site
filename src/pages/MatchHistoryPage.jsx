@@ -8,7 +8,7 @@ import MatchNotesPanel from "../components/MatchNotesPanel";
 import PaginationControls from "../components/PaginationControls";
 import ExpandedMatchDetails from "../components/ExpandedMatchDetails";
 import MatchHistoryHeader from "../components/MatchHistoryHeader";
-import RunePopoverContent from "../components/common/RunePopoverContent";
+import RuneDisplay from "../components/common/RuneDisplay"; // Keep importing the wrapper
 import LiveGamePage from "../components/LiveGamePage";
 import riotApiFetchWithRetry from "../components/common/apiFetch";
 import { getContinentalRoute, delay, timeAgo, formatGameDurationMMSS, formatGameMode, getKDAColorClass, getKDAStringSpans, getKDARatio, getCSString, processTimelineData, QUEUE_IDS } from "../utils/matchCalculations";
@@ -20,24 +20,49 @@ import bottomIcon from "../assets/bottom_icon.svg";
 import supportIcon from "../assets/support_icon.svg";
 
 const ViewSwitcher = ({ activeView, setActiveView }) => {
-  const buttonBaseClass = "flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-colors";
-  const activeClass = "bg-gray-700 text-white shadow-inner";
-  const inactiveClass = "text-gray-400 hover:bg-gray-800 hover:text-gray-200";
+  // Removed activeClass and inactiveClass as the active state will be handled by the underline
+  const buttonBaseClass = "relative group flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-150 ease-in-out cursor-pointer focus:outline-none";
 
   return (
-    <div className="flex justify-center p-1 bg-gray-900/50 rounded-lg">
-      <button onClick={() => setActiveView("matchHistory")} className={`${buttonBaseClass} ${activeView === "matchHistory" ? activeClass : inactiveClass}`}>
-        <History size={16} />
-        Match History
-      </button>
-      <button onClick={() => setActiveView("liveGame")} className={`${buttonBaseClass} ${activeView === "liveGame" ? activeClass : inactiveClass}`}>
-        <Radio size={16} />
-        Live Game
-      </button>
+    // Outer div for styling the 'extension' part with the most aggressive bottom-left and bottom-right rounding
+    <div className="w-full bg-black-800 py-1 rounded-b-4xl">
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 flex justify-center">
+        <div className="flex p-1 rounded-lg">
+          <button
+            onClick={() => setActiveView("matchHistory")}
+            className={`${buttonBaseClass} ${activeView === "matchHistory" ? "text-white" : "text-gray-400 hover:text-white"}`}
+          >
+            <History size={16} className={`mr-1 flex-shrink-0 transition-colors ${activeView === "matchHistory" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
+            <span>Match List</span>
+            {/* Custom underline */}
+            <span
+              className={`
+                absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-[3px] bg-orange-500 rounded-t-sm
+                transition-all duration-300 ease-in-out
+                ${activeView === "matchHistory" ? "w-1/3" : "w-0"}
+              `}
+            />
+          </button>
+          <button
+            onClick={() => setActiveView("liveGame")}
+            className={`${buttonBaseClass} ${activeView === "liveGame" ? "text-white" : "text-gray-400 hover:text-white"}`}
+          >
+            <Radio size={16} className={`mr-1 flex-shrink-0 transition-colors ${activeView === "liveGame" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
+            <span>Live Game</span>
+            {/* Custom underline */}
+            <span
+              className={`
+                absolute bottom-0 left-1/2 -translate-x-1/2 h-[3px] bg-orange-500 rounded-t-sm
+                transition-all duration-300 ease-in-out
+                ${activeView === "liveGame" ? "w-1/3" : "w-0"}
+              `}
+            />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
-
 const RIOT_API_KEY = import.meta.env.VITE_RIOT_API_KEY;
 const MATCH_COUNT_PER_FETCH = 20;
 const HISTORICAL_MATCH_COUNT_PER_FETCH = 100;
@@ -54,13 +79,13 @@ const INITIAL_FILTERS_STATE = { patch: [], champion: "", opponentChampion: "", w
 const PREDEFINED_MISTAKE_TAGS = [
   { label: "Positioning Error", value: "positioning_error" },
   { label: "Vision Gap", value: "vision_gap" },
-  { label: "Bad Trade", value: "bad_trade" },
+  { label: "Trade timers", value: "bad_trade" },
   { label: "Wave Management", value: "wave_management" },
-  { label: "Missed Cooldown Window", value: "cooldown_window" },
   { label: "Overextended", value: "overextended" },
   { label: "Map Awareness", value: "map_awareness" },
   { label: "Failed Mechanics", value: "failed_mechanics" },
   { label: "Poor Objective Control", value: "objective_control" },
+  { label: "Rotations", value: "rotations_problem" },
 ];
 
 // Create a lookup map for efficient label retrieval
@@ -897,13 +922,18 @@ function MatchHistoryPage() {
   }, [filteredMatches]);
 
   return (
-    <div className="flex flex-1 overflow-hidden h-[calc(100vh-4rem)]">
+    <div className="flex flex-1 overflow-hidden h-[calc(100vh)] pt-[90px]">
+      {" "}
+      {/* Adjust pt-[Xpx] based on actual height of TopNavbar + ViewSwitcher */}
       <div
         ref={matchListContainerRef}
         className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar h-full
                             ${selectedMatchForNotes ? "w-full md:w-3/5 lg:w-2/3 xl:w-3/4" : "w-full"}`}
       >
-        <div className="p-2 flex justify-center">
+        {/* The ViewSwitcher is now rendered here, acting as the 'extension' */}
+        <div className="fixed top-[50px] left-0 right-0 z-10">
+          {" "}
+          {/* Position right below TopNavbar */}
           <ViewSwitcher activeView={activeView} setActiveView={setActiveView} />
         </div>
         {activeView === "matchHistory" ? (
@@ -1069,12 +1099,29 @@ function MatchHistoryPage() {
                                           <div className="w-6 h-6 bg-gray-800 rounded flex items-center justify-center border border-gray-600/50"> {summoner2Img ? <img src={summoner2Img} alt="Summoner Spell 2" className="w-5 h-5 rounded-sm" /> : <div className="w-5 h-5 rounded-sm bg-gray-700"></div>} </div>
                                         </Popover>
                                       </div>
-                                      <Popover content={<RunePopoverContent perks={match.perks} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} getRuneImage={getRuneImage} />} trigger="hover" placement="top" styles={{ body: { padding: "12px", backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px" } }}>
+                                      <RuneDisplay
+                                        perks={match.perks}
+                                        runesDataFromDDragon={runesDataFromDDragon}
+                                        runesMap={runesMap}
+                                        getRuneImage={getRuneImage}
+                                        layout="compact"
+                                        size="md"
+                                        // *** IMPORTANT CHANGE HERE ***
+                                        // Pass the main scroll container ref
+                                        playerCardRef={matchListContainerRef}
+                                        popoverProps={{
+                                          trigger: "hover",
+                                          placement: "top",
+                                          overlayInnerStyle: { backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px" },
+                                        }}
+                                      >
+                                        {/* Pass the div with rune images as children for the popover trigger */}
                                         <div className="flex flex-col space-y-0.5">
                                           <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50">
-                                            {primaryRuneImg ? (
+                                            {/* Use primaryPerkId and subStyleId directly with getRuneImage */}
+                                            {getRuneImage(primaryPerkId) ? (
                                               <img
-                                                src={primaryRuneImg}
+                                                src={getRuneImage(primaryPerkId)}
                                                 alt={runesMap[primaryPerkId]?.name || "Keystone"}
                                                 className="w-full h-full object-contain"
                                                 onError={(e) => {
@@ -1088,9 +1135,9 @@ function MatchHistoryPage() {
                                             )}
                                           </div>
                                           <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50 p-0.5">
-                                            {subStyleImgPath ? (
+                                            {getRuneImage(subStyleId) ? (
                                               <img
-                                                src={subStyleImgPath}
+                                                src={getRuneImage(subStyleId)}
                                                 alt={runesMap[subStyleId]?.name || "Secondary Tree"}
                                                 className="w-full h-full object-contain"
                                                 onError={(e) => {
@@ -1104,7 +1151,7 @@ function MatchHistoryPage() {
                                             )}
                                           </div>
                                         </div>
-                                      </Popover>
+                                      </RuneDisplay>
                                     </div>
                                     <div className="flex flex-col space-y-0.5">
                                       <div className="flex space-x-0.5">
@@ -1178,7 +1225,6 @@ function MatchHistoryPage() {
           <LiveGamePage trackedAccounts={trackedAccounts} getChampionImage={getChampionImage} getSummonerSpellImage={getSummonerSpellImage} getRuneImage={getRuneImage} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} championData={championData} ddragonVersion={ddragonVersion} />
         )}
       </div>
-
       {selectedMatchForNotes && <MatchNotesPanel match={selectedMatchForNotes} championData={championData} ddragonVersion={ddragonVersion} onSave={handleSaveNotes} onClose={handleCloseNotes} isLoading={isSavingNotes} />}
     </div>
   );

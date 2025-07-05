@@ -2,15 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { ImageOff, ChevronRight, X, LayoutList, PieChart, Loader2 } from "lucide-react";
 import { formatGameDurationMMSS, getKDAColorClass, getKDAStringSpans } from "../utils/matchCalculations";
-
-// --- LOCAL STAT SHARD ICON IMPORTS ---
-import statModsAdaptiveForceIcon from "../assets/shards/StatModsAdaptiveForceIcon.webp";
-import statModsAttackSpeedIcon from "../assets/shards/StatModsAttackSpeedIcon.webp";
-import statModsCDRScalingIcon from "../assets/shards/StatModsCDRScalingIcon.webp";
-import statModsHealthFlatIcon from "../assets/shards/StatModsHealthFlatIcon.webp";
-import statModsMovementSpeedIcon from "../assets/shards/StatModsMovementSpeedIcon.webp";
-import statModsTenacityIcon from "../assets/shards/StatModsTenacityIcon.webp";
-import statModsHealthPlusIcon from "../assets/shards/StatModsHealthPlusIcon.webp";
+import RuneDisplay from "./common/RuneDisplay";
 
 // --- RANK ICON IMPORTS ---
 import IRON_SMALL from "../assets/ranks/IRON_SMALL.webp";
@@ -43,7 +35,7 @@ const GrubIcon = ({ className = "" }) => (
     <path
       fillRule="evenodd"
       clipRule="evenodd"
-      d="M24 7.26397C27 7.26397 27 10.264 27 11.264C27 14.264 24 15.264 24 15.264H27C26.0189 15.918 25.3587 17.1069 24.6345 18.4107C23.1444 21.0938 21.3837 24.264 16 24.264C10.6163 24.264 8.85561 21.0938 7.36548 18.4107C6.64135 17.1069 5.9811 15.918 5 15.264H8C8 15.264 5 14.264 5 11.264C5 10.264 5 7.26397 8 7.26397H9.58357C10.5151 7.26397 11.4337 7.0471 12.2669 6.63052L15.1056 5.21115C15.6686 4.92962 16.3314 4.92962 16.8944 5.21115L19.7331 6.63051C20.5663 7.0471 21.4849 7.26397 22.4164 7.26397H24ZM19.5354 12.264L15.9999 8.72845L12.4644 12.264L13.7322 13.5319L10.4646 16.7995L14.0001 20.335L15.9993 18.3359L17.9984 20.335L21.5339 16.7995L18.2669 13.5325L19.5354 12.264Z"
+      d="M24 7.26397C27 7.26397 27 10.264 27 11.264C27 14.264 24 15.264 24 15.264H27C26.0189 15.918 25.3587 17.1069 24.6345 18.4107C23.1444 21.0938 21.3837 24.264 16 24.264C10.6163 24.264 8.85561 21.0938 7.36548 18.4107C6.64135 17.1069 5.98110 15.918 5 15.264H8C8 15.264 5 14.264 5 11.264C5 10.264 5 7.26397 8 7.26397H9.58357C10.5151 7.26397 11.4337 7.0471 12.2669 6.63052L15.1056 5.21115C15.6686 4.92962 16.3314 4.92962 16.8944 5.21115L19.7331 6.63051C20.5663 7.0471 21.4849 7.26397 22.4164 7.26397H24ZM19.5354 12.264L15.9999 8.72845L12.4644 12.264L13.7322 13.5319L10.4646 16.7995L14.0001 20.335L15.9993 18.3359L17.9984 20.335L21.5339 16.7995L18.2669 13.5325L19.5354 12.264Z"
       fill="currentColor"
     ></path>
   </svg>
@@ -69,11 +61,11 @@ const HeraldIcon = ({ className = "" }) => (
     <path
       fillRule="evenodd"
       clipRule="evenodd"
-      d="M11.6803 11.0327H12.3511C13.4192 10.3975 14.667 10.0327 15.9999 10.0327C17.3329 10.0327 18.5806 10.3975 19.6488 11.0327H20.3195C20.3195 9.03271 20.3195 8.03553 18.9999 6.03271C21.3332 6.53271 25.9999 9.43271 25.9999 17.0327C24.3362 17.6982 23.0184 19.4492 22.3345 20.4989C21.1392 22.777 18.751 24.3309 15.9999 24.3309C13.2488 24.3309 10.8606 22.777 9.66527 20.4989C8.98137 19.4492 7.66364 17.6982 5.9999 17.0327C5.9999 9.43271 10.6666 6.53271 12.9999 6.03271C11.6803 8.03553 11.6803 9.03271 11.6803 11.0327ZM19.7496 16.3329C19.7496 19.1532 18.0709 21.0327 16 21.0327C13.9291 21.0327 12.2502 19.1532 12.2502 16.3329C12.2502 14.262 13.9967 13.5333 16 13.5333C18.0034 13.5333 19.7496 14.262 19.7496 16.3329Z"
+      d="M11.6803 11.0327H12.3511C13.4192 10.3975 14.667 10.0327 15.9999 10.0327C17.3329 10.0327 18.5806 10.3975 19.6488 11.0327H20.3195C20.3195 9.03271 20.3195 8.03553 18.9999 6.03271C21.3332 6.53271 25.9999 9.43271 25.9999 17.0327C24.3362 17.6982 23.0184 19.4492 22.3345 20.4989C21.1392 22.777 18.7510 24.3309 15.9999 24.3309C13.2488 24.3309 10.8606 22.777 9.66527 20.4989C8.98137 19.4492 7.66364 17.6982 5.99990 17.0327C5.99990 9.43271 10.6666 6.53271 12.9999 6.03271C11.6803 8.03553 11.6803 9.03271 11.6803 11.0327ZM19.7496 16.3329C19.7496 19.1532 18.0709 21.0327 16 21.0327C13.9291 21.0327 12.2502 19.1532 12.2502 16.3329C12.2502 14.262 13.9967 13.5333 16 13.5333C18.0034 13.5333 19.7496 14.262 19.7496 16.3329Z"
       fill="currentColor"
     ></path>
-    <path d="M22.1668 25.0509C22.3553 24.4995 22.678 24.0152 23.0006 23.5309C23.4138 22.9108 23.8269 22.2909 23.9576 21.5307C24.0044 21.2585 24.2404 21.0099 24.4829 21.142C24.6688 21.2433 24.7837 21.4011 24.8964 21.556C25.0726 21.798 25.2434 22.0327 25.6711 22.0327C26.6434 22.0327 27 22.0327 27 23.0332C27 23.9184 25.4367 25.585 22.997 25.9576C22.451 26.041 21.9881 25.5736 22.1668 25.0509Z" fill="currentColor"></path>
-    <path d="M8.99936 23.5309C9.322 24.0152 9.64473 24.4995 9.83321 25.0509C10.0119 25.5736 9.549 26.041 9.00297 25.9576C6.56334 25.585 5 23.9184 5 23.0332C5 22.0327 5.35661 22.0327 6.32887 22.0327C6.75662 22.0327 6.92743 21.798 7.10356 21.556C7.21629 21.4011 7.33121 21.2433 7.51707 21.142C7.75959 21.0099 7.99559 21.2585 8.0424 21.5307C8.17314 22.2909 8.58618 22.9108 8.99936 23.5309Z" fill="currentColor"></path>
+    <path d="M22.1668 25.0509C22.3553 24.4995 22.6780 24.0152 23.0006 23.5309C23.4138 22.9108 23.8269 22.2909 23.9576 21.5307C24.0044 21.2585 24.2404 21.0099 24.4829 21.142C24.6688 21.2433 24.7837 21.4011 24.8964 21.556C25.0726 21.798 25.2434 22.0327 25.6711 22.0327C26.6434 22.0327 27 22.0327 27 23.0332C27 23.9184 25.4367 25.585 22.9970 25.9576C22.4510 26.0410 21.9881 25.5736 22.1668 25.0509Z" fill="currentColor"></path>
+    <path d="M8.99936 23.5309C9.32200 24.0152 9.64473 24.4995 9.83321 25.0509C10.0119 25.5736 9.54900 26.0410 9.00297 25.9576C6.56334 25.5850 5 23.9184 5 23.0332C5 22.0327 5.35661 22.0327 6.32887 22.0327C6.75662 22.0327 6.92743 21.7980 7.10356 21.556C7.21629 21.4011 7.33121 21.2433 7.51707 21.142C7.75959 21.0099 7.99559 21.2585 8.04240 21.5307C8.17314 22.2909 8.58618 22.9108 8.99936 23.5309Z" fill="currentColor"></path>
   </svg>
 );
 const ElderDragonIcon = ({ className = "" }) => (
@@ -84,7 +76,7 @@ const ElderDragonIcon = ({ className = "" }) => (
     <path
       fillRule="evenodd"
       clipRule="evenodd"
-      d="M11 13.125C9 15.125 9.25 17.125 9.25 17.125C7.75 15.125 5.25 14.625 3.25 14.625C4.12371 16.3724 5.7608 18.2153 7.39008 20.0493C9.49035 22.4136 11.5776 24.7632 12 26.875V22.125C12 22.125 13.75 23.625 16 24.375C18.25 23.625 20 22.125 20 22.125V26.875C20.4224 24.7632 22.5096 22.4136 24.6099 20.0493C26.2392 18.2153 27.8763 16.3724 28.75 14.625C26.75 14.625 24.25 15.125 22.75 17.125C22.75 17.125 23 15.125 21 13.125C21 13.125 19.75 15.625 16 16.625C12.25 15.625 11 13.125 11 13.125ZM10.6135 16.9637C12.9319 17.7524 14.0552 18.8518 14.2942 20.5726C11.2589 20.2141 10.6135 18.5651 10.6135 16.9637ZM21.3865 16.9637C19.0681 17.7524 17.9448 18.8518 17.7058 20.5726C20.7411 20.2141 21.3865 18.5651 21.3865 16.9637Z"
+      d="M11 13.125C9 15.125 9.25 17.125 9.25 17.125C7.75 15.125 5.25 14.625 3.25 14.625C4.12371 16.3724 5.76080 18.2153 7.39008 20.0493C9.49035 22.4136 11.5776 24.7632 12 26.875V22.125C12 22.125 13.75 23.625 16 24.375C18.25 23.625 20 22.125 20 22.125V26.875C20.4224 24.7632 22.5096 22.4136 24.6099 20.0493C26.2392 18.2153 27.8763 16.3724 28.75 14.625C26.75 14.625 24.25 15.125 22.75 17.125C22.75 17.125 23 15.125 21 13.125C21 13.125 19.75 15.625 16 16.625C12.25 15.625 11 13.125 11 13.125ZM10.6135 16.9637C12.9319 17.7524 14.0552 18.8518 14.2942 20.5726C11.2589 20.2141 10.6135 18.5651 10.6135 16.9637ZM21.3865 16.9637C19.0681 17.7524 17.9448 18.8518 17.7058 20.5726C20.7411 20.2141 21.3865 18.5651 21.3865 16.9637Z"
       fill="currentColor"
     ></path>
   </svg>
@@ -101,12 +93,12 @@ const TowerIcon = ({ className = "" }) => (
 const LaningPhaseIcon = ({ className = "w-5 h-5" }) => (
   <svg width="32" height="32" viewBox="0 0 32 32" className={`${className} text-lime-400`} xmlns="http://www.w3.org/2000/svg">
     <path d="M7.92988 4.37281C7.92988 5.68327 6.86754 6.74561 5.55707 6.74561C4.24661 6.74561 3.18427 5.68327 3.18427 4.37281C3.18427 3.06234 4.24661 2 5.55707 2C6.86754 2 7.92988 3.06234 7.92988 4.37281Z" fill="currentColor"></path>
-    <path d="M8.29558 9.81035C7.64287 9.0248 6.65854 8.52463 5.5574 8.52463C3.61985 8.52463 2.04399 10.0732 2 12.0002H9.00609L12.1056 8.51031C11.7271 8.32416 11.3012 8.21961 10.8509 8.21961C9.72953 8.21961 8.7596 8.86801 8.29558 9.81035Z" fill="currentColor"></path>
-    <path d="M12.7485 4.89822C12.7485 5.94659 11.8987 6.79645 10.8503 6.79645C9.80196 6.79645 8.9521 5.94659 8.9521 4.89822C8.9521 3.84986 9.80196 3 10.8503 3C11.8987 3 12.7485 3.84986 12.7485 4.89822Z" fill="currentColor"></path>
+    <path d="M8.29558 9.81035C7.64287 9.02480 6.65854 8.52463 5.55740 8.52463C3.61985 8.52463 2.04399 10.0732 2 12.0002H9.00609L12.1056 8.51031C11.7271 8.32416 11.3012 8.21961 10.8509 8.21961C9.72953 8.21961 8.75960 8.86801 8.29558 9.81035Z" fill="currentColor"></path>
+    <path d="M12.7485 4.89822C12.7485 5.94659 11.8987 6.79645 10.8503 6.79645C9.80196 6.79645 8.95210 5.94659 8.95210 4.89822C8.95210 3.84986 9.80196 3 10.8503 3C11.8987 3 12.7485 3.84986 12.7485 4.89822Z" fill="currentColor"></path>
     <path d="M3.99952 24.5L6.49953 27L10.4522 23.4527L12.4995 25.5L14.9995 23L13.0874 21.0878L25.9995 9.5V5H21.4995L9.91169 17.9122L7.99952 16L5.49952 18.5L7.54682 20.5473L3.99952 24.5Z" fill="currentColor"></path>
-    <path d="M23.0696 21.3728C23.0696 22.6833 24.132 23.7456 25.4424 23.7456C26.7529 23.7456 27.8153 22.6833 27.8153 21.3728C27.8153 20.0623 26.7529 19 25.4424 19C24.132 19 23.0696 20.0623 23.0696 21.3728Z" fill="currentColor"></path>
+    <path d="M23.0696 21.3728C23.0696 22.6833 24.1320 23.7456 25.4424 23.7456C26.7529 23.7456 27.8153 22.6833 27.8153 21.3728C27.8153 20.0623 26.7529 19 25.4424 19C24.1320 19 23.0696 20.0623 23.0696 21.3728Z" fill="currentColor"></path>
     <path d="M22.3702 27.286C22.9879 26.2322 24.1324 25.5246 25.4421 25.5246C27.3797 25.5246 28.9555 27.0732 28.9995 29.0002L17.3029 28.9999C17.3381 27.4584 18.5988 26.2196 20.1488 26.2196C21.0472 26.2196 21.8485 26.6359 22.3702 27.286Z" fill="currentColor"></path>
-    <path d="M18.2511 22.8982C18.2511 23.9466 19.101 24.7964 20.1493 24.7964C21.1977 24.7964 22.0476 23.9466 22.0476 22.8982C22.0476 21.8499 21.1977 21 20.1493 21C19.101 21 18.2511 21.8499 18.2511 22.8982Z" fill="currentColor"></path>
+    <path d="M18.2511 22.8982C18.2511 23.9466 19.1010 24.7964 20.1493 24.7964C21.1977 24.7964 22.0476 23.9466 22.0476 22.8982C22.0476 21.8499 21.1977 21 20.1493 21C19.1010 21 18.2511 21.8499 18.2511 22.8982Z" fill="currentColor"></path>
   </svg>
 );
 
@@ -116,10 +108,10 @@ const WardsIcon = ({ className = "w-5 h-5" }) => (
     <path d="M5.94365 7.82558L4.46244 6.29069H1.5C1.5291 6.33893 1.55778 6.38802 1.58675 6.43761C1.96747 7.0892 2.39772 7.82558 4.46244 7.82558L3.47496 8.84883C3.63321 9.44573 4.22316 10.6395 5.31698 10.6395L5.94365 7.82558Z" fill="currentColor"></path>
     <path d="M9.26712 12.687H6.5701L7.42487 8.84883H8.41235L9.26712 12.687Z" fill="currentColor"></path>
     <path d="M25.4297 12.687H22.7327L23.5875 8.84883H24.5749L25.4297 12.687Z" fill="currentColor"></path>
-    <path d="M11.3748 6.29069L9.89357 7.82558L10.5202 10.6395C11.6141 10.6395 12.204 9.44573 12.3623 8.84883L11.3748 7.82558C13.4395 7.82558 13.8698 7.0892 14.2505 6.4376C14.2794 6.38803 14.3081 6.33893 14.3372 6.29069H11.3748Z" fill="currentColor"></path>
+    <path d="M11.3748 6.29069L9.89357 7.82558L10.5202 10.6395C11.6141 10.6395 12.2040 9.44573 12.3623 8.84883L11.3748 7.82558C13.4395 7.82558 13.8698 7.0892 14.2505 6.43760C14.2794 6.38803 14.3081 6.33893 14.3372 6.29069H11.3748Z" fill="currentColor"></path>
     <path d="M26.7556 4.93605L25.8642 4H22.2983L21.4068 4.93605L24.0812 7.74419L26.7556 4.93605Z" fill="currentColor"></path>
-    <path d="M22.1063 7.82558L20.625 6.29069H17.6626C17.6917 6.33893 17.7204 6.38802 17.7493 6.43761C18.1301 7.0892 18.5603 7.82558 20.625 7.82558L19.6376 8.84883C19.7958 9.44573 20.3858 10.6395 21.4796 10.6395L22.1063 7.82558Z" fill="currentColor"></path>
-    <path d="M27.5374 6.29069L26.0562 7.82558L26.6828 10.6395C27.7767 10.6395 28.3666 9.44573 28.5249 8.84883L27.5374 7.82558C29.6021 7.82558 30.0323 7.0892 30.4131 6.43761C30.442 6.38802 30.4707 6.33893 30.4998 6.29069H27.5374Z" fill="currentColor"></path>
+    <path d="M22.1063 7.82558L20.6250 6.29069H17.6626C17.6917 6.33893 17.7204 6.38802 17.7493 6.43761C18.1301 7.0892 18.5603 7.82558 20.6250 7.82558L19.6376 8.84883C19.7958 9.44573 20.3858 10.6395 21.4796 10.6395L22.1063 7.82558Z" fill="currentColor"></path>
+    <path d="M27.5374 6.29069L26.0562 7.82558L26.6828 10.6395C27.7767 10.6395 28.3666 9.44573 28.5249 8.84883L27.5374 7.82558C29.6021 7.82558 30.0323 7.0892 30.4131 6.43761C30.4420 6.38802 30.4707 6.33893 30.4998 6.29069H27.5374Z" fill="currentColor"></path>
     <path d="M13.2308 28H18.7692L16.6923 18.7462H15.3077L13.2308 28Z" fill="currentColor"></path>
     <path d="M13.2308 17.3225L11.1538 15.187H7C7.57692 16.1362 8.03846 17.3225 11.1538 17.3225L9.76923 18.7462C9.99112 19.5767 10.8183 21.2376 12.3521 21.2376L13.2308 17.3225Z" fill="currentColor"></path>
     <path d="M18.7692 17.3225L20.8462 15.187H25C24.4231 16.1362 23.9615 17.3225 20.8462 17.3225L22.2308 18.7462C22.0089 19.5767 21.1817 21.2376 19.6479 21.2376L18.7692 17.3225Z" fill="currentColor"></path>
@@ -130,7 +122,7 @@ const WardsIcon = ({ className = "w-5 h-5" }) => (
 const GlobalStatsIcon = ({ className = "w-5 h-5" }) => (
   <svg width="32" height="32" viewBox="0 0 32 32" className={`${className} text-cyan-300`} xmlns="http://www.w3.org/2000/svg">
     <path d="M8 14C8 9.58172 10 7 16 5C22 7 24 9.58172 24 14V16.7243L19.8297 21.3712C19.9432 20.192 20 19.0108 20 18C20 18 23 17 23 13C20 13 17 15 17 17V21.5C17 21.7761 16.7761 22 16.5 22H15.5C15.2239 22 15 21.7761 15 21.5V17C15 15 12 13 9 13C9 17 12 18 12 18C12 21 12.5 25.5 13.5 27C8.5 27 7 23 7 21.5C7.5 21.5 8 20.5 8 19V14Z" fill="currentColor"></path>
-    <path d="M18 28.6364L19.3636 30L21.5197 28.0651L22.6364 29.1818L24 27.8182L22.957 26.7752L30 20.4545L30 18H27.5455L21.2248 25.043L20.1818 24L18.8182 25.3636L19.9349 26.4803L18 28.6364Z" fill="currentColor"></path>
+    <path d="M18 28.6364L19.3636 30L21.5197 28.0651L22.6364 29.1818L24 27.8182L22.9570 26.7752L30 20.4545L30 18H27.5455L21.2248 25.0430L20.1818 24L18.8182 25.3636L19.9349 26.4803L18 28.6364Z" fill="currentColor"></path>
   </svg>
 );
 // --- END NEW STAT SECTION ICONS ---
@@ -202,52 +194,6 @@ const SkillIconDisplay = ({ ddragonVersion, championDdragonId, skillSlotKey }) =
 };
 // --- END SKILL ICON LOGIC ---
 
-// --- RUNE DEFINITIONS & HELPERS ---
-const LOCAL_STAT_SHARD_ICONS = {
-  StatModsAdaptiveForceIcon: statModsAdaptiveForceIcon,
-  StatModsAttackSpeedIcon: statModsAttackSpeedIcon,
-  StatModsCDRScalingIcon: statModsCDRScalingIcon,
-  StatModsHealthFlatIcon: statModsHealthFlatIcon,
-  StatModsMovementSpeedIcon: statModsMovementSpeedIcon,
-  StatModsTenacityIcon: statModsTenacityIcon,
-  StatModsHealthPlusIcon: statModsHealthPlusIcon,
-};
-
-const STAT_SHARD_ROWS = [
-  [
-    { id: 5008, name: "Adaptive Force", iconName: "StatModsAdaptiveForceIcon" },
-    { id: 5005, name: "Attack Speed", iconName: "StatModsAttackSpeedIcon" },
-    { id: 5007, name: "Ability Haste", iconName: "StatModsCDRScalingIcon" },
-  ],
-  [
-    { id: 5008, name: "Adaptive Force", iconName: "StatModsAdaptiveForceIcon" },
-    { id: 5010, name: "Movement Speed", iconName: "StatModsMovementSpeedIcon" },
-    { id: 5001, name: "Health Scaling", iconName: "StatModsHealthPlusIcon" },
-  ],
-  [
-    { id: 5011, name: "Base Health", iconName: "StatModsHealthFlatIcon" },
-    { id: 5009, name: "Tenacity and Slow Resist", iconName: "StatModsTenacityIcon" },
-    { id: 5001, name: "Health Scaling", iconName: "StatModsHealthPlusIcon" },
-  ],
-];
-
-const getStatShardImage = (iconName) => {
-  const localIcon = LOCAL_STAT_SHARD_ICONS[iconName];
-  if (localIcon) {
-    return localIcon;
-  }
-  console.warn(`Local stat shard icon not found for: ${iconName}. Using placeholder.`);
-  return `https://placehold.co/20x20/1a1a1a/4a4a4a?text=${iconName ? iconName.substring(0, 1) : "S"}`;
-};
-
-const RUNE_TREE_COLORS = {
-  8000: "border-yellow-400", // Precision
-  8100: "border-red-500", // Domination
-  8200: "border-blue-400", // Sorcery
-  8400: "border-green-400", // Resolve
-  8300: "border-teal-400", // Inspiration
-};
-
 // Component for expanded match details
 const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpellsMap, runesMap, runesDataFromDDragon, getChampionImage, getSummonerSpellImage, getItemImage, getRuneImage, getChampionDisplayName, isTrackedPlayerWin, roleIconMap, roleOrder, processTimelineDataForPlayer }) => {
   const [activeTab, setActiveTab] = useState("General");
@@ -270,7 +216,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
     } else if (rawTimelineFrames && processTimelineDataForPlayer && selectedPlayerForDetailsPuuid && allParticipants.length > 0) {
       const selectedParticipant = allParticipants.find((p) => p.puuid === selectedPlayerForDetailsPuuid);
       if (selectedParticipant) {
-        const targetParticipantId = allParticipants.findIndex((p) => p.puuid === selectedPlayerForDetailsPuuid) + 1;
+        const targetParticipantId = allParticipants.findIndex((p) => p.puuid === selectedParticipant.puuid) + 1;
 
         let opponentForSelected = null;
         let opponentIdForSelectedTimeline = null;
@@ -376,14 +322,15 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
               <img src={getSummonerSpellImage(player.summoner2Id)} alt="S2" className="w-full h-full rounded-sm" onError={(e) => (e.target.style.display = "none")} />
             </div>
           </div>
-          <div className="flex flex-col space-y-0.5">
-            <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center">
-              <img src={getRuneImage(playerPrimaryRune)} alt="R1" className="w-full h-full object-contain" onError={(e) => (e.target.style.display = "none")} />
+          {/* Rune Display for Scoreboard - wrapped in a Popover */}
+          <RuneDisplay perks={player.perks} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} getRuneImage={getRuneImage} layout="compact" size="md" popoverProps={{ trigger: "hover", placement: "top", overlayInnerStyle: { backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px" } }}>
+            {/* Pass the small rune icons as children for the popover trigger */}
+            <div className="flex flex-col space-y-0.5">
+              <div className="w-5 h-5 bg-black/30 rounded flex items-center justify-center border border-gray-600">{playerPrimaryRune ? <img src={getRuneImage(playerPrimaryRune)} alt="R1" className="w-full h-full object-contain" onError={(e) => (e.target.style.display = "none")} /> : <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>}</div>
+              <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-0.5">{playerSubStyle ? <img src={getRuneImage(playerSubStyle)} alt="R2" className="w-full h-full object-contain" onError={(e) => (e.target.style.display = "none")} /> : <div className="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>}</div>
             </div>
-            <div className="w-5 h-5 bg-black/30 rounded border border-gray-600 flex items-center justify-center p-0.5">
-              <img src={getRuneImage(playerSubStyle)} alt="R2" className="w-full h-full object-contain" onError={(e) => (e.target.style.display = "none")} />
-            </div>
-          </div>
+          </RuneDisplay>
+
           <div className="flex flex-col space-y-0.5">
             <div className="flex space-x-0.5">
               {[items[0], items[1], items[2], trinket].map((item, idx) => (
@@ -490,119 +437,17 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
     </div>
   );
 
-  // --- RUNES TAB CONTENT ---
+  // --- RUNES TAB CONTENT (kept for reference, but integrated into DetailsTabContent) ---
   const RunesTabContent = () => {
     const currentPlayer = allParticipants.find((p) => p.puuid === selectedPlayerForDetailsPuuid);
     if (!currentPlayer || !currentPlayer.perks || !runesDataFromDDragon || runesDataFromDDragon.length === 0) {
       return <p className="text-gray-400 p-4 text-center">Rune data not available for this player or DDragon data missing.</p>;
     }
 
-    const perks = currentPlayer.perks;
-    const primaryStyleData = perks.styles?.find((s) => s.description === "primaryStyle");
-    const secondaryStyleData = perks.styles?.find((s) => s.description === "subStyle");
-
-    if (!primaryStyleData) {
-      return <p className="text-gray-400 p-4 text-center">Primary rune style not found.</p>;
-    }
-
-    const primaryTree = runesDataFromDDragon.find((tree) => tree.id === primaryStyleData.style);
-    const secondaryTree = secondaryStyleData ? runesDataFromDDragon.find((tree) => tree.id === secondaryStyleData.style) : null;
-
-    const selectedPrimaryRuneIds = primaryStyleData.selections.map((sel) => sel.perk);
-    const selectedSecondaryRuneIds = secondaryStyleData ? secondaryStyleData.selections.map((sel) => sel.perk) : [];
-
-    const renderRuneTreeDisplay = (tree, selectedPerkIds, isPrimaryTree) => {
-      if (!tree) return null;
-      const slotsToRender = isPrimaryTree ? tree.slots : tree.slots.slice(1, 4);
-      const runeImageSize = isPrimaryTree ? "w-7 h-7" : "w-6 h-6";
-      const keystoneImageSize = "w-9 h-9";
-      const treeBorderColor = RUNE_TREE_COLORS[tree.id] || "border-gray-500";
-
-      return (
-        <div className={`flex flex-col items-center ${isPrimaryTree ? "space-y-2.5" : "space-y-1.5"} rounded-md`}>
-          <div className="flex items-center space-x-2 mb-2">
-            <img src={getRuneImage(tree.id)} alt={tree.name} className="w-6 h-6" onError={(e) => (e.target.style.display = "none")} />
-            <span className="text-sm font-semibold text-gray-200">{tree.name}</span>
-          </div>
-          {slotsToRender.map((slot, slotIndexInOriginalArray) => {
-            const isKeystoneRow = isPrimaryTree && slotIndexInOriginalArray === 0;
-            return (
-              <div key={`${tree.id}-slot-${slotIndexInOriginalArray}`} className="flex justify-center space-x-1">
-                {slot.runes.map((rune) => {
-                  const isActive = selectedPerkIds.includes(rune.id);
-                  let currentRuneSize = isKeystoneRow ? keystoneImageSize : runeImageSize;
-                  currentRuneSize = slot.runes.length >= 4 ? "w-8 h-8" : currentRuneSize;
-
-                  let activeRuneClasses = "";
-                  if (isActive) {
-                    if (isKeystoneRow) {
-                      activeRuneClasses = "scale-105 shadow-md opacity-100";
-                    } else {
-                      activeRuneClasses = `${treeBorderColor} scale-105 shadow-md opacity-100 border-2`;
-                    }
-                  } else {
-                    activeRuneClasses = "border-transparent opacity-100 hover:opacity-100";
-                  }
-
-                  return (
-                    <div key={rune.id} className={`relative p-0 rounded-full transition-all duration-150 ${activeRuneClasses}`} title={runesMap[rune.id]?.name || rune.name}>
-                      <img
-                        src={getRuneImage(rune.id)}
-                        alt={runesMap[rune.id]?.name || rune.name}
-                        className={`${currentRuneSize} rounded-full ${isActive ? "" : "filter grayscale brightness-75"}`}
-                        onError={(e) => {
-                          e.target.src = `https://placehold.co/32x32/1a1a1a/4a4a4a?text=${rune.name ? rune.name.substring(0, 1) : "R"}`;
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      );
-    };
-
-    const renderStatShardsDisplay = () => {
-      const selectedOffense = perks.statPerks?.offense;
-      const selectedFlex = perks.statPerks?.flex;
-      const selectedDefense = perks.statPerks?.defense;
-
-      return (
-        <div className="flex flex-col items-center space-y-1 mt-0.5 pt-1 w-full rounded-md">
-          {[
-            { options: STAT_SHARD_ROWS[0], selected: selectedOffense },
-            { options: STAT_SHARD_ROWS[1], selected: selectedFlex },
-            { options: STAT_SHARD_ROWS[2], selected: selectedDefense },
-          ].map((row, rowIndex) => (
-            <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-2.5 items-center">
-              {row.options.map((shard) => {
-                const isActive = shard.id === row.selected;
-                const shardIconSrc = getStatShardImage(shard.iconName);
-                const activeShardClasses = isActive ? "border-yellow-400 scale-105 opacity-100 border-2" : "border-transparent opacity-100 hover:opacity-100 filter grayscale brightness-75";
-
-                return (
-                  <div key={shard.id} className={`p-0 rounded-full transition-all duration-150 ${activeShardClasses}`} title={shard.name}>
-                    {shardIconSrc ? <img src={shardIconSrc} alt={shard.name} className="w-4 h-4 rounded-full" /> : <div className="w-4 h-4 rounded-full bg-gray-600 flex items-center justify-center text-xs text-gray-400">?</div>}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      );
-    };
-
     return (
       <div className="bg-gray-800/40 p-2 sm:p-3 rounded-lg border border-gray-700/50">
-        <div className="flex flex-col md:flex-row justify-center items-start gap-0.5 md:gap-10">
-          <div className="w-full md:w-auto">{renderRuneTreeDisplay(primaryTree, selectedPrimaryRuneIds, true)}</div>
-          <div className="w-full md:w-auto flex flex-col space-y-1">
-            {secondaryTree && renderRuneTreeDisplay(secondaryTree, selectedSecondaryRuneIds, false)}
-            <hr className="border-gray-700 my-0.5 w-11/12 mx-auto" />
-            {renderStatShardsDisplay()}
-          </div>
+        <div className="flex justify-center">
+          <RuneDisplay perks={currentPlayer.perks} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} getRuneImage={getRuneImage} layout="full" size="lg" />
         </div>
       </div>
     );
@@ -706,9 +551,7 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
         </div>
 
         {/* Stat Blocks */}
-        {/* MODIFIED: Changed grid to an 8-column layout */}
         <div className="grid grid-cols-1 md:grid-cols-8 gap-2 sm:gap-3">
-          {/* MODIFIED: This container now spans 3 of the 8 columns */}
           <div className="bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/50 flex flex-col md:col-span-3">
             <h4 className="text-xs font-semibold uppercase text-gray-400 mb-1.5 text-center flex items-center justify-center">
               <LaningPhaseIcon className="w-4 h-4 mr-1.5" />
@@ -726,7 +569,6 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
             )}
           </div>
 
-          {/* MODIFIED: This container now spans 2 of the 8 columns, making it larger */}
           <div className="bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/50 flex flex-col md:col-span-2">
             <h4 className="text-xs font-semibold uppercase text-gray-400 mb-1.5 text-center flex items-center justify-center">
               <WardsIcon className="w-4 h-4 mr-1.5" />
@@ -739,7 +581,6 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
             </div>
           </div>
 
-          {/* MODIFIED: This container now spans 3 of the 8 columns */}
           <div className="bg-gray-800/40 px-3 py-1.5 rounded-lg border border-gray-700/50 flex flex-col md:col-span-3">
             <h4 className="text-xs font-semibold uppercase text-gray-400 mb-1.5 text-center flex items-center justify-center">
               <GlobalStatsIcon className="w-4 h-4 mr-1.5" />
@@ -888,7 +729,17 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
           {(!timelineToDisplay?.skillOrder || timelineToDisplay.skillOrder.length === 0) && <p className="text-gray-500 text-xs italic mt-1.5 ml-1">Missing skill order data.</p>}
         </div>
 
-        <RunesTabContent />
+        {/* ADD THE RUNE DISPLAY HERE, AT THE BOTTOM OF THE DETAILS TAB */}
+        <div className="bg-gray-800/40 p-2 sm:p-3 rounded-lg border border-gray-700/50 mt-3">
+          <h4 className="font-semibold text-gray-300 mb-2 text-sm sm:text-sm uppercase text-center">Runes</h4>
+          {currentPlayerForDisplay && currentPlayerForDisplay.perks && runesDataFromDDragon && runesDataFromDDragon.length > 0 ? (
+            <div className="flex justify-center">
+              <RuneDisplay perks={currentPlayerForDisplay.perks} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} getRuneImage={getRuneImage} layout="full" size="lg" />
+            </div>
+          ) : (
+            <p className="text-gray-400 p-4 text-center">Rune data not available for this player.</p>
+          )}
+        </div>
       </div>
     );
   };
@@ -925,9 +776,23 @@ const ExpandedMatchDetails = ({ match, ddragonVersion, championData, summonerSpe
           <PieChart size={16} className={`${activeTab === "Details" ? "text-gray-100" : "text-gray-500 group-hover:text-gray-300"}`} />
           <span>Details</span>
         </button>
+        {/* REMOVE THE SEPARATE RUNES TAB BUTTON */}
+        {/*
+        <button
+          onClick={() => setActiveTab("Runes")}
+          className={`flex-1 py-2.5 sm:py-3 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-colors focus:outline-none
+                                flex items-center justify-center space-x-2
+                                ${activeTab === "Runes" ? `${tabActiveBg} text-gray-100` : "text-gray-400 hover:text-gray-100 hover:bg-white/5"}`}
+        >
+          <img src="/src/assets/icon-runes.png" alt="Runes" className={`w-4 h-4 ${activeTab === "Runes" ? "opacity-100" : "opacity-50 grayscale group-hover:opacity-100 group-hover:grayscale-0"}`} />
+          <span>Runes</span>
+        </button>
+        */}
       </div>
       {activeTab === "General" && <GeneralTabContent />}
       {activeTab === "Details" && <DetailsTabContent />}
+      {/* REMOVE THE CONDITIONAL RENDERING FOR THE SEPARATE RUNES TAB */}
+      {/* {activeTab === "Runes" && <RunesTabContent />} */}
     </div>
   );
 };
