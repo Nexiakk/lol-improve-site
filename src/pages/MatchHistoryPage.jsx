@@ -32,7 +32,7 @@ const ViewSwitcher = ({ activeView, setActiveView }) => {
             onClick={() => setActiveView("matchHistory")}
             className={`${buttonBaseClass} ${activeView === "matchHistory" ? "text-white" : "text-gray-400 hover:text-white"}`}
           >
-            <History size={16} className={`mr-1 flex-shrink-0 transition-colors ${activeView === "matchHistory" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
+            <History size={16} className={`flex-shrink-0 transition-colors ${activeView === "matchHistory" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
             <span>Match List</span>
             {/* Custom underline */}
             <span
@@ -47,7 +47,7 @@ const ViewSwitcher = ({ activeView, setActiveView }) => {
             onClick={() => setActiveView("liveGame")}
             className={`${buttonBaseClass} ${activeView === "liveGame" ? "text-white" : "text-gray-400 hover:text-white"}`}
           >
-            <Radio size={16} className={`mr-1 flex-shrink-0 transition-colors ${activeView === "liveGame" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
+            <Radio size={16} className={`flex-shrink-0 transition-colors ${activeView === "liveGame" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
             <span>Live Game</span>
             {/* Custom underline */}
             <span
@@ -931,7 +931,7 @@ function MatchHistoryPage() {
                             ${selectedMatchForNotes ? "w-full md:w-3/5 lg:w-2/3 xl:w-3/4" : "w-full"}`}
       >
         {/* The ViewSwitcher is now rendered here, acting as the 'extension' */}
-        <div className="fixed top-[50px] left-0 right-0 z-10">
+        <div className="fixed top-[40px] left-0 right-0 z-10">
           {" "}
           {/* Position right below TopNavbar */}
           <ViewSwitcher activeView={activeView} setActiveView={setActiveView} />

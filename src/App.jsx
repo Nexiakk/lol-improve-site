@@ -43,7 +43,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-900" style={backgroundStyle}>
       <TopNavbar currentView={currentView} setCurrentView={setCurrentView} />
-      <main className="flex-1 pt-[50px] w-full">{renderView()}</main>
+      <main className="flex-1 w-full">{renderView()}</main>
     </div>
   );
 }
