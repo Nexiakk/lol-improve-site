@@ -1268,7 +1268,7 @@ function StatsPage() {
   }
 
   return (
-    <div className="p-4 text-white h-[calc(100vh-4rem)] flex flex-col gap-4">
+    <div className="p-4 text-white h-[calc(100vh-50px)] flex flex-col gap-4">
       <header className="flex-shrink-0 grid grid-cols-10 gap-4">
         <div className="col-span-10 xl:col-span-7">
           <div className="flex justify-between items-center mb-2">

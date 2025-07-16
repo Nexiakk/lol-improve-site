@@ -2,17 +2,17 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from "react";
 import { db } from "../dexieConfig";
 import { Tooltip, Popover } from "antd";
-import { Loader2, AlertTriangle, ListChecks, MessageSquare, Edit, ChevronDown, ChevronUp, Star, Brain, Target, Tag, Goal, History, Radio } from "lucide-react";
+import { Loader2, AlertTriangle, ListChecks, MessageSquare, Edit, ChevronDown, ChevronUp, Star, Brain, Target, Tag, Goal, History, Radio, PinOff, CheckCircle, Trash2 } from "lucide-react";
 
 import MatchNotesPanel from "../components/MatchNotesPanel";
 import PaginationControls from "../components/PaginationControls";
 import ExpandedMatchDetails from "../components/ExpandedMatchDetails";
 import MatchHistoryHeader from "../components/MatchHistoryHeader";
-import RuneDisplay from "../components/common/RuneDisplay"; // Keep importing the wrapper
+import RuneDisplay from "../components/common/RuneDisplay";
 import LiveGamePage from "../components/LiveGamePage";
-import Sidebar from "../components/Sidebar"; // NEW IMPORT
 import riotApiFetchWithRetry from "../components/common/apiFetch";
 import { getContinentalRoute, delay, timeAgo, formatGameDurationMMSS, formatGameMode, getKDAColorClass, getKDAStringSpans, getKDARatio, getCSString, processTimelineData, QUEUE_IDS } from "../utils/matchCalculations";
+import SideContainer from "../components/SideContainer";
 
 import topIcon from "../assets/top_icon.svg";
 import jungleIcon from "../assets/jungle_icon.svg";
@@ -21,21 +21,15 @@ import bottomIcon from "../assets/bottom_icon.svg";
 import supportIcon from "../assets/support_icon.svg";
 
 const ViewSwitcher = ({ activeView, setActiveView }) => {
-  // Removed activeClass and inactiveClass as the active state will be handled by the underline
   const buttonBaseClass = "relative group flex items-center gap-2 px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-150 ease-in-out cursor-pointer focus:outline-none";
 
   return (
-    // Outer div for styling the 'extension' part with the most aggressive bottom-left and bottom-right rounding
     <div className="w-full bg-black-800 py-1 rounded-b-4xl">
       <div className="mx-auto px-4 sm:px-6 lg:px-8 flex justify-center">
         <div className="flex p-1 rounded-lg">
-          <button
-            onClick={() => setActiveView("matchHistory")}
-            className={`${buttonBaseClass} ${activeView === "matchHistory" ? "text-white" : "text-gray-400 hover:text-white"}`}
-          >
+          <button onClick={() => setActiveView("matchHistory")} className={`${buttonBaseClass} ${activeView === "matchHistory" ? "text-white" : "text-gray-400 hover:text-white"}`}>
             <History size={16} className={`flex-shrink-0 transition-colors ${activeView === "matchHistory" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
             <span>Match List</span>
-            {/* Custom underline */}
             <span
               className={`
                 absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-[3px] bg-orange-500 rounded-t-sm
@@ -44,13 +38,9 @@ const ViewSwitcher = ({ activeView, setActiveView }) => {
               `}
             />
           </button>
-          <button
-            onClick={() => setActiveView("liveGame")}
-            className={`${buttonBaseClass} ${activeView === "liveGame" ? "text-white" : "text-gray-400 hover:text-white"}`}
-          >
+          <button onClick={() => setActiveView("liveGame")} className={`${buttonBaseClass} ${activeView === "liveGame" ? "text-white" : "text-gray-400 hover:text-white"}`}>
             <Radio size={16} className={`flex-shrink-0 transition-colors ${activeView === "liveGame" ? "text-orange-400" : "text-gray-500 group-hover:text-orange-400"}`} />
             <span>Live Game</span>
-            {/* Custom underline */}
             <span
               className={`
                 absolute bottom-0 left-1/2 -translate-x-1/2 h-[3px] bg-orange-500 rounded-t-sm
@@ -89,7 +79,6 @@ const PREDEFINED_MISTAKE_TAGS = [
   { label: "Rotations", value: "rotations_problem" },
 ];
 
-// Create a lookup map for efficient label retrieval
 const MISTAKE_TAGS_MAP = PREDEFINED_MISTAKE_TAGS.reduce((acc, tag) => {
   acc[tag.value] = tag.label;
   return acc;
@@ -101,7 +90,6 @@ const ConditionalTagTooltip = ({ label }) => {
 
   useLayoutEffect(() => {
     const element = textRef.current;
-    // Check if the content's full width is greater than its visible width
     if (element && element.scrollWidth > element.clientWidth) {
       setIsOverflowing(true);
     } else {
@@ -147,7 +135,6 @@ const ReviewHub = ({ match, onOpenNotes }) => {
   const visibleTags = validTags.slice(0, MAX_TAGS_TO_SHOW);
   const hiddenTagsCount = validTags.length - visibleTags.length;
 
-  // Logic for the Goal title tooltip
   const goalTextRef = useRef(null);
   const [isGoalOverflowing, setIsGoalOverflowing] = useState(false);
 
@@ -180,9 +167,7 @@ const ReviewHub = ({ match, onOpenNotes }) => {
 
   return (
     <div className="relative bg-gray-900/40 p-2.5 rounded-lg border border-gray-700/80 hover:border-sky-500/80 transition-all cursor-pointer h-full group flex flex-col justify-between" onClick={() => onOpenNotes(match)}>
-      {/* Main Content Area */}
       <div className="space-y-1 flex flex-col flex-grow">
-        {/* Goal Section - UNCHANGED STRUCTURE, CORRECT TOOLTIP LOGIC */}
         <div className="flex items-stretch justify-between gap-1.5">
           {visibleGoal ? (
             <Tooltip title={isGoalOverflowing ? visibleGoal.text : null} classNames={{ root: "custom-tooltip" }} overlayClassName="goal-title-tooltip">
@@ -209,7 +194,6 @@ const ReviewHub = ({ match, onOpenNotes }) => {
           )}
         </div>
 
-        {/* Tags Section - USES THE HELPER COMPONENT FOR SAFETY */}
         <div className="flex items-stretch gap-1.5 mt-auto">
           {visibleTags.map((tag) => (
             <ConditionalTagTooltip key={tag} label={MISTAKE_TAGS_MAP[tag] || tag} />
@@ -251,11 +235,77 @@ function MatchHistoryPage() {
   const [updateFetchDates, setUpdateFetchDates] = useState({ startDate: "", endDate: "" });
   const [goalTemplates, setGoalTemplates] = useState([]);
   const [activeView, setActiveView] = useState("matchHistory");
-  // CHANGED: preGameGoals is now an array, and its state is managed here
-  const [preGameGoals, setPreGameGoals] = useState([]); // State for active pre-game goals
+  const [activePreGameGoals, setActivePreGameGoals] = useState([]);
+
+  const [showPreGameGoalSetter, setShowPreGameGoalSetter] = useState(false);
+  const [customPreGameGoalText, setCustomPreGameGoalText] = useState("");
+  const [selectedPreGameTemplateId, setSelectedPreGameTemplateId] = useState("");
+  const preGameGoalSetterRef = useRef(null);
 
   const matchListContainerRef = useRef(null);
   const prevPageRef = useRef(currentPage);
+
+  useEffect(() => {
+    try {
+      const storedGoals = localStorage.getItem("activePreGameGoals");
+      if (storedGoals) {
+        setActivePreGameGoals(JSON.parse(storedGoals));
+      }
+    } catch (error) {
+      console.error("Error loading pre-game goals from localStorage:", error);
+      setActivePreGameGoals([]);
+    }
+  }, []);
+
+  const handleAddPreGameGoal = (templateId = null, customText = null) => {
+    let newGoal = null;
+    
+    // Use passed parameters if provided, otherwise fall back to state
+    const templateIdToUse = templateId !== null ? templateId : selectedPreGameTemplateId;
+    const customTextToUse = customText !== null ? customText : customPreGameGoalText;
+    
+    if (templateIdToUse) {
+      const template = goalTemplates.find((t) => t.id.toString() === templateIdToUse);
+      if (template) {
+        newGoal = { id: Date.now(), text: template.title, templateId: template.id, category: template.category, setAt: Date.now() };
+      }
+    } else if (customTextToUse && customTextToUse.trim()) {
+      newGoal = { id: Date.now(), text: customTextToUse.trim(), setAt: Date.now() };
+    }
+
+    if (newGoal) {
+      const updatedGoals = [...activePreGameGoals, newGoal];
+      localStorage.setItem("activePreGameGoals", JSON.stringify(updatedGoals));
+      setActivePreGameGoals(updatedGoals);
+      setCustomPreGameGoalText("");
+      setSelectedPreGameTemplateId("");
+    }
+  };
+
+  const handleRemovePreGameGoal = (goalId) => {
+    const updatedGoals = activePreGameGoals.filter((g) => g.id !== goalId);
+    localStorage.setItem("activePreGameGoals", JSON.stringify(updatedGoals));
+    setActivePreGameGoals(updatedGoals);
+  };
+
+  const handleClearPreGameFocus = () => {
+    localStorage.removeItem("activePreGameGoals");
+    setActivePreGameGoals([]);
+    setShowPreGameGoalSetter(false);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (preGameGoalSetterRef.current && !preGameGoalSetterRef.current.contains(event.target)) {
+        const toggleButton = document.getElementById("pre-game-focus-toggle");
+        if (toggleButton && toggleButton.contains(event.target)) return;
+        setShowPreGameGoalSetter(false);
+      }
+    }
+    if (showPreGameGoalSetter) document.addEventListener("mousedown", handleClickOutside);
+    else document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showPreGameGoalSetter]);
 
   const fetchGoalTemplatesForHeader = useCallback(async () => {
     try {
@@ -265,9 +315,11 @@ function MatchHistoryPage() {
       console.error("Error fetching goal templates for header:", err);
     }
   }, []);
+
   useEffect(() => {
     fetchGoalTemplatesForHeader();
   }, [fetchGoalTemplatesForHeader]);
+
   useEffect(() => {
     if (!RIOT_API_KEY) setError("Configuration Error: Riot API Key is missing.");
     fetch("https://ddragon.leagueoflegends.com/api/versions.json")
@@ -491,7 +543,6 @@ function MatchHistoryPage() {
     }
   }, [allMatchesFromDb]);
 
-  // Match Update Logic
   const handleUpdateAllMatches = async (customStartDate, customEndDate) => {
     if (!RIOT_API_KEY) {
       setError("Riot API Key is missing.");
@@ -731,20 +782,19 @@ function MatchHistoryPage() {
     setIsUpdatingAllMatches(false);
   };
 
-  // Note Handling
   const handleOpenNotes = (match) => {
     setSelectedMatchForNotes({
       ...match,
-      // Pass the current active pre-game goals to the match notes panel
-      activePreGameGoal: preGameGoals, // CHANGED: Pass the array
-      // Pass the image getter functions down to MatchNotesPanel
+      activePreGameGoal: activePreGameGoals,
       getChampionImage: getChampionImage,
       getChampionDisplayName: getChampionDisplayName,
     });
   };
+
   const handleCloseNotes = () => {
     setSelectedMatchForNotes(null);
   };
+
   const handleSaveNotes = async (matchIdToSave, newNotesData) => {
     if (!matchIdToSave) {
       setError("Error: Cannot save notes. Missing match ID.");
@@ -767,13 +817,11 @@ function MatchHistoryPage() {
     }
   };
 
-  // Page Navigation
   const handlePageChange = (page) => {
     setCurrentPage(page);
     setExpandedMatchId(null);
   };
 
-  // DDragon Image/Data Getters
   const getChampionInfo = (championKeyApi) => {
     if (!championData || !championKeyApi) return { displayName: championKeyApi, imageName: championKeyApi + ".png", ddragonId: championKeyApi };
     let ddragonKeyToLookup = championKeyApi === "Fiddlesticks" ? "FiddleSticks" : championKeyApi;
@@ -832,19 +880,17 @@ function MatchHistoryPage() {
     return (
       <div className="text-left max-w-xs">
         <p className="font-bold text-orange-400 text-base mb-1">{name}</p>
-        <p className="text-xs text-gray-300" dangerouslyM_HTML={{ __html: description }}></p>
+        <p className="text-xs text-gray-300" dangerouslySetInnerHTML={{ __html: description }}></p>
       </div>
     );
   };
 
-  // Helper function to get simple rune tooltip content
   const getRuneTooltipContent = (runeId) => {
     if (!runesMap || !runeId || !runesMap[runeId]) return null;
     const { name } = runesMap[runeId];
     return <span className="font-semibold">{name}</span>;
   };
 
-  // NEW: Skeleton loader component
   const MatchItemSkeleton = () => (
     <div className="rounded-lg shadow-lg overflow-hidden group bg-gray-800/40 animate-pulse">
       <div className="flex items-stretch rounded-lg bg-gray-800/40">
@@ -906,7 +952,6 @@ function MatchHistoryPage() {
     </div>
   );
 
-  // Render
   if (!RIOT_API_KEY && !error.includes("Configuration Error")) {
     return (
       <div className="p-4 sm:p-6 md:p-8 text-gray-100 flex flex-col items-center justify-center h-full">
@@ -918,42 +963,40 @@ function MatchHistoryPage() {
     return filteredMatches;
   }, [filteredMatches]);
 
-  const commonInputClass = "w-full bg-gray-700/80 border border-gray-600 rounded-md shadow-sm focus:border-orange-500 text-gray-200 placeholder-gray-400 text-xs px-2.5"; // Defined here for passing to sidebar
-  const controlElementHeightClass = "h-9"; // Defined here for passing to sidebar
-
-
   return (
     <div className="flex flex-1 overflow-hidden h-[calc(100vh)] pt-[90px]">
-      {" "}
-      {/* Adjust pt-[Xpx] based on actual height of TopNavbar + ViewSwitcher */}
-      {/* Main content wrapper: now a flex container */}
-      <div className={`flex flex-grow h-full ${selectedMatchForNotes ? "md:w-3/5 lg:w-2/3 xl:w-3/4" : "w-full"} overflow-hidden`}>
-        {/* The ViewSwitcher is now rendered here, acting as the 'extension' */}
+      <div
+        ref={matchListContainerRef}
+        className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar h-full w-full
+                            ${selectedMatchForNotes ? "md:w-3/5 lg:w-2/3 xl:w-3/4" : "w-full"}`}
+      >
         <div className="fixed top-[40px] left-0 right-0 z-10">
-          {" "}
-          {/* Position right below TopNavbar */}
           <ViewSwitcher activeView={activeView} setActiveView={setActiveView} />
         </div>
 
-        {/* Left Sidebar - Pre-Game Goals */}
-        {activeView === "matchHistory" && ( // Only show sidebar if on match history view
-          <Sidebar
-            preGameGoals={preGameGoals}
-            setPreGameGoals={setPreGameGoals}
-            goalTemplates={goalTemplates}
-            commonInputClass={commonInputClass}
-            controlElementHeightClass={controlElementHeightClass}
-          />
-        )}
+        {activeView === "matchHistory" ? (
+          <div className="max-w-[81rem] w-full mx-auto flex flex-row items-start gap-4">
+            <div className="w-80 flex-shrink-0 hidden lg:block">
+              <div className="sticky top-4 mt-4">
+                <SideContainer
+                  isLoading={isLoadingAccounts && allMatchesFromDb.length === 0}
+                  activePreGameGoals={activePreGameGoals}
+                  handleClearPreGameFocus={handleClearPreGameFocus}
+                  handleRemovePreGameGoal={handleRemovePreGameGoal}
+                  showPreGameGoalSetter={showPreGameGoalSetter}
+                  setShowPreGameGoalSetter={setShowPreGameGoalSetter}
+                  preGameGoalSetterRef={preGameGoalSetterRef}
+                  goalTemplates={goalTemplates}
+                  selectedPreGameTemplateId={selectedPreGameTemplateId}
+                  setSelectedPreGameTemplateId={setSelectedPreGameTemplateId}
+                  customPreGameGoalText={customPreGameGoalText}
+                  setCustomPreGameGoalText={setCustomPreGameGoalText}
+                  handleAddPreGameGoal={handleAddPreGameGoal}
+                />
+              </div>
+            </div>
 
-        {/* Main Content Area (Match List) */}
-        <div
-          ref={matchListContainerRef}
-          className={`text-gray-100 transition-all duration-300 ease-in-out overflow-y-auto custom-scrollbar h-full flex-grow`}
-        >
-          {activeView === "matchHistory" ? (
-            <>
-              {/* MatchHistoryHeader needs its top margin adjusted since the sidebar now pushes it */}
+            <main className="flex-1 min-w-0">
               <MatchHistoryHeader
                 filteredMatches={summaryMatches}
                 allMatches={allMatchesFromDb}
@@ -976,14 +1019,12 @@ function MatchHistoryPage() {
                 onClearFilters={handleClearFilters}
                 availableChampions={availableChampions}
                 availableOpponentChampions={availableOpponentChampions}
+                availablePatches={availablePatches}
                 ROLE_ICON_MAP={ROLE_ICON_MAP}
                 ROLE_ORDER={ROLE_ORDER}
-                goalTemplates={goalTemplates}
-                availablePatches={availablePatches} // Pass availablePatches
-                // No more pre-game goal props here
               />
 
-              <div className="max-w-5xl mx-auto w-full mb-2 flex items-center justify-center px-4 sm:px-6 md:px-8">
+              <div className="w-full mb-2 flex items-center justify-center">
                 {error && !isUpdatingAllMatches && (
                   <div className="w-full p-2.5 bg-red-900/40 text-red-300 border border-red-700/60 rounded-md text-sm text-center">
                     <AlertTriangle size={18} className="inline mr-2" />
@@ -994,7 +1035,7 @@ function MatchHistoryPage() {
               </div>
 
               {isLoadingMatches && !isUpdatingAllMatches && allMatchesFromDb.length === 0 ? (
-                <div className="max-w-5xl mx-auto w-full mt-8 px-4 sm:px-6 md:px-8">
+                <div className="w-full mt-8">
                   <div className="space-y-3">
                     <div className="h-6 bg-gray-700/60 rounded w-1/4 mb-3 animate-pulse"></div>
                     {Array.from({ length: MATCHES_PER_PAGE }).map((_, index) => (
@@ -1003,7 +1044,7 @@ function MatchHistoryPage() {
                   </div>
                 </div>
               ) : !isLoadingMatches && filteredMatches.length === 0 && !error && !isUpdatingAllMatches ? (
-                <div className="max-w-5xl mx-auto w-full mt-8 px-4 sm:px-6 md:px-8">
+                <div className="w-full mt-8">
                   <div className="text-center py-10 bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl border border-dashed border-gray-700/50 min-h-[180px] flex flex-col items-center justify-center">
                     <ListChecks size={48} className="text-gray-600 mx-auto mb-4" />
                     <p className="text-gray-400 text-lg">{allMatchesFromDb.length > 0 && filteredMatches.length === 0 ? "No matches found for the current filters." : "No matches found."}</p>
@@ -1014,7 +1055,7 @@ function MatchHistoryPage() {
               ) : (
                 !isLoadingMatches &&
                 Object.keys(groupedMatches).length > 0 && (
-                  <div className="space-y-3 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pb-8">
+                  <div className="space-y-3 pb-8">
                     {Object.entries(groupedMatches).map(([dateKey, matchesOnDate]) => (
                       <div key={dateKey}>
                         <h2 className="text-lg font-semibold text-gray-100 pb-1.5"> {dateKey} </h2>
@@ -1028,36 +1069,22 @@ function MatchHistoryPage() {
                             const csString = getCSString(participantData);
                             const gameModeDisplay = formatGameMode(match.gameMode, match.queueId);
                             const gameDurationFormatted = formatGameDurationMMSS(match.gameDuration);
-                            const itemsRow1 = [match.item0, match.item1, match.item2].map((id) => getItemImage(id));
-                            const itemsRow2 = [match.item3, match.item4, match.item5].map((id) => getItemImage(id));
-                            const trinketImg = getItemImage(match.item6);
-                            const summoner1Img = getSummonerSpellImage(match.summoner1Id);
-                            const summoner2Img = getSummonerSpellImage(match.summoner2Id);
                             let primaryPerkId = null;
                             let subStyleId = null;
-                            let primaryRuneImg = null;
-                            let subStyleImgPath = null;
                             if (match.perks && match.perks.styles && Array.isArray(match.perks.styles) && Object.keys(runesMap).length > 0 && ddragonVersion) {
                               const primaryStyleInfo = match.perks.styles.find((s) => s.description === "primaryStyle");
                               const subStyleInfo = match.perks.styles.find((s) => s.description === "subStyle");
-                              if (primaryStyleInfo?.selections?.[0]?.perk) {
-                                primaryPerkId = primaryStyleInfo.selections[0].perk;
-                                primaryRuneImg = getRuneImage(primaryPerkId);
-                              }
-                              if (subStyleInfo?.style) {
-                                subStyleId = subStyleInfo.style;
-                                subStyleImgPath = getRuneImage(subStyleId);
-                              }
+                              if (primaryStyleInfo?.selections?.[0]?.perk) primaryPerkId = primaryStyleInfo.selections[0].perk;
+                              if (subStyleInfo?.style) subStyleId = subStyleInfo.style;
                             }
                             const playerRoleIcon = match.teamPosition ? ROLE_ICON_MAP[match.teamPosition.toUpperCase()] : null;
-                            const hasMeaningfulNotes = (match.mainGoal && match.mainGoal.trim() !== "") || (match.actionableTakeaway && match.actionableTakeaway.trim() !== "") || (match.generalNotes && match.generalNotes.trim() !== "") || (match.positiveMoment && match.positiveMoment.trim() !== "") || (match.keyMistake && match.keyMistake.trim() !== "");
-                            const notesButtonIcon = hasMeaningfulNotes ? MessageSquare : Edit;
-                            const notesButtonTitle = hasMeaningfulNotes ? "View/Edit Review" : "Add Review";
-                            const notesButtonBgClass = hasMeaningfulNotes ? "bg-sky-600 hover:bg-sky-500 text-white" : "bg-orange-600 hover:bg-orange-500 text-white";
                             const resultBgOverlayClass = isWin === null ? "bg-gray-800/25" : isWin ? "bg-blue-900/20" : "bg-red-900/20";
                             const expandButtonBgClass = isWin === null ? "bg-gray-700/60 hover:bg-gray-600/80" : isWin ? "bg-blue-900/25 hover:bg-[#304A80]" : "bg-red-900/25 hover:bg-[#582C3A]";
                             const isExpanded = expandedMatchId === match.matchId;
                             const animationClass = match.isNew ? "match-item-enter-active" : "";
+                            const summoner1Img = getSummonerSpellImage(match.summoner1Id);
+                            const summoner2Img = getSummonerSpellImage(match.summoner2Id);
+                            const trinketImg = getItemImage(match.item6);
                             return (
                               <div key={match.matchId} className={`rounded-lg shadow-lg overflow-hidden group ${resultBgOverlayClass} ${animationClass}`}>
                                 <div className={`flex items-stretch ${isExpanded ? "rounded-t-lg" : "rounded-lg"} ${resultBgOverlayClass}`}>
@@ -1123,8 +1150,6 @@ function MatchHistoryPage() {
                                           getRuneImage={getRuneImage}
                                           layout="compact"
                                           size="md"
-                                          // *** IMPORTANT CHANGE HERE ***
-                                          // Pass the main scroll container ref
                                           playerCardRef={matchListContainerRef}
                                           popoverProps={{
                                             trigger: "hover",
@@ -1132,10 +1157,8 @@ function MatchHistoryPage() {
                                             overlayInnerStyle: { backgroundColor: "#18181b", border: "1px solid #3f3f46", borderRadius: "8px" },
                                           }}
                                         >
-                                          {/* Pass the div with rune images as children for the popover trigger */}
                                           <div className="flex flex-col space-y-0.5">
                                             <div className="w-6 h-6 bg-black/20 rounded flex items-center justify-center border border-gray-600/50">
-                                              {/* Use primaryPerkId and subStyleId directly with getRuneImage */}
                                               {getRuneImage(primaryPerkId) ? (
                                                 <img
                                                   src={getRuneImage(primaryPerkId)}
@@ -1143,8 +1166,7 @@ function MatchHistoryPage() {
                                                   className="w-full h-full object-contain"
                                                   onError={(e) => {
                                                     e.target.style.display = "none";
-                                                    const parent = e.target.parentNode;
-                                                    if (parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>';
+                                                    e.target.parentNode.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">K?</div>';
                                                   }}
                                                 />
                                               ) : (
@@ -1159,8 +1181,7 @@ function MatchHistoryPage() {
                                                   className="w-full h-full object-contain"
                                                   onError={(e) => {
                                                     e.target.style.display = "none";
-                                                    const parent = e.target.parentNode;
-                                                    if (parent) parent.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>';
+                                                    e.target.parentNode.innerHTML = '<div class="w-full h-full rounded-sm bg-gray-700/50 flex items-center justify-center text-xs text-gray-500">S?</div>';
                                                   }}
                                                 />
                                               ) : (
@@ -1232,16 +1253,15 @@ function MatchHistoryPage() {
                         </div>
                       </div>
                     ))}
+                    {!isLoadingMatches && totalPages > 1 && <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
                   </div>
                 )
               )}
-
-              {!isLoadingMatches && totalPages > 1 && <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />}
-            </>
-          ) : (
-            <LiveGamePage trackedAccounts={trackedAccounts} getChampionImage={getChampionImage} getSummonerSpellImage={getSummonerSpellImage} getRuneImage={getRuneImage} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} championData={championData} ddragonVersion={ddragonVersion} />
-          )}
-        </div>
+            </main>
+          </div>
+        ) : (
+          <LiveGamePage trackedAccounts={trackedAccounts} getChampionImage={getChampionImage} getSummonerSpellImage={getSummonerSpellImage} getRuneImage={getRuneImage} runesDataFromDDragon={runesDataFromDDragon} runesMap={runesMap} championData={championData} ddragonVersion={ddragonVersion} />
+        )}
       </div>
       {selectedMatchForNotes && <MatchNotesPanel match={selectedMatchForNotes} championData={championData} ddragonVersion={ddragonVersion} onSave={handleSaveNotes} onClose={handleCloseNotes} isLoading={isSavingNotes} getChampionImage={getChampionImage} getChampionDisplayName={getChampionDisplayName} />}
     </div>

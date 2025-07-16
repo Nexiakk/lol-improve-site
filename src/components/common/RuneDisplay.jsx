@@ -110,9 +110,9 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
               })
               .map((headerTree) => {
                 const isSelected = headerTree.id === tree.id;
-                const highlightClass = isSelected ? "opacity-100 scale-110" : "opacity-40 filter grayscale hover:opacity-70 hover:filter-none";
+                const highlightClass = isSelected ? "opacity-100" : "opacity-40 filter grayscale hover:opacity-70 hover:filter-none";
                 return (
-                  <div key={headerTree.id} className={`transition-all ${highlightClass}`} title={headerTree.name}>
+                  <div key={headerTree.id} className={`transition-opacity duration-200 ${highlightClass}`} title={headerTree.name}>
                     <img src={getRuneImage(headerTree.id)} alt={headerTree.name} className={headerImageSize} />
                   </div>
                 );
@@ -122,10 +122,11 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
 
         {slotsToRender.map((slot, slotIndex) => {
           const isKeystoneRow = isPrimaryTree && slotIndex === 0;
-          const rowLayoutClass = isKeystoneRow ? "flex justify-center items-center w-full space-x-0" : "flex justify-center items-center w-full space-x-1";
+          const rowLayoutClass = isKeystoneRow ? "flex justify-center items-center w-full" : "flex justify-center items-center w-full";
+          const gapClass = isKeystoneRow ? "gap-0" : "gap-1";
 
           return (
-            <div key={`${tree.id}-slot-${slotIndex}`} className={rowLayoutClass}>
+            <div key={`${tree.id}-slot-${slotIndex}`} className={`${rowLayoutClass} ${gapClass}`}>
               {slot.runes.map((rune) => {
                 const isActive = selectedPerkIds.includes(rune.id);
                 const currentRuneSize = isKeystoneRow ? keystoneImageSize : runeImageSize;
@@ -133,7 +134,7 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
                 const shouldShowBorder = isActive && !isKeystoneRow;
 
                 return (
-                  <div key={rune.id} className={`relative p-0 rounded-full transition-all ${activeRuneClasses}`} title={runesMap[rune.id]?.name || rune.name}>
+                  <div key={rune.id} className={`relative p-0 rounded-full transition-opacity duration-200 ${activeRuneClasses} flex-shrink-0`} title={runesMap[rune.id]?.name || rune.name}>
                     <img src={getRuneImage(rune.id)} alt={runesMap[rune.id]?.name || rune.name} className={`${currentRuneSize} rounded-full`} />
                     {shouldShowBorder && <div className={`absolute -inset-0.5 rounded-full border-2 ${treeBorderColor}`}></div>}
                   </div>
@@ -150,11 +151,11 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
     if (statShards.length < 3) return null;
 
     const shardImageSize = getSizeClasses("shard");
-    const activeShardClasses = (isActive) => (isActive ? "border-yellow-400 border opacity-100 scale-110" : "border-gray-700 border opacity-50 filter grayscale");
+    const activeShardClasses = (isActive) => (isActive ? "border-yellow-400 border opacity-100" : "border-gray-700 border opacity-50 filter grayscale");
 
     if (layout === "compact") {
       return (
-        <div className="flex justify-center space-x-1 mt-0.5">
+        <div className="flex justify-center gap-1 mt-0.5">
           {statShards.map((shardId, index) => {
             const rowOptions = STAT_SHARD_ROWS[index];
             const selectedShard = rowOptions.find((s) => s.id === shardId);
@@ -162,7 +163,7 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
 
             const shardIconSrc = getStatShardImage(selectedShard.iconName);
             return (
-              <div key={shardId} title={selectedShard.name} className={`p-0.5 rounded-full transition-all ${activeShardClasses(true)}`}>
+              <div key={shardId} title={selectedShard.name} className={`p-0.5 rounded-full transition-opacity duration-200 ${activeShardClasses(true)} flex-shrink-0`}>
                 <img src={shardIconSrc} alt={selectedShard.name} className={`${shardImageSize} rounded-full`} />
               </div>
             );
@@ -179,12 +180,12 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
           { options: STAT_SHARD_ROWS[1], selected: selectedFlex },
           { options: STAT_SHARD_ROWS[2], selected: selectedDefense },
         ].map((row, rowIndex) => (
-          <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center space-x-2.5 items-center">
+          <div key={`stat-shard-row-${rowIndex}`} className="flex justify-center gap-2.5 items-center">
             {row.options.map((shard) => {
               const isActive = shard.id === row.selected;
               const shardIconSrc = getStatShardImage(shard.iconName);
               return (
-                <div key={shard.id} title={shard.name} className={`p-0.5 rounded-full transition-all ${activeShardClasses(isActive)}`}>
+                <div key={shard.id} title={shard.name} className={`p-0.5 rounded-full transition-opacity duration-200 ${activeShardClasses(isActive)} flex-shrink-0`}>
                   <img src={shardIconSrc} alt={shard.name} className={`${shardImageSize} rounded-full`} />
                 </div>
               );
@@ -196,9 +197,9 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
   };
 
   const content = (
-    <div className={`flex ${layout === "full" ? "items-stretch gap-3" : "items-start gap-3 p-1"}`}>
-      <div className={`${layout === "compact" ? "flex-grow" : ""}`}>{primaryTree && renderRuneTree(primaryTree, selectedRuneIds, true)}</div>
-      <div className={`flex flex-col ${layout === "full" ? "" : "justify-center flex-grow"}`}>
+    <div className={`flex ${layout === "full" ? "items-stretch gap-3" : "items-start gap-3 p-1"} min-w-0 w-full`}>
+      <div className={`${layout === "compact" ? "flex-grow" : ""} min-w-0 flex-shrink-0`}>{primaryTree && renderRuneTree(primaryTree, selectedRuneIds, true)}</div>
+      <div className={`flex flex-col ${layout === "full" ? "" : "justify-center flex-grow"} min-w-0 flex-shrink-0`}>
         {secondaryTree && renderRuneTree(secondaryTree, selectedRuneIds, false)}
         <hr className={`border-gray-700 ${layout === "full" ? "my-2 w-19/20" : "my-2 w-19/20"} mx-auto`} />
         {renderStatShardsDisplay()}
@@ -217,7 +218,18 @@ const RuneDisplay = ({ perks, runesDataFromDDragon, runesMap, getRuneImage, popo
     // Merge the custom getPopupContainer logic with existing popoverProps
     const finalPopoverProps = {
       ...popoverProps,
-      getPopupContainer: playerCardRef && playerCardRef.current ? () => playerCardRef.current : (triggerNode) => triggerNode.parentNode, // Fallback to parentNode if ref isn't available
+      getPopupContainer: () => document.body, // Always render to body to prevent layout shifts
+      overlayStyle: {
+        ...popoverProps.overlayStyle,
+        zIndex: 1000,
+      },
+      overlayInnerStyle: {
+        backgroundColor: "#18181b",
+        border: "1px solid #3f3f46",
+        borderRadius: "8px",
+        padding: "12px",
+        ...popoverProps.overlayInnerStyle,
+      },
     };
 
     return (

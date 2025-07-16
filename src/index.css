@@ -130,6 +130,215 @@ body {
   background-color: #2d3748;
 }
 
+/* Custom styles for Ant Design Modal */
+.dark-modal .ant-modal-content {
+  background-color: #1f2937; /* bg-gray-800 */
+  border: 1px solid #374151; /* border-gray-700 */
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 0 !important; /* Remove outer container padding */
+}
+
+.dark-modal .ant-modal-header {
+  background-color: #1f2937; /* bg-gray-800 */
+  border-bottom: 1px solid #374151; /* border-gray-700 */
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 10px 24px !important; /* Add padding to header */
+}
+
+.dark-modal .ant-modal-title {
+  color: #e5e7eb; /* text-gray-200 */
+  font-weight: 600;
+}
+
+/* Custom X button styling */
+.dark-modal .ant-modal-close {
+  color: #9ca3af !important; /* text-gray-400 */
+  transition: all 0.2s ease;
+  top: 10px !important; /* Position properly */
+  right: 10px !important;
+}
+
+.dark-modal .ant-modal-close:hover {
+  color: #e5e7eb !important; /* text-gray-200 */
+  background-color: #374151 !important; /* bg-gray-700 */
+  border-radius: 0.375rem !important; /* rounded-md */
+}
+
+.dark-modal .ant-modal-close .ant-modal-close-x {
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: bold !important;
+}
+
+/* Remove the ::before pseudo-element approach and use the default × character */
+.dark-modal .ant-modal-close .ant-modal-close-x::before {
+  content: none !important;
+}
+
+/* Add spacing between modal body content and footer */
+.dark-modal .ant-modal-body {
+  background-color: #1f2937 !important; /* bg-gray-800 */
+  color: #e5e7eb !important; /* text-gray-200 */
+}
+
+/* Ensure proper spacing between modal content and footer */
+.dark-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.dark-modal .ant-modal-body {
+  flex: 1;
+  padding: 16px 24px !important; /* Add proper padding to body */
+}
+
+.dark-modal .ant-modal-footer {
+  padding: 10px !important; /* Add proper padding to footer */
+  margin-top: 16px !important; /* Add space between content and footer */
+  border-top: 1px solid #374151 !important; /* border-gray-700 */
+  background-color: #1f2937 !important; /* bg-gray-800 */
+}
+
+/* Custom styles for disabled buttons in modal */
+.dark-modal .ant-btn-primary:disabled {
+  background-color: #4b5563 !important; /* bg-gray-600 */
+  border-color: #4b5563 !important;
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+.dark-modal .ant-btn-primary:disabled:hover {
+  background-color: #4b5563 !important; /* bg-gray-600 */
+  border-color: #4b5563 !important;
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+.dark-modal .ant-btn {
+  border-radius: 0.375rem; /* rounded-md */
+}
+
+.dark-modal .ant-btn-default {
+  background-color: #374151; /* bg-gray-700 */
+  border-color: #4b5563; /* border-gray-600 */
+  color: #e5e7eb; /* text-gray-200 */
+}
+
+/* Update Cancel button hover colors */
+.dark-modal .ant-btn-default:hover {
+  background-color: #4b5563 !important; /* bg-gray-600 */
+  border-color: #6b7280 !important; /* border-gray-500 */
+  color: #f3f4f6 !important; /* text-gray-100 */
+}
+
+/* Change Add Focus button to orange theme */
+.dark-modal .ant-btn-primary {
+  background-color: #f97316 !important; /* bg-orange-500 */
+  border-color: #f97316 !important;
+  color: #ffffff !important;
+}
+
+.dark-modal .ant-btn-primary:hover {
+  background-color: #ea580c !important; /* bg-orange-600 */
+  border-color: #ea580c !important;
+  color: #ffffff !important;
+}
+
+/* Custom styles for Ant Design Select */
+.dark-select .ant-select-selector {
+  background-color: #374151 !important; /* bg-gray-700 */
+  border-color: #4b5563 !important; /* border-gray-600 */
+  border-radius: 0.375rem !important; /* rounded-md */
+  color: #e5e7eb !important; /* text-gray-200 */
+}
+
+.dark-select .ant-select-selector:hover {
+  border-color: #f97316 !important; /* border-orange-500 */
+}
+
+.dark-select .ant-select-focused .ant-select-selector {
+  border-color: #f97316 !important; /* border-orange-500 */
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important; /* focus ring */
+}
+
+.dark-select .ant-select-selection-placeholder {
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+.dark-select .ant-select-arrow {
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+/* Custom styles for Ant Design Input */
+.dark-input .ant-input {
+  background-color: #374151 !important; /* bg-gray-700 */
+  border-color: #4b5563 !important; /* border-gray-600 */
+  border-radius: 0.375rem !important; /* rounded-md */
+  color: #e5e7eb !important; /* text-gray-200 */
+}
+
+.dark-input .ant-input:hover {
+  border-color: #f97316 !important; /* border-orange-500 */
+}
+
+.dark-input .ant-input:focus,
+.dark-input .ant-input-focused {
+  border-color: #f97316 !important; /* border-orange-500 */
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important; /* focus ring */
+}
+
+.dark-input .ant-input::placeholder {
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+/* Modal-specific input styles to override any conflicting styles */
+.dark-modal .ant-input {
+  background-color: #374151 !important; /* bg-gray-700 */
+  border-color: #4b5563 !important; /* border-gray-600 */
+  color: #e5e7eb !important; /* text-gray-200 */
+}
+
+.dark-modal .ant-input::placeholder {
+  color: #9ca3af !important; /* text-gray-400 */
+}
+
+.dark-modal .ant-input:hover {
+  border-color: #f97316 !important; /* border-orange-500 */
+}
+
+.dark-modal .ant-input:focus,
+.dark-modal .ant-input-focused {
+  border-color: #f97316 !important; /* border-orange-500 */
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2) !important; /* focus ring */
+}
+
+/* Custom styles for Ant Design Select dropdown */
+.ant-select-dropdown {
+  background-color: #1f2937 !important; /* bg-gray-800 */
+  border: 1px solid #374151 !important; /* border-gray-700 */
+  border-radius: 0.375rem !important; /* rounded-md */
+}
+
+.ant-select-item {
+  color: #e5e7eb !important; /* text-gray-200 */
+}
+
+.ant-select-item:hover {
+  background-color: #374151 !important; /* bg-gray-700 */
+}
+
+.ant-select-item-option-selected {
+  background-color: #f97316 !important; /* bg-orange-500 */
+  color: #ffffff !important;
+}
+
+.ant-select-item-option-active {
+  background-color: #374151 !important; /* bg-gray-700 */
+}
+
 .goal-title-tooltip .ant-tooltip-inner {
   font-size: 12px; /* Or any size you want */
 }

@@ -1,6 +1,6 @@
 // src/components/MatchHistoryHeader.jsx
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { TrendingUp, RefreshCw, Loader2, CalendarDays, Users, ShieldCheck, User, Swords, Search, X, ChevronDown, ChevronUp, ListFilter } from "lucide-react";
+import { TrendingUp, RefreshCw, Loader2, CalendarDays, Users, ShieldCheck, User, Swords, Search, X, ChevronDown, ChevronUp, ListFilter, Edit } from "lucide-react";
 import DatePicker from "react-datepicker";
 import Select from "react-select";
 import "react-datepicker/dist/react-datepicker.css";
@@ -24,7 +24,6 @@ const ChampionFilterWithSuggestions = ({ name, value, placeholder, onChange, ava
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const wrapperRef = useRef(null);
-
   const debounceTimeout = useRef(null);
 
   useEffect(() => {
@@ -168,7 +167,6 @@ const RoleFilter = ({ selectedRole, onRoleChange, commonInputClass, ROLE_ICON_MA
   if (!ROLE_ICON_MAP || !ROLE_ORDER) return null;
   return (
     <div className={`flex items-center bg-gray-700/80 border border-gray-600 rounded-l-md shadow-sm h-9 px-1.5`}>
-      <img src={ROLE_ICON_MAP["TOP"]} alt="Top Lane" className="sr-only" /> {/* Preload common icon */}
       {ROLE_ORDER.map((roleKey) => {
         const IconComponent = ROLE_ICON_MAP[roleKey];
         const isActive = selectedRole === roleKey;
@@ -233,12 +231,10 @@ WinrateHalfRadialChart.displayName = "WinrateHalfRadialChart";
 // FilterInput
 const FilterInput = ({ label, icon: Icon, children, htmlFor }) => (
   <div className="flex-1 min-w-[150px]">
-    {" "}
     <label htmlFor={htmlFor} className="block text-xs font-medium text-gray-400 mb-1 flex items-center">
-      {" "}
-      {Icon && <Icon size={14} className="mr-1.5 text-orange-400" />} {label}{" "}
-    </label>{" "}
-    {children}{" "}
+      {Icon && <Icon size={14} className="mr-1.5 text-orange-400" />} {label}
+    </label>
+    {children}
   </div>
 );
 FilterInput.displayName = "FilterInput";
@@ -262,38 +258,11 @@ const selectStyles = {
   loadingIndicator: (p) => ({ ...p, color: "var(--color-orange-500, #ed8936)" }),
 };
 
-function MatchHistoryHeader({
-  filteredMatches,
-  allMatches,
-  championData,
-  getChampionImage,
-  getChampionDisplayName,
-  handleUpdateAllMatches,
-  isUpdatingAllMatches,
-  isLoadingAccounts,
-  trackedAccounts,
-  ddragonVersion,
-  runesMap,
-  updateProgress,
-  gamesForSummaryCount = 20,
-  filters,
-  onFilterChange,
-  onDatePresetFilter,
-  onUpdateFetchDateChange,
-  updateFetchDates,
-  onClearFilters,
-  availableChampions,
-  availableOpponentChampions,
-  availablePatches,
-  ROLE_ICON_MAP,
-  ROLE_ORDER,
-  // Removed goalTemplates as it's no longer used directly in this component's UI
-}) {
+function MatchHistoryHeader({ filteredMatches, allMatches, championData, getChampionImage, getChampionDisplayName, handleUpdateAllMatches, isUpdatingAllMatches, isLoadingAccounts, trackedAccounts, ddragonVersion, runesMap, updateProgress, gamesForSummaryCount = 20, filters, onFilterChange, onDatePresetFilter, onUpdateFetchDateChange, updateFetchDates, onClearFilters, availableChampions, availableOpponentChampions, availablePatches, ROLE_ICON_MAP, ROLE_ORDER }) {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showAdvancedUpdateOptions, setShowAdvancedUpdateOptions] = useState(false);
   const advancedUpdateOptionsRef = useRef(null);
-
-  const [championFilterMode, setChampionFilterMode] = useState("player"); // 'player' or 'opponent'
+  const [championFilterMode, setChampionFilterMode] = useState("player");
 
   const handleFilterModeToggle = () => {
     const filterToClear = championFilterMode === "player" ? "champion" : "opponentChampion";
@@ -305,25 +274,19 @@ function MatchHistoryHeader({
     if (deaths === 0) return kills > 0 || assists > 0 ? (kills + assists) * 2 : 0;
     return (kills + assists) / deaths;
   };
+
   const summaryData = useMemo(() => {
     if (!filteredMatches || filteredMatches.length === 0) {
-      return {
-        totalGames: 0,
-        wins: 0,
-        losses: 0,
-        winrate: 0,
-        avgKills: 0,
-        avgDeaths: 0,
-        avgAssists: 0,
-        avgKDA: "0.0",
-        topChampions: [],
-      };
+      return { totalGames: 0, wins: 0, losses: 0, winrate: 0, avgKills: 0, avgDeaths: 0, avgAssists: 0, avgKDA: "0.0", topChampions: [] };
     }
 
     const isDateFilterActive = filters.dateRange && (filters.dateRange.startDate || filters.dateRange.endDate);
     const matchesForSummaryCalc = isDateFilterActive ? filteredMatches : filteredMatches.slice(0, gamesForSummaryCount);
 
     const totalGames = matchesForSummaryCalc.length;
+    if (totalGames === 0) {
+      return { totalGames: 0, wins: 0, losses: 0, winrate: 0, avgKills: 0, avgDeaths: 0, avgAssists: 0, avgKDA: "0.0", topChampions: [] };
+    }
 
     let wins = 0,
       totalKills = 0,
@@ -338,14 +301,7 @@ function MatchHistoryHeader({
       totalAssists += player.assists || 0;
       if (player.championName) {
         if (!championStats[player.championName]) {
-          championStats[player.championName] = {
-            name: player.championName,
-            games: 0,
-            wins: 0,
-            kills: 0,
-            deaths: 0,
-            assists: 0,
-          };
+          championStats[player.championName] = { name: player.championName, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
         }
         championStats[player.championName].games++;
         if (player.win) championStats[player.championName].wins++;
@@ -372,18 +328,9 @@ function MatchHistoryHeader({
         kda: calculateSingleGameKDA(champ.games > 0 ? champ.kills / champ.games : 0, champ.games > 0 ? champ.deaths / champ.games : 0, champ.games > 0 ? champ.assists / champ.games : 0),
       }));
 
-    return {
-      totalGames,
-      wins,
-      losses,
-      winrate,
-      avgKills,
-      avgDeaths,
-      avgAssists,
-      avgKDA,
-      topChampions: sortedChampions,
-    };
+    return { totalGames, wins, losses, winrate, avgKills, avgDeaths, avgAssists, avgKDA, topChampions: sortedChampions };
   }, [filteredMatches, gamesForSummaryCount, getChampionDisplayName, filters.dateRange]);
+
   const getWinrateColor = (wr) => {
     if (wr >= 60) return "text-green-400";
     if (wr >= 50) return "text-blue-400";
@@ -402,6 +349,7 @@ function MatchHistoryHeader({
   const commonInputClass = "w-full bg-gray-700/80 border border-gray-600 rounded-md shadow-sm focus:border-orange-500 text-gray-200 placeholder-gray-400 text-xs px-2.5";
   const controlElementHeightClass = "h-9";
   const datePresetButtonClass = "px-2.5 py-1 bg-gray-600/70 hover:bg-gray-500/70 text-gray-300 text-xs rounded-md transition-colors";
+
   const handleFilterDateChange = (dates) => {
     const [start, end] = dates;
     onFilterChange({ target: { name: "dateRange", value: { startDate: start ? format(start, "yyyy-MM-dd") : null, endDate: end ? format(end, "yyyy-MM-dd") : null } } });
@@ -427,6 +375,7 @@ function MatchHistoryHeader({
     if (Array.isArray(filters.patch)) return filters.patch.map((p) => ({ value: p, label: p }));
     return [];
   }, [filters.patch]);
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (advancedUpdateOptionsRef.current && !advancedUpdateOptionsRef.current.contains(event.target)) {
@@ -441,10 +390,10 @@ function MatchHistoryHeader({
   }, [showAdvancedUpdateOptions]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 mt-4 mb-2">
+    <div className="mt-4 mb-2 w-full">
       {/* Summary Section */}
       {summaryData.totalGames > 0 && (
-        <div className="max-w-5xl mx-auto bg-gray-800/60 backdrop-blur-md border border-gray-700/50 pt-3 pb-3 h-[160px] rounded-lg flex flex-col items-center justify-center gap-y-2 text-xs font-light text-gray-300 text-center shadow-xl mb-2 min-h-[160px]">
+        <div className="bg-gray-800/60 backdrop-blur-md border border-gray-700/50 pt-3 pb-3 h-[160px] rounded-lg flex flex-col items-center justify-center gap-y-2 text-xs font-light text-gray-300 text-center shadow-xl mb-2 min-h-[160px]">
           <div className="flex items-center gap-2 mx-auto">
             <TrendingUp size={15} className="text-gray-400" />
             <span className="text-xs text-gray-200 font-semibold"> {isAnyFilterActive ? `Filtered Performance (${summaryData.totalGames} Game${summaryData.totalGames === 1 ? "" : "s"})` : `Last ${summaryData.totalGames > gamesForSummaryCount ? gamesForSummaryCount : summaryData.totalGames} Games Performance`} </span>
@@ -469,7 +418,7 @@ function MatchHistoryHeader({
                     </span>
                   </div>
                 </div>
-              ))}{" "}
+              ))}
             </div>
             <div className="hidden lg:flex flex-col items-center justify-center h-full gap-2.5 min-w-[100px]">
               <div className="flex flex-col font-semibold text-gray-300 text-sm items-center gap-1">
@@ -484,33 +433,28 @@ function MatchHistoryHeader({
           </div>
         </div>
       )}
-      {summaryData.totalGames === 0 && filteredMatches && filteredMatches.length === 0 && allMatches && allMatches.length > 0 && <div className="max-w-5xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-2 h-[160px] flex items-center justify-center"> No matches found for the current filters. Try adjusting or clearing them. </div>}
-      {allMatches && allMatches.length === 0 && !isLoadingAccounts && <div className="max-w-5xl mx-auto bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg h-[160px] text-sm font-light text-gray-400 text-center shadow-lg mb-4 min-h-[160px] flex items-center justify-center"> No matches found. Add accounts or click "Update Matches". </div>}
+      {summaryData.totalGames === 0 && filteredMatches && filteredMatches.length === 0 && allMatches && allMatches.length > 0 && <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg text-sm font-light text-gray-400 text-center shadow-lg mb-2 h-[160px] flex items-center justify-center"> No matches found for the current filters. Try adjusting or clearing them. </div>}
+      {allMatches && allMatches.length === 0 && !isLoadingAccounts && <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 p-3 rounded-lg h-[160px] text-sm font-light text-gray-400 text-center shadow-lg mb-4 min-h-[160px] flex items-center justify-center"> No matches found. Add accounts or click "Update Matches". </div>}
 
       {/* Top control bar */}
-      <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 mb-1">
-        {" "}
+      <div className="flex items-center justify-between gap-2 mb-1">
         <div className="flex items-stretch relative">
-          {" "}
           <button
             onClick={() => handleUpdateAllMatches(updateFetchDates.startDate, updateFetchDates.endDate)}
             disabled={updateButtonDisabled}
             className={`bg-orange-600 hover:bg-orange-500 text-white font-semibold py-0 px-3 sm:px-4 rounded-l-lg shadow-md focus:outline-none focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed transition-opacity text-xs sm:text-sm ${controlElementHeightClass}`}
             style={{ minWidth: "100px" }}
           >
-            {" "}
-            {isUpdatingAllMatches ? <Loader2 size={18} className="animate-spin mr-1 sm:mr-2" /> : <RefreshCw size={16} className="mr-1 sm:mr-2" />} Update{" "}
-          </button>{" "}
+            {isUpdatingAllMatches ? <Loader2 size={18} className="animate-spin mr-1 sm:mr-2" /> : <RefreshCw size={16} className="mr-1 sm:mr-2" />} Update
+          </button>
           <button id="advanced-update-toggle" onClick={() => setShowAdvancedUpdateOptions((prev) => !prev)} className={`p-1.5 bg-orange-700 hover:bg-orange-800 rounded-r-lg text-gray-200 hover:text-white transition-colors flex items-center justify-center w-[34px] sm:w-[38px] flex-shrink-0 border-l border-orange-800/50 ${controlElementHeightClass}`} title={showAdvancedUpdateOptions ? "Hide Update Date Range" : "Show Update Date Range"}>
-            {" "}
-            {showAdvancedUpdateOptions ? <ChevronUp size={18} /> : <ChevronDown size={18} />}{" "}
-          </button>{" "}
+            {showAdvancedUpdateOptions ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
           {showAdvancedUpdateOptions && (
             <div ref={advancedUpdateOptionsRef} className="absolute top-full left-0 mt-1 z-20 bg-gray-800 p-3 rounded-lg shadow-xl border border-gray-700 w-auto min-w-[280px]">
-              {" "}
               <label htmlFor="updateDateRange" className="block text-xs text-gray-400 mb-1">
                 Fetch Specific Date Range:
-              </label>{" "}
+              </label>
               <DatePicker
                 selectsRange
                 startDate={updateFetchDates.startDate ? new Date(updateFetchDates.startDate) : null}
@@ -524,16 +468,14 @@ function MatchHistoryHeader({
                 calendarClassName="react-datepicker-dark"
                 popperPlacement="bottom-start"
                 disabled={isUpdatingAllMatches}
-              />{" "}
+              />
             </div>
-          )}{" "}
-        </div>{" "}
+          )}
+        </div>
         <div className="flex items-stretch rounded-lg shadow-sm">
-          {" "}
           <div className={`${controlElementHeightClass}`}>
-            {" "}
-            <RoleFilter selectedRole={filters.role} onRoleChange={handleRoleFilterChange} commonInputClass={commonInputClass} ROLE_ICON_MAP={ROLE_ICON_MAP} ROLE_ORDER={ROLE_ORDER} />{" "}
-          </div>{" "}
+            <RoleFilter selectedRole={filters.role} onRoleChange={handleRoleFilterChange} commonInputClass={commonInputClass} ROLE_ICON_MAP={ROLE_ICON_MAP} ROLE_ORDER={ROLE_ORDER} />
+          </div>
           <button onClick={handleFilterModeToggle} title={championFilterMode === "player" ? "Switch to Opponent filter" : "Switch to Player filter"} className={`p-1.5 bg-gray-700/80 hover:bg-gray-600/80 text-gray-300 hover:text-orange-300 transition-colors flex items-center justify-center w-[34px] sm:w-[38px] flex-shrink-0 border-y border-gray-600 ${controlElementHeightClass}`}>
             {championFilterMode === "player" ? <User size={18} /> : <Swords size={18} />}
           </button>
@@ -545,68 +487,56 @@ function MatchHistoryHeader({
             )}
           </div>
           <button onClick={() => setShowAdvancedFilters(!showAdvancedFilters)} className={`p-1.5 bg-gray-700/80 hover:bg-gray-600/80 rounded-r-lg text-gray-300 hover:text-orange-300 transition-colors flex items-center justify-center w-[34px] sm:w-[38px] flex-shrink-0 border border-gray-600 border-l-0 ${controlElementHeightClass}`} title={showAdvancedFilters ? "Hide Advanced Filters" : "Show Advanced Filters"}>
-            {" "}
-            <ListFilter size={18} />{" "}
-          </button>{" "}
-        </div>{" "}
+            <ListFilter size={18} />
+          </button>
+        </div>
       </div>
-      <div className="max-w-5xl mx-auto w-full mb-2 flex items-center justify-center">
-        {" "}
+      <div className="w-full mb-2 flex items-center justify-center">
         {isUpdatingAllMatches && updateProgress && (
           <div className="w-full p-2.5 bg-sky-900/50 text-sky-300 border border-gray-700/50 rounded-md text-sm text-center">
-            {" "}
-            <p>{updateProgress}</p>{" "}
+            <p>{updateProgress}</p>
           </div>
-        )}{" "}
+        )}
       </div>
       {showAdvancedFilters && (
-        <div className="relative z-10 max-w-5xl mx-auto bg-gray-800/40 backdrop-blur-sm border border-gray-700/30 p-3 rounded-lg shadow-md mb-3 space-y-3">
-          {" "}
+        <div className="relative z-10 bg-gray-800/40 backdrop-blur-sm border border-gray-700/30 p-3 rounded-lg shadow-md mb-3 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-end">
-            {" "}
             <FilterInput label="Patch(es)" icon={ShieldCheck} htmlFor="filterPatch">
-              {" "}
-              <Select id="filterPatch" name="patch" isMulti options={patchOptions} value={selectedPatchValues} onChange={handlePatchChange} className="text-xs react-select-container" classNamePrefix="react-select" styles={selectStyles} placeholder="Select patch(es)..." isClearable />{" "}
-            </FilterInput>{" "}
+              <Select id="filterPatch" name="patch" isMulti options={patchOptions} value={selectedPatchValues} onChange={handlePatchChange} className="text-xs react-select-container" classNamePrefix="react-select" styles={selectStyles} placeholder="Select patch(es)..." isClearable />
+            </FilterInput>
             <FilterInput label="With Player (Name#Tag)" icon={Users} htmlFor="filterWithPlayer">
-              {" "}
-              <input type="text" id="filterWithPlayer" name="withPlayer" value={filters.withPlayer} onChange={onFilterChange} placeholder="e.g., Teammate#EUW" className={`${commonInputClass} ${controlElementHeightClass}`} />{" "}
-            </FilterInput>{" "}
+              <input type="text" id="filterWithPlayer" name="withPlayer" value={filters.withPlayer} onChange={onFilterChange} placeholder="e.g., Teammate#EUW" className={`${commonInputClass} ${controlElementHeightClass}`} />
+            </FilterInput>
             <div className="md:col-span-1">
-              {" "}
               <FilterInput label="Date Range" icon={CalendarDays} htmlFor="filterDateRange">
-                {" "}
-                <DatePicker selectsRange startDate={filters.dateRange?.startDate ? new Date(filters.dateRange.startDate) : null} endDate={filters.dateRange?.endDate ? new Date(filters.dateRange.endDate) : null} onChange={handleFilterDateChange} isClearable placeholderText="Select date range..." dateFormat="yyyy/MM/dd" className={`${commonInputClass} ${controlElementHeightClass}`} wrapperClassName="w-full" calendarClassName="react-datepicker-dark" popperPlacement="bottom-start" />{" "}
-              </FilterInput>{" "}
-            </div>{" "}
+                <DatePicker selectsRange startDate={filters.dateRange?.startDate ? new Date(filters.dateRange.startDate) : null} endDate={filters.dateRange?.endDate ? new Date(filters.dateRange.endDate) : null} onChange={handleFilterDateChange} isClearable placeholderText="Select date range..." dateFormat="yyyy/MM/dd" className={`${commonInputClass} ${controlElementHeightClass}`} wrapperClassName="w-full" calendarClassName="react-datepicker-dark" popperPlacement="bottom-start" />
+              </FilterInput>
+            </div>
             <div className="md:col-span-2 flex flex-col">
-              {" "}
-              <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center"> Date Presets </label>{" "}
+              <label className="block text-xs font-medium text-gray-400 mb-1 flex items-center"> Date Presets </label>
               <div className="flex flex-wrap gap-1.5">
-                {" "}
                 <button onClick={() => onDatePresetFilter("last7days")} className={datePresetButtonClass}>
                   Last 7 Days
-                </button>{" "}
+                </button>
                 <button onClick={() => onDatePresetFilter("last30days")} className={datePresetButtonClass}>
                   Last 30 Days
-                </button>{" "}
+                </button>
                 <button onClick={() => onDatePresetFilter("thisMonth")} className={datePresetButtonClass}>
                   This Month
-                </button>{" "}
-              </div>{" "}
-            </div>{" "}
+                </button>
+              </div>
+            </div>
             <div className="flex items-end">
-              {" "}
               <button onClick={onClearFilters} className={`w-full bg-gray-600 hover:bg-gray-500 text-white font-medium py-0 px-3 rounded-md shadow-sm text-xs flex items-center justify-center transition-colors ${controlElementHeightClass}`}>
-                {" "}
-                <X size={14} className="mr-1" /> Clear Filters{" "}
-              </button>{" "}
-            </div>{" "}
-          </div>{" "}
+                <X size={14} className="mr-1" /> Clear Filters
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
+MatchHistoryHeader.displayName = "MatchHistoryHeader";
 
 export default MatchHistoryHeader;

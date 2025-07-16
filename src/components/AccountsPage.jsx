@@ -244,7 +244,7 @@ function AccountsPage() {
     // - On large screens: The content fits, so `justify-center` centers it vertically.
     // - On small screens: The content is taller than the screen. The container grows to fit the tall content,
     //   and the browser creates a SINGLE, NORMAL page scrollbar, which is the correct and expected behavior.
-    <div className="w-full h-[calc(100vh-4rem)] bg-gray-900 text-gray-200 flex items-center justify-center p-4" style={backgroundStyle}>
+    <div className="w-full h-[calc(100vh-50px)] bg-gray-900 text-gray-200 flex items-center justify-center p-4" style={backgroundStyle}>
       <style>{scrollbarStyles}</style>
 
       {/* This child grid is now perfectly centered by its parent and needs no special classes. */}
